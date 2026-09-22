@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Search, Plus, Bell, ChevronDown, Sparkles } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
+import { AiSettingsModal } from '../modals/AiSettingsModal';
 
 export const TopHeader: React.FC = () => {
   const { setActiveScreen, toggleCopilot, isCopilotOpen } = useProject();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
@@ -42,6 +44,16 @@ export const TopHeader: React.FC = () => {
         >
           <Plus className="w-4 h-4 text-[#f25b2a]" />
           <span>New Project</span>
+        </button>
+
+        {/* Gemini AI Engine Status Pill */}
+        <button
+          onClick={() => setShowAiModal(true)}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all shadow-sm"
+          title="Tattava AI Engine (Gemini 3.6 Flash)"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="hidden sm:inline font-mono text-[11px]">Gemini 3.6</span>
         </button>
 
         {/* Contextual AI Copilot Toggle */}
@@ -104,6 +116,9 @@ export const TopHeader: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* AI Settings Modal */}
+      <AiSettingsModal isOpen={showAiModal} onClose={() => setShowAiModal(false)} />
     </header>
   );
 };

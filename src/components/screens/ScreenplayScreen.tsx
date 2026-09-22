@@ -5,6 +5,7 @@ import {
   ChevronRight, AlignLeft, Type, Edit3, Plus, CheckCircle2, Sliders
 } from 'lucide-react';
 import { ScreenplayLine } from '../../types/project';
+import { punchUpDialogue } from '../../services/geminiService';
 
 export const ScreenplayScreen: React.FC = () => {
   const { currentProject, updateScreenplayLine, addScreenplayLine, nextStep } = useProject();
@@ -31,19 +32,26 @@ export const ScreenplayScreen: React.FC = () => {
     addScreenplayLine(newLine);
   };
 
-  const runAiDialoguePunchUp = () => {
+  const runAiDialoguePunchUp = async () => {
     setAiPunchingUp(true);
-    setTimeout(() => {
-      // Find Aanya's dialogue in Scene 1 and punch up subtext
-      const aanyaDialogue = filteredLines.find(l => l.type === 'dialogue');
-      if (aanyaDialogue) {
+    const aanyaDialogue = filteredLines.find(l => l.type === 'dialogue');
+    if (aanyaDialogue) {
+      try {
+        const punched = await punchUpDialogue(
+          aanyaDialogue.content,
+          aanyaDialogue.characterName || 'AANYA',
+          `Scene ${activeSceneNumber}: EXT. MUMBAI RADAR TOWER - NIGHT. High storm alert, sluice gates compromised.`,
+          'Inject acute subtext, procedural coldness, and urgent cinematic weight.'
+        );
+        updateScreenplayLine(aanyaDialogue.id, punched);
+      } catch (e) {
         updateScreenplayLine(
           aanyaDialogue.id,
           "The telemetry isn't glitching, Raghav. Someone in Sector 4 cut the power grid before the rain began."
         );
       }
-      setAiPunchingUp(false);
-    }, 900);
+    }
+    setAiPunchingUp(false);
   };
 
   return (

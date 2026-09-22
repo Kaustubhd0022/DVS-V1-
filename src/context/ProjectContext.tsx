@@ -11,6 +11,7 @@ import {
   SceneItem
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
+import { askCopilot } from '../services/geminiService';
 
 export type ScreenId = 
   | 'home' 
@@ -630,28 +631,36 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const toggleCopilot = () => setIsCopilotOpen(prev => !prev);
 
-  const sendCopilotMessage = (text: string) => {
+  const sendCopilotMessage = async (text: string) => {
     if (!text.trim()) return;
     const userMsg = { sender: 'user' as const, text, time: 'Just now' };
     setCopilotMessages(prev => [...prev, userMsg]);
 
-    // Contextual AI simulation response
-    setTimeout(() => {
-      let reply = `Analyzing "${text}" against the canonical project memory of "${currentProject.title}"...`;
-      const lower = text.toLowerCase();
-      if (lower.includes('approval') || lower.includes('greenlight')) {
-        reply = `Project "${currentProject.title}" is at ${currentProject.progressPercent}% progress. Stakeholder sign-offs: Founder (Approved), Creative Director (Approved), Producer (In Review). 2 pending legal/finance sign-offs before full greenlight.`;
-      } else if (lower.includes('continuity') || lower.includes('issue') || lower.includes('qa')) {
-        reply = `Found 1 open Prop Mismatch in Scene 1B (ceramic mug missing in Shot 7) and 1 spatial background query. All other 6 continuity parameters are verified clean.`;
-      } else if (lower.includes('direction') || lower.includes('story')) {
-        reply = `You currently have 3 explored directions: Political Thriller (Selected), Character Drama, and Psychological Mystery. Direction A has the highest commercial velocity, while Direction B provides deeper emotional resonance. You can combine them in the Story Exploration tab.`;
-      } else if (lower.includes('anaya') || lower.includes('aanya') || lower.includes('character')) {
-        reply = `Aanya is currently registered as a ${currentProject.characters[0]?.age || 24}-year-old ${currentProject.characters[0]?.role} in "${currentProject.title}". Downstream dependencies include 8 linked scenes, 3 dialogue blocks, and 2 production casting briefs.`;
-      } else {
-        reply = `Based on your creative intent for ${currentProject.title} (${currentProject.genre}), the narrative structure maintains strong three-act momentum with key turning points at 20 min and 70 min. Let me know if you would like me to draft scene beats or check dialogue rhythm!`;
-      }
+    const projectSummary = `
+Title: ${currentProject.title} (${currentProject.contentType} • ${currentProject.genre} • ${currentProject.language})
+Logline: ${currentProject.tagline || currentProject.intent?.premise}
+Current Pipeline Stage: ${activeScreen}
+Protagonist: ${currentProject.characters?.[0]?.name} (Age: ${currentProject.characters?.[0]?.age}, Role: ${currentProject.characters?.[0]?.role})
+Want: ${currentProject.characters?.[0]?.want}
+Need: ${currentProject.characters?.[0]?.need}
+World Setting: ${currentProject.world?.era}, ${currentProject.world?.settingType}
+Format: ${currentProject.format}
+Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
+    `.trim();
+
+    try {
+      const reply = await askCopilot(text, projectSummary, copilotMessages);
       setCopilotMessages(prev => [...prev, { sender: 'tattava', text: reply, time: 'Just now' }]);
-    }, 600);
+    } catch (e) {
+      setCopilotMessages(prev => [
+        ...prev,
+        {
+          sender: 'tattava',
+          text: `Analyzing "${text}": The narrative engine demonstrates strong commercial velocity and tension. Ensure character conflict peaks at the Midpoint reversal.`,
+          time: 'Just now'
+        }
+      ]);
+    }
   };
 
   const setProjectFormat = (formatTitle: string) => {

@@ -15,6 +15,7 @@ import {
   Info
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
+import { analyzeConceptIntake, askCopilot } from '../../services/geminiService';
 
 export const IntakeScreen: React.FC = () => {
   const { currentProject, updateCurrentProject, nextStep, prevStep } = useProject();
@@ -55,27 +56,49 @@ export const IntakeScreen: React.FC = () => {
   ]);
   const [chatInput, setChatInput] = useState('');
 
-  const handleAnalyzeAI = () => {
+  const handleAnalyzeAI = async () => {
     setIsAnalyzing(true);
-    setTimeout(() => {
+    try {
+      const breakdown = await analyzeConceptIntake(ideaText);
+      setPremise(breakdown.premise);
+      setProtagonist(breakdown.protagonist);
+      setSetting(breakdown.setting);
+      setTone(breakdown.tone);
+      setThemes(breakdown.themes.join(', '));
+      
+      updateCurrentProject(prev => ({
+        ...prev,
+        intent: {
+          ...prev.intent,
+          premise: breakdown.premise,
+          protagonist: breakdown.protagonist,
+          setting: breakdown.setting,
+          conflict: breakdown.conflict,
+          stakes: breakdown.stakes,
+          tone: breakdown.tone,
+          themes: breakdown.themes,
+          missingQuestions: breakdown.missingQuestions
+        }
+      }));
+    } catch (e) {
+      console.warn('AI analysis error', e);
+    } finally {
       setIsAnalyzing(false);
-      setPremise('A young UPSC aspirant uncovers a political conspiracy during an unseasonal monsoon flood.');
-      setProtagonist('24-year-old female aspirant from a small town with high moral principles');
-      setGenre('Political Thriller / Character Drama');
-      setSetting('Contemporary India (Delhi & Allahabad)');
-      setThemes('Ambition, truth, integrity, systemic power, sacrifice');
-      setTone('Realistic, gripping, emotionally driven');
-    }, 800);
+    }
   };
 
-  const handleSendChat = (e: React.FormEvent) => {
+  const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-    const msg = { sender: 'user' as const, text: chatInput, time: 'Just now' };
-    setChatMessages(prev => [...prev, msg]);
+    const query = chatInput;
     setChatInput('');
+    const msg = { sender: 'user' as const, text: query, time: 'Just now' };
+    setChatMessages(prev => [...prev, msg]);
 
-    setTimeout(() => {
+    try {
+      const reply = await askCopilot(query, `Premise: ${ideaText || premise}`);
+      setChatMessages(prev => [...prev, { sender: 'tattava', text: reply, time: 'Just now' }]);
+    } catch (e) {
       setChatMessages(prev => [
         ...prev,
         {
@@ -84,7 +107,7 @@ export const IntakeScreen: React.FC = () => {
           time: 'Just now'
         }
       ]);
-    }, 500);
+    }
   };
 
   const handleSaveAndContinue = () => {
