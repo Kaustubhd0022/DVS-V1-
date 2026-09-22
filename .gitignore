@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# Production build
+dist
+dist-ssr
+
+# Environment / local
+*.local
+.env
+.env.*
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

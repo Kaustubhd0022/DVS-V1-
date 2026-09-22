@@ -1,0 +1,1419 @@
+
+
+
+TATTAVA — LIVE FUNCTIONAL PROTOTYPE SPECIFICATION
+1. Product Definition
+Tattava is an AI-native Film Development & Production Operating System.
+The prototype should demonstrate:
+Idea → Research → Story → Characters → World → Structure → Treatment → Scenes → Screenplay → Dialogue → QA → Visual Development → Production Planning → Final Package
+The critical product behavior is not simply generating content.
+It is:
+Explore → Propose → Decide → Approve → Remember → Propagate
+The prototype must therefore behave like a connected project system, not a sequence of unrelated pages.
+
+2. Prototype Objective
+The live prototype should allow a user to:
+Create a project
+Enter an idea
+Let Tattava structure the idea
+Conduct AI-assisted research
+Explore multiple story directions
+Select a direction
+Select format/template
+Develop characters
+Build the story world
+Develop story structure
+Generate treatment and beat sheet
+Create scene outline
+Generate/edit screenplay
+Develop dialogue
+Run continuity/creative QA
+Build visual direction
+Generate production planning information
+Create a final production-ready project package
+The uploaded design already visually represents this journey across the 17 pages.
+
+3. MOST IMPORTANT PRODUCT PRINCIPLE
+Tattava is not 17 pages.
+There is one Project underneath the 17 pages.
+For example:
+PROJECT
+│
+├── Intent
+├── Research
+│   ├── Sources
+│   ├── Claims
+│   └── Findings
+│
+├── Story
+│   ├── Directions
+│   ├── Decisions
+│   └── Structure
+│
+├── Characters
+│
+├── Story World
+│
+├── Treatment
+│
+├── Beat Sheet
+│
+├── Scenes
+│
+├── Screenplay
+│
+├── Dialogue
+│
+├── Visual Development
+│
+├── Production
+│   ├── Breakdown
+│   ├── Cast
+│   ├── Locations
+│   ├── Crew
+│   ├── Budget
+│   └── Schedule
+│
+└── Final Package
+Every module reads from and writes back to this project.
+
+4. GLOBAL APPLICATION STRUCTURE
+Based on the uploaded UI, the application should have a persistent left navigation.
+Main navigation
+TATTAVA
+
+Home
+Projects
+AI Copilot
+Templates
+Research Library
+Team
+Calendar
+Insights
+Settings
+The uploaded home screen already establishes this structure and a project-centric dashboard rather than a generic chatbot.
+Inside a project:
+Project Header
+
+The Last Monsoon
+Feature Film • Hindi • In Development
+
+Overview
+Research
+Story
+Characters
+World
+Structure
+Treatment
+Scenes
+Screenplay
+Dialogue
+QA
+Visual
+Production
+Package
+Decisions
+Versions
+Activity
+
+5. GLOBAL PROJECT STATE
+Every major object should have a state.
+DRAFT
+↓
+IN REVIEW
+↓
+APPROVED
+↓
+LOCKED
+Meaning
+Draft
+AI/user can modify
+In Review
+awaiting human decision
+Approved
+becomes canonical project knowledge
+Locked
+cannot be changed without explicit unlock/change request
+This is critical because Tattava must never silently rewrite canonical creative decisions.
+
+6. GLOBAL AI BEHAVIOR
+Every AI action should follow:
+USER REQUEST
+      ↓
+PROJECT CONTEXT
+      ↓
+RELEVANT PROJECT MEMORY
+      ↓
+AI GENERATION
+      ↓
+STRUCTURED OUTPUT
+      ↓
+USER REVIEW
+      ↓
+Accept / Edit / Combine / Reject
+      ↓
+APPROVAL
+      ↓
+PROJECT MEMORY
+Every AI-generated output needs these actions:
+Accept
+Edit
+Regenerate
+Explore More
+Combine
+Reject
+Ask Tattava
+The Story Exploration screen already visually establishes multiple directions and selection rather than a single AI answer.
+
+7. SCREEN-BY-SCREEN FUNCTIONAL SPECIFICATION
+
+SCREEN 01 — HOME / PROJECT DASHBOARD
+The uploaded first page shows:
+Hero section
+Projects
+Project cards
+Create New Project
+Tattava Copilot
+Development Journey
+Recent activity
+Functional behavior
+Project cards
+Each card contains:
+Project Name
+Content Type
+Language
+Genre
+Current Stage
+Progress %
+Owner
+Last Updated
+Team Members
+Approval Status
+Actions
+Open Project
+Duplicate
+Archive
+Rename
+Delete
+Search
+Filter
+Sort
+Create Project
+Click:
++ New Project
+→ opens Project Creation.
+Copilot
+User can ask:
+"What projects need approval?"
+"Show projects currently blocked."
+"Which project has the most continuity issues?"
+Copilot must answer from project data.
+
+SCREEN 02 — CREATE PROJECT
+The uploaded screen contains:
+Project title
+Content type
+Language
+Genre
+Target audience
+Visibility
+Project poster
+Tags
+Project type
+Continue
+Functional logic
+Required:
+Project Name
+Content Type
+Language
+Genre
+Optional:
+Target Audience
+Poster
+Tags
+Platform
+Runtime
+Team
+On:
+Save & Continue
+create:
+Project ID
+Project
+Project Owner
+Project Members
+Project State = DRAFT
+Then redirect:
+Project Intake
+
+SCREEN 03 — PROJECT INTAKE
+The uploaded page contains:
+Describe your idea
+My understanding
+AI clarification
+Quick inspiration
+Ask Tattava
+Save & Continue
+Core behavior
+User enters:
+"A 26-year-old UPSC aspirant discovers..."
+Tattava extracts:
+{
+  "premise": "",
+  "protagonist": "",
+  "setting": "",
+  "conflict": "",
+  "stakes": "",
+  "themes": "",
+  "tone": "",
+  "unknowns": [],
+  "research_questions": []
+}
+Display:
+"My Understanding"
+Cards:
+Premise
+Protagonist
+Conflict
+Setting
+Stakes
+Theme
+Genre
+Audience
+User can edit each field.
+Important
+Do not automatically make AI interpretation canonical.
+User must click:
+Accept Understanding
+Then:
+Intent.status = APPROVED
+
+SCREEN 04 — RESEARCH
+The uploaded Research screen includes:
+Research Overview
+Research Questions
+Findings
+Sources
+Connections
+Notes
+Research conflicts
+Related media
+Connect to project
+Functional research pipeline
+Project Intent
+      ↓
+Research Questions
+      ↓
+Search / Research
+      ↓
+Sources
+      ↓
+Claims
+      ↓
+Findings
+      ↓
+Human Verification
+      ↓
+Project Memory
+Finding object
+Finding
+Topic
+Claim
+Evidence
+Source
+Source Type
+Confidence
+Status
+Used In
+Actions
+Verify
+Reject
+Save
+Add Note
+Use in Story
+Link to Character
+Link to Scene
+View Source
+
+SCREEN 05 — STORY EXPLORATION
+The uploaded design shows three different story directions such as:
+Political Thriller
+Character Drama
+Psychological Mystery
+with comparison and combine functionality.
+This is one of the most important screens.
+AI generates
+For each direction:
+Title
+Logline
+Genre
+Narrative Engine
+Protagonist
+Conflict
+Stakes
+Theme
+Tone
+Strengths
+Risks
+Actions
+View Details
+Select Direction
+Compare
+Combine Ideas
+Regenerate
+Modify
+Reject
+Combine
+User could select:
+Direction A
++ Character Arc from B
++ Ending from C
+→
+Generate New Direction
+This creates:
+Story Direction D
+without destroying A/B/C.
+
+SCREEN 06 — FORMAT & TEMPLATE
+The uploaded page shows format options including:
+Feature Film
+Limited Series
+Episodic Series
+Vertical Series
+and template selection.
+AI recommendation
+Tattava analyzes:
+Story complexity
+Audience
+Platform
+Runtime
+Narrative structure
+Number of characters
+Story scope
+Then recommends formats.
+Example:
+Recommended: Limited Series
+with reasons.
+User chooses
+AI recommendation ≠ automatic selection.
+After selection:
+Format.status = APPROVED
+Template.status = APPROVED
+
+SCREEN 07 — CHARACTER DEVELOPMENT
+The uploaded screen contains character cards and functions such as:
+Explore Variations
+Build Backstory
+Character Voice
+Consistency Check
+Character schema
+Name
+Age
+Gender
+Occupation
+Background
+Goal
+Want
+Need
+Fear
+Flaw
+Strength
+Secret
+Relationships
+Arc
+Voice
+Contradictions
+AI actions
+Generate Variation
+Build Backstory
+Generate Arc
+Generate Voice
+Generate Contradictions
+Consistency Check
+Relationship graph
+Example:
+Anaya
+ ↓
+Mother
+ ↓
+Mentor
+ ↓
+Political Rival
+ ↓
+Journalist
+Changing a relationship should create a potential impact event.
+
+SCREEN 08 — STORY WORLD
+The uploaded screen includes:
+Contemporary India
+Time period
+Primary locations
+Setting type
+Themes
+Key locations
+World map
+Culture
+Institutions
+Visual moodboard
+World model
+Time
+Geography
+Locations
+Culture
+Institutions
+Politics
+Social Context
+Technology
+Lifestyle
+Visual Language
+World Rules
+Location
+Each location becomes an object:
+Location ID
+Name
+Description
+Geography
+Visual Character
+Scenes
+Production Requirements
+
+SCREEN 09 — STORY STRUCTURE
+The uploaded screen visualizes:
+Acts
+Setup
+Confrontation
+Resolution
+Timeline
+Key scenes
+AI structure assistant
+Hierarchy
+Story
+ ↓
+Act
+ ↓
+Sequence
+ ↓
+Beat
+ ↓
+Scene
+AI functions
+Suggest Structure
+Improve Pacing
+Identify Gaps
+Identify Structural Issues
+Compare Structures
+Generate Alternative Structure
+User approves structure.
+
+SCREEN 10 — TREATMENT & BEAT SHEET
+The uploaded screen combines treatment, visual treatment moodboard, key plot beats and checklist.
+Generate Treatment
+Inputs:
+Intent
+Research
+Story Direction
+Characters
+World
+Structure
+Output:
+Logline
+Synopsis
+Treatment
+Themes
+Tone
+Audience
+Emotional Journey
+Beat sheet
+Each beat:
+Beat ID
+Act
+Sequence
+Purpose
+Characters
+Conflict
+Action
+Emotional Change
+Information Revealed
+Versioning
+Treatment v1
+Treatment v2
+Treatment v3
+Never overwrite previous versions.
+
+SCREEN 11 — SCENE OUTLINE
+The uploaded screen provides:
+Scene list
+Scene details
+Timeline
+Characters
+Key elements
+Dialogue highlights
+Visual references
+Notes
+Add Scene
+Scene object
+Scene ID
+Scene Number
+Act
+Sequence
+Location
+INT/EXT
+Time
+Characters
+Objective
+Conflict
+Action
+Emotional Change
+Information
+Research References
+Props
+Costume
+Sound
+Production Requirements
+AI actions
+Generate Scene
+Rewrite Scene
+Increase Conflict
+Change Objective
+Add Character
+Check Continuity
+
+SCREEN 12 — SCREENPLAY
+The uploaded screenplay screen is a structured screenplay editor with scene navigation, formatting controls, AI Copilot and scene-level visual references.
+Functional editor
+Support:
+Scene heading
+Action
+Character
+Dialogue
+Parenthetical
+Transition
+Comments
+Versioning
+AI commands
+Continue
+Rewrite
+Shorten
+Expand
+Increase tension
+Change tone
+Alternative scene
+Improve character voice
+Translate
+Critical rule:
+AI only changes the selected scope.
+If the user selects one paragraph, Tattava should not rewrite the whole screenplay.
+
+SCREEN 13 — DIALOGUE DEVELOPMENT
+The uploaded design provides:
+Scene dialogue
+Character voice profile
+Dialogue suggestions
+Dialogue tools
+Scene preview
+Context passed to AI
+Character
+Character Voice
+Relationship
+Scene Objective
+Emotional State
+Subtext
+Previous Dialogue
+Cultural Context
+Language
+AI returns multiple alternatives:
+A — Restrained
+B — Emotional
+C — Confrontational
+User can:
+Accept
+Edit
+Combine
+Reject
+Regenerate
+
+SCREEN 14 — CONTINUITY & CREATIVE QA
+This is a very important differentiator.
+The uploaded screen includes:
+Scene thumbnails
+Shot comparison
+Character continuity
+Dialogue consistency
+Location continuity
+Creative QA assistant
+Notes & decisions
+QA engine
+Check:
+Character
+Age
+Appearance
+Motivation
+Relationships
+Arc
+Voice
+Timeline
+Date
+Time
+Sequence
+Age
+Events
+Location
+Location
+Weather
+Geography
+Scene continuity
+Props
+Introduced
+Used
+Carried
+Destroyed
+Returned
+Costume
+Scene continuity
+Time continuity
+Character continuity
+Story
+Motivation
+Logic
+Cause/effect
+World rules
+Research
+Claim
+Source
+Accuracy
+Contradiction
+
+15. CRITICAL FEATURE — CHANGE IMPACT ANALYSIS
+This is what will make the prototype feel like a real AI-native operating system rather than an AI content generator.
+Example:
+User changes:
+Anaya's age: 24 → 34
+Tattava detects:
+CHARACTER
+Anaya
+     ↓
+STORY
+Her motivation may change
+     ↓
+SCENES
+8 scenes affected
+     ↓
+DIALOGUE
+3 dialogue sections affected
+     ↓
+RELATIONSHIPS
+Mother relationship affected
+     ↓
+COSTUME
+Potential change
+     ↓
+CASTING
+Age range affected
+     ↓
+PRODUCTION
+Schedule/casting implications
+Display:
+Change Impact
+12 Objects Potentially Affected
+
+Characters       1
+Story             1
+Scenes            8
+Dialogue          3
+Visual Assets     4
+Production        2
+User chooses:
+Review Changes
+or
+Do Not Propagate
+Nothing propagates automatically.
+
+SCREEN 15 — VISUAL DEVELOPMENT
+The uploaded screen contains:
+Moodboard
+Key frames
+Characters
+Locations
+Props
+Color palette
+Reference library
+AI Visual Assistant
+Art direction notes
+Visual checklist
+V1 scope
+This should create a visual bible, not a full AI video generation system.
+Objects
+Moodboard
+Character Reference
+Location Reference
+Costume Reference
+Production Design
+Lighting
+Color Palette
+Camera Language
+Key Frame
+Every visual asset should be linked to:
+Project
+Character
+Location
+Scene
+Visual Decision
+
+SCREEN 16 — PRODUCTION PLANNING
+The uploaded page shows:
+Shooting days
+Locations
+Cast
+Budget
+Schedule/Gantt
+Milestones
+Dependencies
+Risk management
+Document library
+Readiness
+Production status
+This screen must derive its information from the screenplay.
+Script breakdown
+From:
+Scene
+derive:
+Characters
+Location
+Props
+Costume
+Equipment
+Special Requirements
+Sound
+VFX
+SFX
+Complexity
+
+17. PRODUCTION SCHEDULING ENGINE
+Inputs:
+Scene Duration
+Location
+Cast Availability
+Day/Night
+Travel
+Weather
+Equipment
+Dependencies
+AI proposes:
+Option A
+Fastest schedule
+Option B
+Lowest location movement
+Option C
+Lowest estimated cost
+User chooses.
+The system should then create schedule items.
+
+18. BUDGET ENGINE
+AI should not perform uncontrolled arithmetic.
+AI proposes:
+Cast assumption
+Crew assumption
+Location assumption
+Equipment assumption
+Travel assumption
+Post-production assumption
+Contingency assumption
+Deterministic calculation engine calculates:
+Subtotal
+Contingency
+Total
+Categories:
+Cast
+Crew
+Locations
+Travel
+Equipment
+Production Design
+Costume
+Makeup
+Food
+Accommodation
+Post
+VFX
+Sound
+Music
+Contingency
+
+19. RISK ENGINE
+Risks:
+Weather
+Actor Availability
+Permits
+Travel
+Night Shoot
+Complex Scene
+VFX
+Budget
+Schedule
+Research Uncertainty
+Location
+Each:
+Risk
+Probability
+Impact
+Severity
+Mitigation
+Owner
+Status
+
+SCREEN 17 — PACKAGE & DELIVERY
+The uploaded final screen includes:
+Final package checklist
+Key deliverables
+Approvals
+Package summary
+Stakeholder approvals
+Complete package
+Download
+Submit for approval
+Final package
+Creative
+Logline
+Synopsis
+Story
+Characters
+World
+Treatment
+Beat Sheet
+Scene Outline
+Screenplay
+Dialogue Bible
+Research
+Research Dossier
+Sources
+Claims
+Evidence
+Visual
+Lookbook
+Moodboard
+Character References
+Location References
+Visual Direction
+Production
+Script Breakdown
+Cast
+Crew
+Locations
+Props
+Costume
+Budget
+Schedule
+Risk
+Governance
+Decisions
+Approvals
+Versions
+Change History
+Audit Trail
+
+20. DATABASE STRUCTURE
+For a live prototype, I recommend Supabase/PostgreSQL.
+Core tables:
+users
+projects
+project_members
+
+project_intents
+
+research_questions
+research_sources
+research_claims
+research_findings
+
+stories
+story_directions
+story_decisions
+
+characters
+character_relationships
+
+worlds
+world_entities
+locations
+
+formats
+templates
+structures
+acts
+sequences
+beats
+
+treatments
+treatment_versions
+
+scenes
+scene_characters
+scene_locations
+scene_props
+scene_costumes
+
+screenplay_versions
+screenplay_blocks
+
+dialogue_versions
+
+visual_assets
+
+production_requirements
+cast
+crew
+props
+costumes
+equipment
+
+budgets
+budget_items
+
+schedules
+schedule_items
+
+risks
+
+decisions
+decision_options
+approvals
+
+versions
+dependencies
+comments
+notifications
+audit_logs
+
+packages
+
+21. MOST IMPORTANT DATABASE RELATIONSHIP
+Everything ultimately belongs to:
+PROJECT_ID
+For example:
+Scene
+ ↓
+Character ID
+ ↓
+Location ID
+ ↓
+Research Finding ID
+ ↓
+Visual Asset ID
+ ↓
+Production Requirement ID
+This is how Tattava can answer:
+"Where is this research finding used?"
+or:
+"Which scenes will be affected if this location changes?"
+
+22. PROJECT INTELLIGENCE LAYER
+This is the actual core of Tattava.
+Do not rely only on a vector database.
+Use multiple memory types:
+Canonical Memory
+What is officially true.
+Creative Intent
+What the creators want.
+Decision Memory
+Why a decision was made.
+Working Memory
+Temporary exploration.
+Example:
+Decision:
+Ending B selected
+
+Reason:
+Director wants an ambiguous ending.
+
+Alternatives:
+Ending A
+Ending B
+Ending C
+
+Approved by:
+Creative Head
+
+Status:
+Canonical
+
+23. VERSION CONTROL
+Every important artifact gets versions.
+Example:
+Story v1
+ ↓
+Story v2
+ ↓
+Treatment v1
+ ↓
+Treatment v2
+ ↓
+Screenplay v1
+ ↓
+Screenplay v2
+ ↓
+Screenplay v3
+Never overwrite important creative history.
+User should be able to:
+Compare
+Restore
+Duplicate
+View changes
+See who changed it
+See why it changed
+
+24. APPROVAL SYSTEM
+Each important object can have:
+DRAFT
+IN REVIEW
+APPROVED
+LOCKED
+Example:
+Character
+Anaya
+
+Status: APPROVED
+Approved by: Creative Head
+Date: 22 Sep 2026
+If user tries to change it:
+"Anaya is approved. This change may affect 11 downstream objects."
+Buttons:
+Review Impact
+Request Change
+Cancel
+
+25. CONTEXTUAL TATTAVA COPILOT
+The right side Copilot in your designs should be context-aware.
+On Research:
+"What research is still missing?"
+On Characters:
+"Does Anaya's motivation remain consistent?"
+On Screenplay:
+"Rewrite this scene with more tension."
+On Production:
+"Can we reduce location movement?"
+On Package:
+"What is still awaiting approval?"
+Same Copilot.
+Different context.
+
+26. AI CONTEXT BUILDER
+Whenever AI is called:
+User Request
+      ↓
+Current Module
+      ↓
+Current Object
+      ↓
+Relevant Project Memory
+      ↓
+Approved Decisions
+      ↓
+Relevant Research
+      ↓
+Dependencies
+      ↓
+AI
+For example, dialogue AI should not receive the entire database.
+It receives:
+Scene
+Character
+Character Voice
+Relationship
+Objective
+Emotional State
+Previous Dialogue
+Relevant Research
+World Context
+Language
+
+27. API STRUCTURE
+For the prototype:
+POST /api/projects
+
+GET /api/projects/:id
+
+POST /api/projects/:id/intake
+
+POST /api/projects/:id/research
+
+POST /api/projects/:id/story-directions
+
+POST /api/projects/:id/story-directions/:id/approve
+
+POST /api/projects/:id/characters
+
+POST /api/projects/:id/world
+
+POST /api/projects/:id/structure
+
+POST /api/projects/:id/treatment
+
+POST /api/projects/:id/scenes
+
+POST /api/projects/:id/screenplay
+
+POST /api/projects/:id/dialogue
+
+POST /api/projects/:id/qa
+
+POST /api/projects/:id/visuals
+
+POST /api/projects/:id/breakdown
+
+POST /api/projects/:id/budget
+
+POST /api/projects/:id/schedule
+
+POST /api/projects/:id/package
+
+POST /api/projects/:id/impact-analysis
+
+28. FUNCTIONAL PROTOTYPE TECH STACK
+For the live prototype:
+Frontend
+Next.js + React + TypeScript
+UI
+Tailwind + shadcn/ui
+Backend
+Next.js API / server actions
+Database
+Supabase PostgreSQL
+Authentication
+Supabase Auth
+Storage
+Supabase Storage
+AI
+LLM API through a central AI service.
+Search
+Hybrid:
+Postgres
++
+Vector Search
++
+Structured project relationships
+Visual assets
+Supabase Storage.
+
+29. WHAT SHOULD ACTUALLY BE LIVE
+Don't waste development time making every feature fully intelligent.
+For the management demo, make these genuinely functional:
+P0
+1. Project creation
+Real DB persistence.
+2. Project Intake
+Real AI extraction.
+3. Research
+Real AI research workflow + source cards.
+4. Story Exploration
+Real AI generation of 3 directions.
+5. Approvals
+Real project state.
+6. Character generation
+Real AI generation.
+7. Treatment
+Real AI generation from project context.
+8. Scene generation
+Real AI generation.
+9. Screenplay
+Real AI generation/editing.
+10. Dialogue
+Real AI variants.
+11. Continuity QA
+Real structured checks.
+12. Change Impact Analysis
+Real dependency-based analysis.
+13. Production Breakdown
+Real extraction from screenplay.
+14. Final Package
+Real aggregation of project artifacts.
+
+30. WHAT CAN BE SEEDED
+For the prototype, these can initially use seeded/demo data:
+Advanced visual generation
+Full production crew database
+Real casting database
+Complex scheduling optimization
+Complex budget estimation
+Calendar integrations
+Advanced collaboration
+Advanced permissions
+Full document export
+The UI should still work.
+
+31. DEMO PROJECT
+Use the project already represented throughout your designs:
+THE LAST MONSOON
+Example:
+Type:
+Feature Film
+
+Language:
+Hindi
+
+Genre:
+Political Thriller / Character Drama
+
+Stage:
+In Development
+The uploaded screens consistently use The Last Monsoon as the working project, including Research, Story Exploration, Characters, World, Structure, Treatment, Screenplay, QA, Visual Development, Production Planning and Package.
+This is excellent for the prototype because the user can demonstrate the complete journey without creating data manually.
+
+32. THE "WOW" DEMONSTRATION
+Do not spend the whole management demo clicking through 17 screens.
+Instead:
+Step 1
+Open:
+The Last Monsoon
+Step 2
+Go to Character:
+Anaya
+Step 3
+Change:
+Age:
+24 → 34
+Step 4
+Tattava says:
+12 project elements may be affected.
+Then show:
+Character
+1 change
+
+Story
+2 potential changes
+
+Scenes
+8 affected
+
+Dialogue
+3 affected
+
+Visuals
+4 affected
+
+Production
+2 potential changes
+Step 5
+Click:
+Review Impact
+Step 6
+Tattava explains why.
+Step 7
+User approves selected changes.
+Step 8
+Tattava propagates them.
+That single workflow communicates the actual product moat much more strongly than simply showing AI generating a screenplay.
+
+33. GLOBAL UX RULES
+Every AI output should provide:
+✓ Accept
+✎ Edit
+＋ Combine
+↻ Regenerate
+✕ Reject
+? Ask Tattava
+Every approved artifact should show:
+Approved
+Approved by
+Date
+Version
+Every potentially disruptive change should show:
+Impact detected
+Every research-derived claim should show:
+Source
+Every important decision should show:
+Decision
+Reason
+Alternatives
+Approver
+
+34. PROTOTYPE ACCEPTANCE CRITERIA
+The prototype is considered functional when the following works:
+Project
+Create project
+Save project
+Reopen project
+Project state persists
+Intelligence
+AI understands project context
+AI uses approved project information
+AI does not silently change canonical information
+Story
+Generate multiple directions
+Select direction
+Store selection
+Research
+Generate questions
+Generate findings
+Attach sources
+Approve findings
+Characters
+Generate character
+Edit character
+Approve character
+Story
+Generate structure
+Generate treatment
+Generate beats
+Generate scenes
+Screenplay
+Generate screenplay
+Edit
+Save versions
+Dialogue
+Generate alternatives
+Select/edit
+QA
+Detect inconsistencies
+Display issue
+Show affected scenes
+Resolve issue
+Impact
+Change canonical object
+Detect downstream dependencies
+Show impact
+User decides whether to propagate
+Production
+Breakdown screenplay
+Generate production requirements
+Generate preliminary schedule
+Generate preliminary budget
+Package
+Aggregate outputs
+Show missing approvals
+Generate final project package
+
+35. FINAL PRODUCT ARCHITECTURE
+The whole prototype can be thought of as:
+                   TATTAVA
+                       │
+              ┌────────▼────────┐
+              │ PROJECT LAYER   │
+              │                │
+              │ Intent         │
+              │ Decisions      │
+              │ Memory         │
+              │ Versions       │
+              │ Dependencies   │
+              └────────┬───────┘
+                       │
+        ┌──────────────┼──────────────┐
+        │              │              │
+     CREATIVE       INTELLIGENCE    PRODUCTION
+        │              │              │
+        ▼              ▼              ▼
+ Research          AI Copilot      Breakdown
+ Story             Research AI     Schedule
+ Characters        Story AI        Budget
+ World             Writing AI      Risk
+ Structure         QA AI           Package
+ Screenplay        Impact AI
+ Visual
+
+36. THE ONE SENTENCE THE PROTOTYPE SHOULD PROVE
+The prototype should prove this:
+“Tattava turns fragmented film development into one connected, intelligent project system.”
+And the strongest product demonstration is:
+“Change one creative decision, and Tattava understands what else needs to change.”
+Your uploaded screens already establish the visual product language and complete lifecycle very well. The next layer is making the screens behave as one connected system rather than 17 independent UI mockups.
+Recommended build order
+Phase 1: Project + Intake + Research + StoryPhase 2: Characters + World + Structure + TreatmentPhase 3: Scenes + Screenplay + DialoguePhase 4: QA + Change ImpactPhase 5: Visual + ProductionPhase 6: Package + approvals + demo polish
+This gives you a live Tattava prototype that management can actually click through, while the underlying architecture is already aligned with the eventual production-grade product.
