@@ -37,9 +37,9 @@ export const IntakeScreen: React.FC = () => {
   const [themes, setThemes] = useState(currentProject.intent.themes.join(', '));
   const [tone, setTone] = useState(currentProject.intent.tone);
 
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'tattava' | 'user'; text: string; time: string }>>([
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'tattvaCo' | 'user'; text: string; time: string }>>([
     {
-      sender: 'tattava',
+      sender: 'tattvaCo',
       text: 'I can help you refine your idea. You can ask me anything, for example:\n• Is this a strong premise?\n• What are some potential angles?\n• Which genres could work?\n• What are similar films for reference?',
       time: '10:24 AM'
     },
@@ -49,7 +49,7 @@ export const IntakeScreen: React.FC = () => {
       time: '10:25 AM'
     },
     {
-      sender: 'tattava',
+      sender: 'tattvaCo',
       text: '1. Political Thriller (Institutional cover-up & whistleblowing)\n2. Character Drama (Family sacrifice & moral dilemma)\n3. Psychological Mystery (Paranoia & unreliable state records)',
       time: '10:25 AM'
     }
@@ -97,12 +97,12 @@ export const IntakeScreen: React.FC = () => {
 
     try {
       const reply = await askCopilot(query, `Premise: ${ideaText || premise}`);
-      setChatMessages(prev => [...prev, { sender: 'tattava', text: reply, time: 'Just now' }]);
+      setChatMessages(prev => [...prev, { sender: 'tattvaCo', text: reply, time: 'Just now' }]);
     } catch (e) {
       setChatMessages(prev => [
         ...prev,
         {
-          sender: 'tattava',
+          sender: 'tattvaCo',
           text: `Great angle. Connecting this back to your premise for "${currentProject.title}": this will heighten the stakes and provide organic conflict in Act II.`,
           time: 'Just now'
         }
@@ -145,7 +145,7 @@ export const IntakeScreen: React.FC = () => {
           Project Intake
         </h1>
         <p className="text-sm text-[#8b99ac] mt-1">
-          Tell Tattava about your idea. The more context you share, the better it understands and can guide you.
+          Tell tattvaCo about your idea. The more context you share, the better it understands and can guide you.
         </p>
       </div>
 
@@ -235,7 +235,7 @@ export const IntakeScreen: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs text-amber-300 font-semibold bg-amber-500/10 border border-amber-500/20 px-3.5 py-2 rounded-xl">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Tattava has analyzed your input and extracted the key creative elements.</span>
+              <span>tattvaCo has analyzed your input and extracted the key creative elements.</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -329,7 +329,7 @@ export const IntakeScreen: React.FC = () => {
                     <span>Pro Tip</span>
                   </div>
                   <span>
-                    Answering these questions now helps Tattava generate richer, more cohesive story directions in Step 4.
+                    Answering these questions now helps tattvaCo generate richer, more cohesive story directions in Step 4.
                   </span>
                 </div>
               </div>
@@ -337,14 +337,14 @@ export const IntakeScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Right 1 Col: Ask Tattava & Quick Inspiration */}
+        {/* Right 1 Col: Ask tattvaCo & Quick Inspiration */}
         <div className="space-y-6">
-          {/* Ask Tattava Box */}
+          {/* Ask tattvaCo Box */}
           <div className="bg-[#141822] border border-[#242c3d] rounded-2xl p-5 space-y-3 shadow-card flex flex-col h-[350px]">
             <div className="flex items-center justify-between pb-2 border-b border-[#202737]">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#f25b2a]" />
-                <h3 className="text-sm font-bold text-white">Ask Tattava</h3>
+                <h3 className="text-sm font-bold text-white">Ask tattvaCo</h3>
               </div>
               <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
                 Project Context ON

@@ -148,7 +148,7 @@ export const App: React.FC = () => {
       {quickJumpOpen && (
         <div className="fixed bottom-14 left-20 lg:left-64 z-50 w-80 max-h-96 overflow-y-auto bg-[#14161f] border border-amber-500/40 rounded-2xl p-2 shadow-2xl shadow-black backdrop-blur-xl animate-fadeIn">
           <div className="p-2 border-b border-white/10 flex items-center justify-between text-xs font-bold text-white">
-            <span>Tattava 17-Screen Fast Jump</span>
+            <span>tattvaCo 17-Screen Fast Jump</span>
             <button onClick={() => setQuickJumpOpen(false)} className="text-white/40 hover:text-white">
               <X className="w-3.5 h-3.5" />
             </button>

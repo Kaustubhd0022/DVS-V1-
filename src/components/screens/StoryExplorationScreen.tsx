@@ -51,7 +51,7 @@ export const StoryExplorationScreen: React.FC = () => {
             Story Exploration
           </h1>
           <p className="text-sm text-[#8b99ac] mt-1">
-            Explore multiple creative directions. Compare, combine, or create a new version. Tattava helps you find the strongest story.
+            Explore multiple creative directions. Compare, combine, or create a new version. tattvaCo helps you find the strongest story.
           </p>
         </div>
 
@@ -274,7 +274,7 @@ export const StoryExplorationScreen: React.FC = () => {
           <div className="bg-[#141822] border border-[#242c3d] rounded-2xl p-5 space-y-3 shadow-card text-center">
             <h4 className="text-xs font-bold text-white">Want something different?</h4>
             <p className="text-[11px] text-[#718094]">
-              Ask Tattava to create an alternative high-concept direction tailored to your exact notes.
+              Ask tattvaCo to create an alternative high-concept direction tailored to your exact notes.
             </p>
             <button
               onClick={() => setShowCombineModal(true)}
@@ -302,7 +302,7 @@ export const StoryExplorationScreen: React.FC = () => {
             </div>
 
             <p className="text-xs text-[#a0b0c2] leading-relaxed">
-              Tattava can synthesize elements from multiple directions to create a new, richer Direction D without destroying canonical records.
+              tattvaCo can synthesize elements from multiple directions to create a new, richer Direction D without destroying canonical records.
             </p>
 
             <div className="space-y-3 text-xs">

@@ -55,7 +55,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">Tattava AI Engine Settings</h3>
+                <h3 className="text-sm font-bold text-white">tattvaCo AI Engine Settings</h3>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   Active
                 </span>

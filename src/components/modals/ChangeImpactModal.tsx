@@ -82,7 +82,7 @@ export const ChangeImpactModal: React.FC = () => {
             <div>
               <div className="flex items-center gap-2.5">
                 <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold tracking-wider uppercase border border-amber-500/40">
-                  Tattava Intelligence
+                  tattvaCo Intelligence
                 </span>
                 <span className="text-xs text-[#8a98ac]">Downstream Dependency Engine</span>
               </div>
@@ -189,7 +189,7 @@ export const ChangeImpactModal: React.FC = () => {
                     {/* AI rationale */}
                     <div className="mt-2 flex items-start gap-2 text-xs text-[#a3b3c7] bg-[#121620] px-3 py-2 rounded-lg border border-[#1f2635]">
                       <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-                      <p><strong className="text-white">Why Tattava flags this:</strong> {item.reason}</p>
+                      <p><strong className="text-white">Why tattvaCo flags this:</strong> {item.reason}</p>
                     </div>
                   </div>
                 </div>

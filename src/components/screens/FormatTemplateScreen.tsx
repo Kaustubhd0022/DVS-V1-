@@ -113,7 +113,7 @@ export const FormatTemplateScreen: React.FC = () => {
             Format & Structural Template
           </h1>
           <p className="text-sm text-white/60 mt-1 max-w-2xl">
-            Tattava evaluates thematic density, pacing cadence, and market distribution targets to recommend the optimal story chassis.
+            tattvaCo evaluates thematic density, pacing cadence, and market distribution targets to recommend the optimal story chassis.
           </p>
         </div>
 

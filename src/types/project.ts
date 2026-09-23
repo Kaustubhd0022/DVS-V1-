@@ -356,7 +356,7 @@ export interface ImpactAnalysisState {
   items: ImpactChangeItem[];
 }
 
-export interface TattavaProject {
+export interface TattvaCoProject {
   id: string;
   title: string;
   tagline: string;
@@ -401,3 +401,5 @@ export interface TattavaProject {
   productionPlan?: ProductionPlanData;
   packageData?: PackageData;
 }
+
+export type TattavaProject = TattvaCoProject;

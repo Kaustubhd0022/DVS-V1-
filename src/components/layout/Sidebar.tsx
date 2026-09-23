@@ -8,8 +8,7 @@ import {
   Users, 
   Calendar, 
   BarChart3, 
-  Settings,
-  Flame
+  Settings
 } from 'lucide-react';
 import { useProject, ScreenId } from '../../context/ProjectContext';
 
@@ -51,16 +50,15 @@ export const Sidebar: React.FC = () => {
       <div className="p-6">
         <div 
           onClick={() => setActiveScreen('home')}
-          className="cursor-pointer group flex items-center gap-3 mb-8"
+          className="cursor-pointer group mb-7 px-0.5 transition-transform"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#f25b2a] to-[#ff8c42] flex items-center justify-center shadow-glow-orange group-hover:scale-105 transition-transform">
-            <Flame className="w-5 h-5 text-white fill-white" />
-          </div>
-          <div>
-            <span className="font-display font-bold text-2xl tracking-tight text-white group-hover:text-[#f25b2a] transition-colors">
-              Tattava
-            </span>
-            <span className="block text-[10px] uppercase font-semibold tracking-widest text-[#8b96a8]">
+          <div className="flex flex-col">
+            <img 
+              src="/tattvaCo-logo.png" 
+              alt="tattvaCo" 
+              className="h-9 w-auto max-w-[175px] object-contain object-left brightness-110 group-hover:brightness-125 transition-all drop-shadow-[0_2px_12px_rgba(164,75,50,0.25)]" 
+            />
+            <span className="block text-[10px] uppercase font-semibold tracking-[0.22em] text-[#8b96a8] mt-1 pl-1">
               Ideas to Impact
             </span>
           </div>

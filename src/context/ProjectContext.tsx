@@ -107,17 +107,18 @@ interface ProjectContextType {
   // UI Helpers
   toggleCopilot: () => void;
   setCopilotOpen: (open: boolean) => void;
-  copilotMessages: Array<{ sender: 'user' | 'tattava'; text: string; time: string }>;
+  copilotMessages: Array<{ sender: 'user' | 'tattvaCo' | 'tattava'; text: string; time: string }>;
   sendCopilotMessage: (text: string) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'tattava_projects_v1';
+const STORAGE_KEY = 'tattvaco_projects_v1';
+const LEGACY_STORAGE_KEY = 'tattava_projects_v1';
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<TattavaProject[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -132,8 +133,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [activeScreen, setActiveScreen] = useState<ScreenId>('home');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
 
-  const [copilotMessages, setCopilotMessages] = useState<Array<{ sender: 'user' | 'tattava'; text: string; time: string }>>([
-    { sender: 'tattava', text: 'Welcome to Tattava! I am your contextual film intelligence partner. Ask me anything about The Last Monsoon, explore directions, or test change impact.', time: '10:24 AM' }
+  const [copilotMessages, setCopilotMessages] = useState<Array<{ sender: 'user' | 'tattvaCo' | 'tattava'; text: string; time: string }>>([
+    { sender: 'tattvaCo', text: 'Welcome to tattvaCo! I am your contextual film intelligence partner. Ask me anything about The Last Monsoon, explore directions, or test change impact.', time: '10:24 AM' }
   ]);
 
   const [impactState, setImpactState] = useState<ImpactAnalysisState>({
@@ -650,12 +651,12 @@ Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
 
     try {
       const reply = await askCopilot(text, projectSummary, copilotMessages);
-      setCopilotMessages(prev => [...prev, { sender: 'tattava', text: reply, time: 'Just now' }]);
+      setCopilotMessages(prev => [...prev, { sender: 'tattvaCo', text: reply, time: 'Just now' }]);
     } catch (e) {
       setCopilotMessages(prev => [
         ...prev,
         {
-          sender: 'tattava',
+          sender: 'tattvaCo',
           text: `Analyzing "${text}": The narrative engine demonstrates strong commercial velocity and tension. Ensure character conflict peaks at the Midpoint reversal.`,
           time: 'Just now'
         }

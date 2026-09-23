@@ -8,6 +8,24 @@ export default {
   theme: {
     extend: {
       colors: {
+        tattvaCo: {
+          bg: '#0c0e12',
+          surface: '#13161c',
+          card: '#181c24',
+          subtle: '#222834',
+          border: '#2a3140',
+          'border-light': '#364053',
+          orange: '#f25b2a',
+          'orange-hover': '#e04b1a',
+          'orange-subtle': 'rgba(242, 91, 42, 0.12)',
+          sidebar: '#0d0f14',
+          text: '#f1f3f7',
+          muted: '#8b96a8',
+          accent: '#3b82f6',
+          green: '#10b981',
+          amber: '#f59e0b',
+          red: '#ef4444'
+        },
         tattava: {
           bg: '#0c0e12',
           surface: '#13161c',

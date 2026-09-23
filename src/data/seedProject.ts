@@ -1,6 +1,6 @@
-import { TattavaProject } from '../types/project';
+import { TattvaCoProject } from '../types/project';
 
-export const seedProject: TattavaProject = {
+export const seedProject: TattvaCoProject = {
   id: 'proj-the-last-monsoon',
   title: 'The Last Monsoon',
   tagline: 'Every rain reveals a truth.',
@@ -852,7 +852,7 @@ export const seedProject: TattavaProject = {
   }
 };
 
-export const secondaryProjects: TattavaProject[] = [
+export const secondaryProjects: TattvaCoProject[] = [
   {
     id: 'proj-raaste',
     title: 'Raaste',

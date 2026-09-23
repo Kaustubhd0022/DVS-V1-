@@ -95,7 +95,7 @@ export const CreateProjectScreen: React.FC = () => {
           Create a New Project
         </h1>
         <p className="text-sm text-[#8b99ac] mt-1">
-          Start a new project with key details. Tattava will set up your workspace and guide you from idea to a production-ready project.
+          Start a new project with key details. tattvaCo will set up your workspace and guide you from idea to a production-ready project.
         </p>
       </div>
 
@@ -337,11 +337,11 @@ export const CreateProjectScreen: React.FC = () => {
 
         {/* Right 1 Col: Copilot Guidance & Quote */}
         <div className="space-y-6">
-          {/* Tattava Copilot Help Card */}
+          {/* tattvaCo Copilot Help Card */}
           <div className="bg-[#141822] border border-[#242c3d] rounded-2xl p-5 space-y-3">
             <div className="flex items-center gap-2.5">
               <Sparkles className="w-4 h-4 text-[#f25b2a]" />
-              <h3 className="text-sm font-bold text-white">Tattava Copilot</h3>
+              <h3 className="text-sm font-bold text-white">tattvaCo Copilot</h3>
             </div>
             <p className="text-xs text-[#a0aec0]">
               Creating a new project? I can help you:
@@ -376,7 +376,7 @@ export const CreateProjectScreen: React.FC = () => {
                 <span>Pro Tip</span>
               </div>
               <p className="text-[11px] leading-relaxed text-[#b1becf]">
-                A clear project setup helps Tattava give you better, more relevant suggestions throughout your development journey.
+                A clear project setup helps tattvaCo give you better, more relevant suggestions throughout your development journey.
               </p>
             </div>
           </div>

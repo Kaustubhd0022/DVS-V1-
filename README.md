@@ -1,4 +1,4 @@
-# Tattava — AI-Native Film Development & Production OS
+# tattvaCo — AI-Native Film Development & Production OS
 
 > **Turning Ideas into Impactful Stories**  
 > An AI-native operating system for film development and production management, unifying narrative ideation, screenplay formatting, continuity QA, and greenlight delivery into a single connected project intelligence.
@@ -7,7 +7,7 @@
 
 ## 🎬 Guiding Philosophy
 
-> *"Tattava is not 17 disconnected pages. There is ONE Project underneath the 17 pages."*  
+> *"tattvaCo is not 17 disconnected pages. There is ONE Project underneath the 17 pages."*  
 > **Explore → Propose → Decide → Approve → Remember → Propagate**
 
 Every stage of the narrative and production pipeline shares a single, reactive, canonical project memory. Modifying foundational elements in one department immediately cascades intelligent downstream impact assessments across characters, scene structures, dialogues, visual assets, casting profiles, and production budgets.
@@ -18,7 +18,7 @@ Every stage of the narrative and production pipeline shares a single, reactive, 
 
 ### 1. Downstream Change Impact Analysis Engine
 - **Core Trigger**: Modifying protagonist Aanya Verma’s age from **24 to 34** on the Character Development board.
-- **Intelligent Cascade**: Tattava intercepts the change and surfaces **12 affected objects** across **6 categories**:
+- **Intelligent Cascade**: tattvaCo intercepts the change and surfaces **12 affected objects** across **6 categories**:
   - **Characters**: Psychosocial transition from student idealism to seasoned urgency and systemic burnout.
   - **Story**: UPSC eligibility deadline pressure and adult confrontation with father over 10 lost years.
   - **Scenes**: Scene 1 set dressing updates from textbooks to a decade of dog-eared notes and father's medicine; Scene 3 dining room subtext deepens.
@@ -98,4 +98,4 @@ npm run build
 
 ## 📄 License
 
-Proprietary prototype developed for Tattava. All rights reserved.
+Proprietary prototype developed for tattvaCo. All rights reserved.

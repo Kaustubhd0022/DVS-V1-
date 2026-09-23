@@ -51,7 +51,7 @@ export const HomeScreen: React.FC = () => {
           <div className="max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f25b2a]/15 text-[#f25b2a] text-xs font-bold uppercase tracking-wider border border-[#f25b2a]/30">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Welcome to Tattava</span>
+              <span>Welcome to tattvaCo</span>
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight font-display leading-tight">
               Turn ideas into <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f25b2a] to-amber-400">impactful stories.</span>
@@ -280,16 +280,16 @@ export const HomeScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Right 1 Col: Tattava Copilot Card & Activity Feed */}
+        {/* Right 1 Col: tattvaCo Copilot Card & Activity Feed */}
         <div className="space-y-6">
-          {/* Tattava Copilot Card */}
+          {/* tattvaCo Copilot Card */}
           <div className="rounded-2xl bg-[#141822] border border-[#242c3d] p-5 shadow-card">
             <div className="flex items-center gap-2.5 mb-3">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#f25b2a] to-amber-500 flex items-center justify-center shadow-glow-orange">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Tattava Copilot</h3>
+                <h3 className="text-sm font-bold text-white">tattvaCo Copilot</h3>
                 <p className="text-[11px] text-[#7c8b9f]">Your creative partner, always here.</p>
               </div>
             </div>

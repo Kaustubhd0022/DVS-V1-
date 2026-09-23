@@ -26,7 +26,7 @@ export const TopHeader: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search projects, characters, scenes, or ask Tattava..."
+            placeholder="Search projects, characters, scenes, or ask tattvaCo..."
             className="w-full bg-[#171b24] border border-[#272e3d] rounded-xl pl-10 pr-4 py-2 text-sm text-[#f1f3f7] placeholder-[#6b788e] focus:outline-none focus:border-[#f25b2a] focus:ring-1 focus:ring-[#f25b2a] transition-all"
           />
           <kbd className="hidden sm:inline-block absolute right-3 text-[10px] text-[#6b788e] bg-[#222836] px-1.5 py-0.5 rounded border border-[#2e3648]">
@@ -50,7 +50,7 @@ export const TopHeader: React.FC = () => {
         <button
           onClick={() => setShowAiModal(true)}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all shadow-sm"
-          title="Tattava AI Engine (Gemini 3.6 Flash)"
+          title="tattvaCo AI Engine (Gemini 3.6 Flash)"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="hidden sm:inline font-mono text-[11px]">Gemini 3.6</span>

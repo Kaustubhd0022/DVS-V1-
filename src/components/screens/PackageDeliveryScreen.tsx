@@ -21,7 +21,7 @@ export const PackageDeliveryScreen: React.FC = () => {
       setDownloadingId(null);
       // Simulate file download
       const element = document.createElement('a');
-      const file = new Blob([`TATTAVA PROD PACKAGE: ${title}\nProject: The Last Monsoon\nVersion: 2.4 Approved`], {type: 'text/plain'});
+      const file = new Blob([`TATTVACO PROD PACKAGE: ${title}\nProject: The Last Monsoon\nVersion: 2.4 Approved`], {type: 'text/plain'});
       element.href = URL.createObjectURL(file);
       element.download = `${title.toLowerCase().replace(/\s+/g, '_')}_v2.4.txt`;
       document.body.appendChild(element);

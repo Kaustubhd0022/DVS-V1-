@@ -135,7 +135,7 @@ export const ContextualCopilot: React.FC = () => {
           </div>
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <span>Tattava Copilot</span>
+              <span>tattvaCo Copilot</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
                 Beta
               </span>
@@ -175,7 +175,7 @@ export const ContextualCopilot: React.FC = () => {
               msg.sender === 'user' ? 'justify-end' : 'justify-start'
             }`}
           >
-            {msg.sender === 'tattava' && (
+            {(msg.sender === 'tattvaCo' || msg.sender === 'tattava') && (
               <div className="w-6 h-6 rounded-full bg-[#f25b2a]/20 border border-[#f25b2a]/40 flex items-center justify-center flex-shrink-0 text-[#f25b2a] mt-0.5">
                 <Bot className="w-3.5 h-3.5" />
               </div>
@@ -209,7 +209,7 @@ export const ContextualCopilot: React.FC = () => {
             <div className="w-6 h-6 rounded-full bg-[#f25b2a]/20 border border-[#f25b2a]/40 flex items-center justify-center text-[#f25b2a]">
               <RefreshCw className="w-3 h-3 animate-spin" />
             </div>
-            <span className="italic text-[11px]">Tattava is analyzing project memory...</span>
+            <span className="italic text-[11px]">tattvaCo is analyzing project memory...</span>
           </div>
         )}
       </div>
@@ -253,7 +253,7 @@ export const ContextualCopilot: React.FC = () => {
             type="text"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Ask Tattava about your project..."
+            placeholder="Ask tattvaCo about your project..."
             className="w-full bg-[#171a22] border border-[#2a3242] rounded-xl pl-3 pr-10 py-2.5 text-xs text-white placeholder-[#687588] focus:outline-none focus:border-[#f25b2a] transition-all"
           />
           <button

@@ -1,5 +1,5 @@
 /**
- * Tattava Gemini AI Service
+ * tattvaCo Gemini AI Service
  * Powered by Google Gemini 3.6 Flash
  */
 
@@ -8,11 +8,11 @@ const MODEL_NAME = 'gemini-3.6-flash';
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export const getGeminiApiKey = (): string => {
-  return localStorage.getItem('tattava_gemini_api_key') || ENV_KEY || '';
+  return localStorage.getItem('tattvaco_gemini_api_key') || localStorage.getItem('tattava_gemini_api_key') || ENV_KEY || '';
 };
 
 export const setGeminiApiKey = (key: string): void => {
-  localStorage.setItem('tattava_gemini_api_key', key.trim());
+  localStorage.setItem('tattvaco_gemini_api_key', key.trim());
 };
 
 export const testGeminiConnection = async (): Promise<{ success: boolean; message: string }> => {
@@ -23,7 +23,7 @@ export const testGeminiConnection = async (): Promise<{ success: boolean; messag
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: 'Respond with "Tattava Online" and nothing else.' }] }]
+        contents: [{ parts: [{ text: 'Respond with "tattvaCo Online" and nothing else.' }] }]
       })
     });
     if (!res.ok) {
@@ -44,11 +44,11 @@ export const testGeminiConnection = async (): Promise<{ success: boolean; messag
 export const askCopilot = async (
   userPrompt: string,
   projectContextSummary: string,
-  chatHistory: Array<{ sender: 'user' | 'tattava'; text: string }> = []
+  chatHistory: Array<{ sender: 'user' | 'tattvaCo' | 'tattava'; text: string }> = []
 ): Promise<string> => {
   const key = getGeminiApiKey();
 
-  const systemInstruction = `You are Tattava AI Copilot, an elite film development executive, script doctor, and production operating intelligence.
+  const systemInstruction = `You are tattvaCo AI Copilot, an elite film development executive, script doctor, and production operating intelligence.
 You speak with cinematic authority, deep structural insight (Syd Field, Blake Snyder, Robert McKee), and emotional precision.
 You are assisting on the project described below:
 
@@ -68,7 +68,7 @@ GUIDELINES:
     },
     {
       role: 'model',
-      parts: [{ text: 'Understood. I am Tattava Copilot. Ready to analyze, critique, and elevate this project.' }]
+      parts: [{ text: 'Understood. I am tattvaCo Copilot. Ready to analyze, critique, and elevate this project.' }]
     },
     ...chatHistory.slice(-4).map(msg => ({
       role: msg.sender === 'user' ? 'user' : 'model',
