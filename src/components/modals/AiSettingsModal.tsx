@@ -60,7 +60,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
                   Active
                 </span>
               </div>
-              <p className="text-xs text-white/50">Google Gemini 3.6 Flash Neural Gateway</p>
+              <p className="text-xs text-white/50">Groq LPU Ultra-Fast Inference Gateway</p>
             </div>
           </div>
           <button
@@ -78,8 +78,8 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
             <div className="flex items-center gap-3">
               <Cpu className="w-5 h-5 text-amber-400" />
               <div>
-                <div className="text-xs font-mono font-bold text-white">gemini-3.6-flash</div>
-                <div className="text-[11px] text-white/50">Multimodal Film Intelligence • Google DeepMind</div>
+                <div className="text-xs font-mono font-bold text-white">openai/gpt-oss-120b</div>
+                <div className="text-[11px] text-white/50">120B Cinematic Intelligence • Powered by Groq LPUs (~0.2s)</div>
               </div>
             </div>
             <span className="text-[11px] font-mono text-emerald-400 font-semibold flex items-center gap-1">
@@ -91,7 +91,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
           {/* API Key Input */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-white/60 flex items-center justify-between">
-              <span>Gemini API Key</span>
+              <span>Groq API Key</span>
               <span className="text-[10px] font-normal text-white/40 lowercase">Stored locally in browser</span>
             </label>
             <div className="relative flex items-center">
@@ -99,7 +99,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
                 type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Paste your Gemini API key..."
+                placeholder="gsk_..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 focus:border-amber-500 text-xs font-mono text-white/90 placeholder-white/30 focus:outline-none pr-10"
               />
               <button

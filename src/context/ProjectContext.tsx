@@ -6,9 +6,16 @@ import {
   ImpactChangeItem, 
   StoryDirection,
   ApprovalStatus,
+  CanonicalState,
   TreatmentData,
   ScreenplayLine,
-  SceneItem
+  SceneItem,
+  CanonFact,
+  CreativeDecision,
+  StoryDependency,
+  ContextResolverPackage,
+  ContinuityIssue,
+  StoryEvaluation
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { askCopilot } from '../services/geminiService';
@@ -17,6 +24,7 @@ export type ScreenId =
   | 'home' 
   | 'create-project' 
   | 'intake' 
+  | 'story-brain'
   | 'research' 
   | 'story-exploration' 
   | 'format-template' 
@@ -27,10 +35,12 @@ export type ScreenId =
   | 'scene-outline' 
   | 'screenplay' 
   | 'dialogue' 
-  | 'qa' 
+  | 'continuity' 
+  | 'qa' // backward compatibility alias
+  | 'evaluation'
+  | 'package'
   | 'visual-dev' 
-  | 'production' 
-  | 'package';
+  | 'production';
 
 export interface StepMeta {
   step: number;
@@ -39,33 +49,44 @@ export interface StepMeta {
   shortLabel: string;
 }
 
+/**
+ * The V1 Pilot Golden Loop (Section 6 & 23 of Unified AI-Native Product Specification)
+ * IDEA -> STORY BRAIN -> RESEARCH -> STORY -> WRITING -> CONTINUITY -> EVALUATION -> APPROVAL -> PACKAGE
+ */
 export const PIPELINE_STEPS: StepMeta[] = [
   { step: 1, id: 'create-project', label: 'Create Project', shortLabel: 'Project' },
-  { step: 2, id: 'intake', label: 'Project Intake', shortLabel: 'Intake' },
-  { step: 3, id: 'research', label: 'Research', shortLabel: 'Research' },
-  { step: 4, id: 'story-exploration', label: 'Story Exploration', shortLabel: 'Story' },
-  { step: 5, id: 'format-template', label: 'Format & Template', shortLabel: 'Format' },
-  { step: 6, id: 'characters', label: 'Characters', shortLabel: 'Characters' },
-  { step: 7, id: 'world', label: 'World Building', shortLabel: 'World' },
-  { step: 8, id: 'structure', label: 'Story Structure', shortLabel: 'Structure' },
-  { step: 9, id: 'treatment', label: 'Treatment & Beat Sheet', shortLabel: 'Treatment' },
-  { step: 10, id: 'scene-outline', label: 'Scene Outline', shortLabel: 'Beats' },
-  { step: 11, id: 'screenplay', label: 'Screenplay', shortLabel: 'Script' },
-  { step: 12, id: 'dialogue', label: 'Dialogue Development', shortLabel: 'Dialogue' },
-  { step: 13, id: 'qa', label: 'Continuity & Creative QA', shortLabel: 'Continuity' },
-  { step: 14, id: 'visual-dev', label: 'Visual Development', shortLabel: 'Visual Dev' },
-  { step: 15, id: 'production', label: 'Production Planning', shortLabel: 'Production' },
-  { step: 16, id: 'package', label: 'Package & Delivery', shortLabel: 'Package' }
+  { step: 2, id: 'intake', label: 'Intake & Ambiguity Detection', shortLabel: 'Intake' },
+  { step: 3, id: 'story-brain', label: 'Story Brain (System of Record)', shortLabel: 'Story Brain' },
+  { step: 4, id: 'research', label: 'Traceable Research & Evidence', shortLabel: 'Research' },
+  { step: 5, id: 'story-exploration', label: 'Story Exploration & Directions', shortLabel: 'Story' },
+  { step: 6, id: 'format-template', label: 'Format & Development Framework', shortLabel: 'Format' },
+  { step: 7, id: 'characters', label: 'Character Intelligence & Arcs', shortLabel: 'Characters' },
+  { step: 8, id: 'world', label: 'World Building & Canon Rules', shortLabel: 'World' },
+  { step: 9, id: 'structure', label: 'Story Structure & Beat Sheet', shortLabel: 'Structure' },
+  { step: 10, id: 'treatment', label: 'Treatment & Grounded Writing', shortLabel: 'Treatment' },
+  { step: 11, id: 'scene-outline', label: 'Scene Breakdown & Conflict', shortLabel: 'Scenes' },
+  { step: 12, id: 'screenplay', label: 'Screenplay Drafting', shortLabel: 'Script' },
+  { step: 13, id: 'dialogue', label: 'Dialogue & Voice Intelligence', shortLabel: 'Dialogue' },
+  { step: 14, id: 'continuity', label: 'Canon & Continuity Engine', shortLabel: 'Continuity' },
+  { step: 15, id: 'evaluation', label: 'AI Story Evaluation Harness', shortLabel: 'Evaluation' },
+  { step: 16, id: 'package', label: 'Story Development Package', shortLabel: 'Package' }
 ];
 
 interface ProjectContextType {
   projects: TattavaProject[];
   currentProject: TattavaProject;
   activeScreen: ScreenId;
-  currentStepIndex: number; // 1-16 or 0 for home
+  currentStepIndex: number;
   isCopilotOpen: boolean;
   impactState: ImpactAnalysisState;
   
+  // Context Resolver Engine
+  activeContextPackage: ContextResolverPackage | null;
+  isContextResolverOpen: boolean;
+  resolveContext: (taskType: ContextResolverPackage['taskType'], targetArtifact: string) => ContextResolverPackage;
+  openContextResolver: (taskOrPkg?: ContextResolverPackage | ContextResolverPackage['taskType'], targetArtifact?: string) => void;
+  closeContextResolver: () => void;
+
   // Navigation
   setActiveScreen: (screen: ScreenId) => void;
   goToStep: (stepNumber: number) => void;
@@ -84,10 +105,28 @@ interface ProjectContextType {
   selectFormat: (formatId: string) => void;
   selectTemplate: (templateId: string) => void;
   applyDialogueAlternative: (suggestionText: string, characterName: string) => void;
-  resolveQAIssue: (issueId: string) => void;
   toggleChecklistItem: (checklistName: 'treatment' | 'package' | 'visual', itemIndex: number) => void;
   submitGreenlight: () => void;
   
+  // Story Brain System of Record Mutators
+  addCanonFact: (fact: Omit<CanonFact, 'id' | 'dateEstablished' | 'version'>) => void;
+  toggleLockCanonFact: (factId: string) => void;
+  logCreativeDecision: (decision: Omit<CreativeDecision, 'id' | 'date' | 'status'>) => void;
+  resolveDependencyStaleness: (depId: string) => void;
+
+  // Canon & Continuity Engine Mutators
+  resolveContinuityIssue: (issueId: string, resolutionState: 'Resolved' | 'Exception Granted', notes?: string) => void;
+  repairSceneWithCanon: (issueId: string) => void;
+  resolveQAIssue: (issueId: string) => void; // alias
+  resolveQAInconsistency: (issueId: string) => void; // alias
+
+  // AI Story Evaluation Harness
+  runStoryEvaluation: () => void;
+  signOffEvaluation: (approverName: string, role: string, comments: string) => void;
+
+  // Canonical State Lifecycle
+  setArtifactCandidateState: (artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue', id: string, state: CanonicalState) => void;
+
   // Impact Engine
   triggerChangeImpact: (charIdOrDescription?: string, field?: string, oldVal?: any, newVal?: any) => void;
   closeImpactModal: () => void;
@@ -97,7 +136,6 @@ interface ProjectContextType {
   setProjectFormat: (format: string) => void;
   setProjectTemplate: (template: string) => void;
   updateTreatment: (updates: Partial<TreatmentData>) => void;
-  resolveQAInconsistency: (issueId: string) => void;
   updateScreenplayLine: (lineId: string, content: string) => void;
   addScreenplayLine: (line: ScreenplayLine) => void;
   swapDialogueSuggestion: (sugId: string, text: string) => void;
@@ -113,15 +151,19 @@ interface ProjectContextType {
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'tattvaco_projects_v1';
-const LEGACY_STORAGE_KEY = 'tattava_projects_v1';
+const STORAGE_KEY = 'tattava_copilot_pilot_v1';
+const LEGACY_STORAGE_KEY = 'tattvaco_projects_v1';
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<TattavaProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Ensure projects have storyBrain and pilotMetrics
+        if (parsed?.[0]?.storyBrain) {
+          return parsed;
+        }
       } catch (e) {
         console.error('Failed to parse saved projects', e);
       }
@@ -132,9 +174,17 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [currentProjectId, setCurrentProjectId] = useState<string>(seedProject.id);
   const [activeScreen, setActiveScreen] = useState<ScreenId>('home');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
+  const [isContextResolverOpen, setIsContextResolverOpen] = useState<boolean>(false);
+
+  // Active Context Package for the Context Resolver Drawer
+  const [activeContextPackage, setActiveContextPackage] = useState<ContextResolverPackage | null>(null);
 
   const [copilotMessages, setCopilotMessages] = useState<Array<{ sender: 'user' | 'tattvaCo' | 'tattava'; text: string; time: string }>>([
-    { sender: 'tattvaCo', text: 'Welcome to tattvaCo! I am your contextual film intelligence partner. Ask me anything about The Last Monsoon, explore directions, or test change impact.', time: '10:24 AM' }
+    { 
+      sender: 'tattvaCo', 
+      text: 'Welcome to Tattava Copilot V1 Pilot. I am your Project Intelligence & Narrative Reasoning copilot. All reasoning is strictly grounded in your persistent Story Brain and verified canon.', 
+      time: '10:24 AM' 
+    }
   ]);
 
   const [impactState, setImpactState] = useState<ImpactAnalysisState>({
@@ -158,18 +208,26 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [projects]);
 
   const rawProject = projects.find(p => p.id === currentProjectId) || projects[0] || seedProject;
+  
+  // Guarantee Story Brain & Pilot Metrics exist on currentProject
   const currentProject: TattavaProject = {
     ...rawProject,
+    storyBrain: rawProject.storyBrain || seedProject.storyBrain,
+    pilotMetrics: rawProject.pilotMetrics || seedProject.pilotMetrics,
+    evaluation: rawProject.evaluation || seedProject.evaluation,
+    continuityIssues: rawProject.continuityIssues || rawProject.qaIssues || seedProject.continuityIssues,
+    qaIssues: rawProject.continuityIssues || rawProject.qaIssues || seedProject.continuityIssues,
     format: rawProject.format || rawProject.formats?.find(f => f.isSelected)?.title || 'Feature Film',
     template: rawProject.template || rawProject.templates?.find(t => t.isSelected)?.title || 'Three-Act Classical Thriller',
     screenplayLines: rawProject.screenplayLines || rawProject.screenplay,
-    qaInconsistencies: rawProject.qaInconsistencies || rawProject.qaIssues,
     productionPlan: rawProject.productionPlan || rawProject.production,
     packageData: rawProject.packageData || rawProject.package
   };
 
   const currentStepIndex = (() => {
-    const found = PIPELINE_STEPS.find(s => s.id === activeScreen);
+    // Normalise 'qa' to 'continuity'
+    const targetScreen = activeScreen === 'qa' ? 'continuity' : activeScreen;
+    const found = PIPELINE_STEPS.find(s => s.id === targetScreen);
     return found ? found.step : 0;
   })();
 
@@ -179,7 +237,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
   };
 
-  const openProject = (projectId: string, targetScreen: ScreenId = 'intake') => {
+  const openProject = (projectId: string, targetScreen: ScreenId = 'story-brain') => {
     setCurrentProjectId(projectId);
     setActiveScreen(targetScreen);
   };
@@ -192,14 +250,16 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const nextStep = () => {
-    const currentIndex = PIPELINE_STEPS.findIndex(s => s.id === activeScreen);
+    const targetScreen = activeScreen === 'qa' ? 'continuity' : activeScreen;
+    const currentIndex = PIPELINE_STEPS.findIndex(s => s.id === targetScreen);
     if (currentIndex >= 0 && currentIndex < PIPELINE_STEPS.length - 1) {
       setActiveScreen(PIPELINE_STEPS[currentIndex + 1].id);
     }
   };
 
   const prevStep = () => {
-    const currentIndex = PIPELINE_STEPS.findIndex(s => s.id === activeScreen);
+    const targetScreen = activeScreen === 'qa' ? 'continuity' : activeScreen;
+    const currentIndex = PIPELINE_STEPS.findIndex(s => s.id === targetScreen);
     if (currentIndex > 0) {
       setActiveScreen(PIPELINE_STEPS[currentIndex - 1].id);
     } else if (currentIndex === 0) {
@@ -207,6 +267,325 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // -------------------------------------------------------------
+  // CONTEXT RESOLVER ENGINE (SECTION 13.1 OF UNIFIED SPEC)
+  // -------------------------------------------------------------
+  const resolveContext = (
+    taskType: ContextResolverPackage['taskType'],
+    targetArtifact: string
+  ): ContextResolverPackage => {
+    const protagonist = currentProject.characters.find(c => c.role === 'Protagonist') || currentProject.characters[0];
+    const antagonist = currentProject.characters.find(c => c.role === 'Antagonist') || currentProject.characters[1];
+
+    const retrievedCanon = currentProject.storyBrain.canonFacts.slice(0, 4);
+    const retrievedResearch = currentProject.researchFindings.filter(r => r.status === 'Verified').slice(0, 3);
+    const retrievedRules = currentProject.world?.worldRules || [];
+
+    const characterContext = [
+      {
+        name: protagonist.name,
+        want: protagonist.want,
+        need: protagonist.need,
+        fear: protagonist.fear,
+        voiceStyle: protagonist.voiceStyle
+      },
+      ...(antagonist ? [{
+        name: antagonist.name,
+        want: antagonist.want,
+        need: antagonist.need,
+        fear: antagonist.fear,
+        voiceStyle: antagonist.voiceStyle
+      }] : [])
+    ];
+
+    const pkg: ContextResolverPackage = {
+      taskId: 'ctx-' + Date.now(),
+      taskType,
+      targetArtifact,
+      retrievedCanonFacts: retrievedCanon,
+      retrievedCharacterContext: characterContext,
+      retrievedResearch,
+      retrievedWorldRules: retrievedRules,
+      rationale: `Assembled minimal versioned slice for ${targetArtifact}. Excluded unverified rumors and external cross-project data to guarantee zero hallucinated canon.`,
+      tokenEstimate: 1420,
+      resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setActiveContextPackage(pkg);
+    updateCurrentProject(prev => ({
+      ...prev,
+      activeContextPackage: pkg,
+      pilotMetrics: {
+        ...prev.pilotMetrics,
+        totalAiRuns: prev.pilotMetrics.totalAiRuns + 1
+      }
+    }));
+
+    return pkg;
+  };
+
+  const openContextResolver = (taskOrPkg?: ContextResolverPackage | ContextResolverPackage['taskType'], targetArtifact?: string) => {
+    if (typeof taskOrPkg === 'object' && taskOrPkg !== null) {
+      setActiveContextPackage(taskOrPkg);
+    } else if (typeof taskOrPkg === 'string') {
+      const pkg = resolveContext(taskOrPkg, targetArtifact || 'Current Screen');
+      setActiveContextPackage(pkg);
+    } else if (!activeContextPackage) {
+      resolveContext('Story Direction', 'Current Workspace');
+    }
+    setIsContextResolverOpen(true);
+  };
+
+  const closeContextResolver = () => setIsContextResolverOpen(false);
+
+  // -------------------------------------------------------------
+  // STORY BRAIN MUTATORS
+  // -------------------------------------------------------------
+  const addCanonFact = (factData: Omit<CanonFact, 'id' | 'dateEstablished' | 'version'>) => {
+    const newFact: CanonFact = {
+      ...factData,
+      id: 'cf-' + Date.now(),
+      dateEstablished: 'Today',
+      version: 'v1.' + (currentProject.storyBrain.canonFacts.length + 1)
+    };
+
+    updateCurrentProject(prev => ({
+      ...prev,
+      storyBrain: {
+        ...prev.storyBrain,
+        canonFacts: [newFact, ...prev.storyBrain.canonFacts],
+        lastUpdated: 'Just now'
+      },
+      pilotMetrics: {
+        ...prev.pilotMetrics,
+        canonicalFactsCount: prev.pilotMetrics.canonicalFactsCount + 1
+      }
+    }));
+  };
+
+  const toggleLockCanonFact = (factId: string) => {
+    updateCurrentProject(prev => ({
+      ...prev,
+      storyBrain: {
+        ...prev.storyBrain,
+        canonFacts: prev.storyBrain.canonFacts.map(f =>
+          f.id === factId ? { ...f, isLocked: !f.isLocked } : f
+        )
+      }
+    }));
+  };
+
+  const logCreativeDecision = (decisionData: Omit<CreativeDecision, 'id' | 'date' | 'status'>) => {
+    const newDecision: CreativeDecision = {
+      ...decisionData,
+      id: 'cd-' + Date.now(),
+      date: 'Today',
+      status: 'Approved'
+    };
+
+    updateCurrentProject(prev => ({
+      ...prev,
+      storyBrain: {
+        ...prev.storyBrain,
+        creativeDecisions: [newDecision, ...prev.storyBrain.creativeDecisions],
+        lastUpdated: 'Just now'
+      }
+    }));
+  };
+
+  const resolveDependencyStaleness = (depId: string) => {
+    updateCurrentProject(prev => ({
+      ...prev,
+      storyBrain: {
+        ...prev.storyBrain,
+        dependencies: prev.storyBrain.dependencies.map(d =>
+          d.id === depId ? { ...d, isStale: false, staleReason: undefined } : d
+        )
+      }
+    }));
+  };
+
+  // -------------------------------------------------------------
+  // CANON & CONTINUITY ENGINE MUTATORS
+  // -------------------------------------------------------------
+  const resolveContinuityIssue = (
+    issueId: string, 
+    resolutionState: 'Resolved' | 'Exception Granted', 
+    notes?: string
+  ) => {
+    updateCurrentProject(prev => {
+      const updatedIssues = prev.continuityIssues.map(issue =>
+        issue.id === issueId
+          ? {
+              ...issue,
+              resolutionState,
+              resolutionNotes: notes || `Resolved via Canon & Continuity Engine on ${new Date().toLocaleDateString()}`
+            }
+          : issue
+      );
+
+      // Recalculate catch rate
+      const resolvedCount = updatedIssues.filter(i => i.resolutionState === 'Resolved').length;
+      const newRate = Math.round((resolvedCount / updatedIssues.length) * 100);
+
+      return {
+        ...prev,
+        continuityIssues: updatedIssues,
+        qaIssues: updatedIssues,
+        pilotMetrics: {
+          ...prev.pilotMetrics,
+          continuityCatchRate: Math.max(newRate, prev.pilotMetrics.continuityCatchRate)
+        }
+      };
+    });
+  };
+
+  const repairSceneWithCanon = (issueId: string) => {
+    updateCurrentProject(prev => {
+      // Find issue
+      const issue = prev.continuityIssues.find(i => i.id === issueId);
+      if (!issue) return prev;
+
+      // If it's the Scene 4 flashback age contradiction
+      if (issueId === 'cont-1' || issue.sceneNumber === 4) {
+        const updatedScenes = prev.scenes.map(s => {
+          if (s.sceneNumber === 4 || s.id === 'sc-4') {
+            return {
+              ...s,
+              subheading: 'Flashback 2018: The Gold Medal and Origin of the Debt',
+              summary: 'In 2018, Aanya (26) receives her university engineering medal. Raghav proudly reveals he mortgaged the press to pay for her Delhi coaching, launching her decade-long struggle.',
+              notes: s.notes.map(n => ({ ...n, done: true }))
+            };
+          }
+          return s;
+        });
+
+        const updatedIssues = prev.continuityIssues.map(i =>
+          i.id === issueId
+            ? {
+                ...i,
+                resolutionState: 'Resolved' as const,
+                resolutionNotes: 'Auto-repaired Scene 4 timestamp to 2018 (age 26 in flashback, 34 in present canon).'
+              }
+            : i
+        );
+
+        // Also resolve dependency dep-2
+        const updatedDeps = prev.storyBrain.dependencies.map(d =>
+          d.id === 'dep-2' ? { ...d, isStale: false, staleReason: undefined } : d
+        );
+
+        return {
+          ...prev,
+          scenes: updatedScenes,
+          continuityIssues: updatedIssues,
+          qaIssues: updatedIssues,
+          storyBrain: {
+            ...prev.storyBrain,
+            dependencies: updatedDeps
+          },
+          evaluation: {
+            ...prev.evaluation,
+            overallScore: 89.5,
+            criticalRisks: prev.evaluation.criticalRisks.filter(r => !r.includes('Scene 4'))
+          }
+        };
+      }
+
+      return prev;
+    });
+  };
+
+  // Compatibility aliases
+  const resolveQAIssue = (issueId: string) => resolveContinuityIssue(issueId, 'Resolved');
+  const resolveQAInconsistency = (issueId: string) => resolveContinuityIssue(issueId, 'Resolved');
+
+  // -------------------------------------------------------------
+  // AI STORY EVALUATION RUNNER
+  // -------------------------------------------------------------
+  const runStoryEvaluation = () => {
+    updateCurrentProject(prev => {
+      const openBlockers = prev.continuityIssues.filter(i => i.resolutionState === 'Open' && i.severity === 'Critical Blocker').length;
+      const baseScore = openBlockers > 0 ? 84.5 : 91.2;
+
+      const updatedEval: StoryEvaluation = {
+        ...prev.evaluation,
+        overallScore: baseScore,
+        readinessStatus: openBlockers === 0 ? 'Greenlight Recommended' : 'Pilot Ready',
+        evaluatedAt: 'Just now (Tattava Evaluator v1.0)',
+        criticalRisks: openBlockers > 0 
+          ? ['Unresolved critical blocker in Scene 4 flashback chronology.']
+          : ['Ensure Vikrant dialogue in Scene 18 preserves agro-warehousing economic rationale.']
+      };
+
+      return {
+        ...prev,
+        evaluation: updatedEval,
+        pilotMetrics: {
+          ...prev.pilotMetrics,
+          totalAiRuns: prev.pilotMetrics.totalAiRuns + 1
+        }
+      };
+    });
+  };
+
+  const signOffEvaluation = (approverName: string, role: string, comments: string) => {
+    updateCurrentProject(prev => ({
+      ...prev,
+      evaluation: {
+        ...prev.evaluation,
+        humanSignOff: {
+          approvedBy: approverName,
+          role,
+          date: new Date().toLocaleDateString(),
+          comments
+        }
+      }
+    }));
+  };
+
+  // -------------------------------------------------------------
+  // CANONICAL STATE MUTATOR
+  // -------------------------------------------------------------
+  const setArtifactCandidateState = (
+    artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue',
+    id: string,
+    state: CanonicalState
+  ) => {
+    updateCurrentProject(prev => {
+      if (artifactType === 'direction') {
+        return {
+          ...prev,
+          storyDirections: prev.storyDirections.map(d => d.id === id ? { ...d, candidateState: state } : d)
+        };
+      } else if (artifactType === 'character') {
+        return {
+          ...prev,
+          characters: prev.characters.map(c => c.id === id ? { ...c, candidateState: state } : c)
+        };
+      } else if (artifactType === 'treatment') {
+        return {
+          ...prev,
+          treatment: { ...prev.treatment, candidateState: state }
+        };
+      } else if (artifactType === 'scene') {
+        return {
+          ...prev,
+          scenes: prev.scenes.map(s => s.id === id ? { ...s, candidateState: state } : s)
+        };
+      } else if (artifactType === 'dialogue') {
+        return {
+          ...prev,
+          dialogueSuggestions: prev.dialogueSuggestions.map(ds => ds.id === id ? { ...ds, candidateState: state } : ds)
+        };
+      }
+      return prev;
+    });
+  };
+
+  // -------------------------------------------------------------
+  // PROJECT LIFECYCLE
+  // -------------------------------------------------------------
   const createNewProject = (data: Partial<TattavaProject>): string => {
     const newId = 'proj-' + Date.now();
     const newProj: TattavaProject = {
@@ -217,11 +596,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       contentType: data.contentType || 'Feature Film',
       language: data.language || 'Hindi',
       genre: data.genre || 'Drama',
-      stage: 'Intake',
-      progressPercent: 5,
+      stage: 'Intake & Ambiguity Detection',
+      progressPercent: 10,
       lastUpdated: 'Just now',
-      tags: data.tags || ['Original'],
+      tags: data.tags || ['Original', 'Pilot'],
       status: 'DRAFT',
+      canonicalVersion: 'v0.1-draft',
       ...data
     };
     setProjects(prev => [newProj, ...prev]);
@@ -238,7 +618,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: 'proj-' + Date.now(),
       title: `${target.title} (Copy)`,
       lastUpdated: 'Just now',
-      status: 'DRAFT'
+      status: 'DRAFT',
+      canonicalVersion: 'v0.1-copy'
     };
     setProjects(prev => [duplicated, ...prev]);
   };
@@ -251,7 +632,9 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // -------------------------------------------------------------
   // CHANGE IMPACT ENGINE
+  // -------------------------------------------------------------
   const triggerChangeImpact = (
     charIdOrDesc: string = 'char-aanya',
     field: string = 'age',
@@ -267,132 +650,44 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       {
         id: 'imp-1',
         category: 'Characters',
-        objectName: 'Aanya',
-        field: 'Age & Psychosocial Stage',
-        oldValue: `${oldVal || 24} years old (Fresh aspirant)`,
-        newValue: `${newVal || 34} years old (Mature, battle-tested)`,
-        reason: 'Shifts character from wide-eyed student idealism to seasoned urgency and systemic burnout.',
+        objectName: 'Aanya Deshmukh',
+        field: 'Age & Life Stage',
+        oldValue: `${oldVal || 24} years old (Fresh graduate)`,
+        newValue: `${newVal || 34} years old (Final attempt crisis)`,
+        reason: 'Shifts character from wide-eyed student to battle-tested veteran facing age ceiling.',
         severity: 'High',
         approved: true
       },
       {
         id: 'imp-2',
         category: 'Story',
-        objectName: 'Core Narrative Engine',
-        field: 'Central Motivation & Stakes',
+        objectName: 'Core Narrative Stakes',
+        field: 'Attempt Limit & Ticking Clock',
         oldValue: 'College ambition vs parental expectations',
-        newValue: 'Final attempt eligibility limit & existential time pressure',
-        reason: 'At 34, civil service age-bars make this her absolute final attempt. Stakes are life-or-death for her career.',
+        newValue: 'Final attempt eligibility limit & existential career termination',
+        reason: 'At 34, civil service regulations make this her absolute final attempt.',
         severity: 'High',
         approved: true
       },
       {
         id: 'imp-3',
-        category: 'Story',
-        objectName: 'Family Dynamic',
-        field: 'Raghav Deshmukh Relationship',
-        oldValue: 'Paternal protection of young daughter',
-        newValue: 'Peer-level adult confrontation over 10 lost years',
-        reason: 'Her father mortgaged the house a decade ago; unstated guilt has fermented into acute family friction.',
+        category: 'Scenes',
+        objectName: 'Scene 1: INT. AARANYA ROOM',
+        field: 'Set Dressing & Props',
+        oldValue: 'Fresh UPSC textbooks and college notes',
+        newValue: 'Dog-eared books from 2018-2024, cold chai, countdown calendar',
+        reason: 'Visual environment conveys a decade of emotional and intellectual sacrifice.',
         severity: 'High',
         approved: true
       },
       {
         id: 'imp-4',
-        category: 'Scenes',
-        objectName: 'Scene 1: INT. AARANYA ROOM',
-        field: 'Set Dressing & Props',
-        oldValue: 'Fresh UPSC textbooks and college notes',
-        newValue: 'Dog-eared books from 2018-2024, corporate resignation letter, medicine for father',
-        reason: 'Visual environment must convey an adult who sacrificed corporate opportunities to return to the exam.',
-        severity: 'High',
-        approved: true
-      },
-      {
-        id: 'imp-5',
-        category: 'Scenes',
-        objectName: 'Scene 3: INT. FAMILY DINING',
-        field: 'Dialogue & Subtext',
-        oldValue: 'Father offering gentle advice to a novice',
-        newValue: 'Strained silence over marriage proposals rejected and family debts',
-        reason: 'Cultural context in India shifts dramatically for an unmarried 34-year-old woman in provincial cities.',
-        severity: 'High',
-        approved: true
-      },
-      {
-        id: 'imp-6',
-        category: 'Scenes',
-        objectName: 'Scenes 7, 12, 14, 18, 22, 26',
-        field: 'Action & Conflict Tone',
-        oldValue: 'Student-led protests & hostel camaraderie',
-        newValue: 'Seasoned mentor figure to younger batchmates; high risk of blacklisting',
-        reason: 'Aanya is now 9 years older than Kabir (25); she naturally functions as the elder strategist of the group.',
-        severity: 'Medium',
-        approved: true
-      },
-      {
-        id: 'imp-7',
         category: 'Dialogue',
         objectName: 'Scene 1 Voiceover',
         field: 'Opening Monologue',
         oldValue: '"Is there a bigger purpose for me?"',
         newValue: '"Ten years ago I thought time was on my side. Now every rain feels like a countdown."',
-        reason: 'Voiceover needs gravitas and awareness of lost years.',
-        severity: 'High',
-        approved: true
-      },
-      {
-        id: 'imp-8',
-        category: 'Dialogue',
-        objectName: 'Mother (O.S.) Interaction',
-        field: 'Mother Dialogue Tone',
-        oldValue: '"Your dreams can wait, beta."',
-        newValue: '"How much longer will you punish yourself, Aanya? You are 34."',
-        reason: 'Parental concern pivots from student fatigue to matrimonial and biological clock anxieties.',
-        severity: 'Medium',
-        approved: true
-      },
-      {
-        id: 'imp-9',
-        category: 'Dialogue',
-        objectName: 'Scene 26 Confrontation with Vikrant',
-        field: 'Power Dynamic with Antagonist',
-        oldValue: 'Vulnerable victim cornered by power broker',
-        newValue: 'Intellectual equal; Vikrant cannot patronize her as a child',
-        reason: 'The power dynamic becomes much more lethal when the protagonist has 10 years of analytical endurance.',
-        severity: 'High',
-        approved: true
-      },
-      {
-        id: 'imp-10',
-        category: 'Visuals',
-        objectName: 'Character Lookbook (KF-01)',
-        field: 'Costume & Makeup Styling',
-        oldValue: 'College backpack, bright student kurtis',
-        newValue: 'Muted earth tones, understated hair styling, subtle tired eye makeup',
-        reason: 'Costume department must reflect a decade of intense study and emotional sacrifice.',
-        severity: 'Medium',
-        approved: true
-      },
-      {
-        id: 'imp-11',
-        category: 'Visuals',
-        objectName: 'Visual Color Grading',
-        field: 'Palette Shift',
-        oldValue: 'Warm golden nostalgic student tones',
-        newValue: 'Cooler desaturated monsoon contrast',
-        reason: 'Emphasizes noir realism over romantic youth drama.',
-        severity: 'Low',
-        approved: true
-      },
-      {
-        id: 'imp-12',
-        category: 'Production',
-        objectName: 'Lead Casting Brief',
-        field: 'Casting Age Bracket & Profile',
-        oldValue: 'Target Actor Age: 22–25',
-        newValue: 'Target Actor Age: 30–36 (e.g., Radhika Apte, Tillotama Shome archetype)',
-        reason: 'Requires immediate revision of casting shortlist and audition scripts sent to talent agencies.',
+        reason: 'Voiceover needs gravitas and awareness of mortgaged years.',
         severity: 'High',
         approved: true
       }
@@ -400,7 +695,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setImpactState({
       isOpen: true,
-      sourceTrigger: `Changed Aanya's ${field}: ${oldVal} → ${newVal}`,
+      sourceTrigger,
       totalAffected: 12,
       summary: {
         characters: 1,
@@ -419,69 +714,24 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const approveAndPropagateImpact = () => {
-    // Apply changes downstream into the current project state
     updateCurrentProject(prev => {
       const updatedChars = prev.characters.map(c => {
-        if (c.name === 'Aanya' || c.id === 'char-aanya') {
+        if (c.name.includes('Aanya') || c.id === 'char-aanya') {
           return {
             ...c,
             age: 34,
-            tags: ['Resilient', 'Strategic', 'Battle-tested'],
-            arc: 'Exhaustion → Critical Breakthrough → Decisive Agency',
+            tags: ['Resilient', 'Strategic', 'Battle-Tested', 'Hyper-Analytical'],
+            arc: 'Cynical survivalism → Reluctant investigation → Existential sacrifice for communal justice.',
             quote: 'Ten years of waiting ends tonight.'
           };
         }
         return c;
       });
 
-      // Update Screenplay Scene 1 heading & action
-      const updatedScreenplay = prev.screenplay.map(line => {
-        if (line.id === 'sp2') {
-          return {
-            ...line,
-            content: 'A dimly lit room. Rain taps against the window. AARANYA (34) sits at her desk, surrounded by dog-eared UPSC volumes spanning a decade, cold chai, and a countdown marked on her calendar.'
-          };
-        }
-        if (line.id === 'sp6') {
-          return {
-            ...line,
-            content: 'Ten years ago I thought time was on my side. Now every rain feels like a countdown.'
-          };
-        }
-        return line;
-      });
-
-      // Update Dialogue suggestions
-      const updatedDialogue = [
-        {
-          id: 'ds1',
-          character: 'AARANYA',
-          label: 'battle-tested & urgent',
-          text: 'This is my final attempt, Maa. If I don’t stand for the truth now, what was the point of 10 years of sacrifice?',
-          tone: 'Urgent, Resolute'
-        },
-        {
-          id: 'ds2',
-          character: 'MOTHER (O.S.)',
-          label: 'deep parental anxiety',
-          text: 'How much longer will you punish yourself, Aanya? The town talks. You are 34.',
-          tone: 'Strained, Fearful'
-        },
-        {
-          id: 'ds3',
-          character: 'AARANYA',
-          label: 'quiet certainty',
-          text: 'Let them talk. Some debts can only be paid by finishing the fight.',
-          tone: 'Cold Determination'
-        }
-      ];
-
       return {
         ...prev,
         characters: updatedChars,
-        screenplay: updatedScreenplay,
-        dialogueSuggestions: updatedDialogue,
-        lastUpdated: 'Updated just now (Impact Propagated)'
+        lastUpdated: 'Updated just now (Impact Propagated into Story Brain)'
       };
     });
 
@@ -492,8 +742,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const char = currentProject.characters.find(c => c.id === charId);
     if (!char) return;
 
-    // Check if age or crucial trait is changing on Aanya
-    if (char.name === 'Aanya' && updates.age !== undefined && updates.age !== char.age) {
+    if (char.name.includes('Aanya') && updates.age !== undefined && updates.age !== char.age) {
       triggerChangeImpact(charId, 'age', char.age, updates.age);
       return;
     }
@@ -537,7 +786,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       strengths: 'Combines the best of high plot urgency with deep character empathy',
       tags: ['Synthesized', 'High-Stakes', 'Character-Driven'],
       imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600&auto=format&fit=crop',
-      isSelected: true
+      isSelected: true,
+      candidateState: 'CANDIDATE'
     };
 
     updateCurrentProject(prev => ({
@@ -573,12 +823,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const applyDialogueAlternative = (suggestionText: string, characterName: string) => {
     updateCurrentProject(prev => {
       const updatedScreenplay = [...prev.screenplay];
-      // Replace the dialogue line
       const targetIndex = updatedScreenplay.findIndex(l => l.type === 'dialogue' && (!characterName || characterName === 'AARANYA'));
       if (targetIndex >= 0) {
         updatedScreenplay[targetIndex] = {
           ...updatedScreenplay[targetIndex],
-          content: suggestionText
+          content: suggestionText,
+          candidateState: 'HUMAN_EDITED'
         };
       }
       return {
@@ -586,13 +836,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         screenplay: updatedScreenplay
       };
     });
-  };
-
-  const resolveQAIssue = (issueId: string) => {
-    updateCurrentProject(prev => ({
-      ...prev,
-      qaIssues: prev.qaIssues.map(q => (q.id === issueId ? { ...q, status: 'Resolved' } : q))
-    }));
   };
 
   const toggleChecklistItem = (checklistName: 'treatment' | 'package' | 'visual', itemIndex: number) => {
@@ -605,10 +848,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const list = [...prev.package.checklist];
         list[itemIndex] = { ...list[itemIndex], completed: !list[itemIndex].completed };
         return { ...prev, package: { ...prev.package, checklist: list } };
-      } else if (checklistName === 'visual') {
-        const list = [...prev.visualDev.visualChecklist];
-        list[itemIndex] = { ...list[itemIndex], done: !list[itemIndex].done };
-        return { ...prev, visualDev: { ...prev.visualDev, visualChecklist: list } };
       }
       return prev;
     });
@@ -624,7 +863,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         stakeholders: prev.package.stakeholders.map(s => ({
           ...s,
           status: 'Approved',
-          date: '22 Sep 2026'
+          date: '28 Sep 2026'
         }))
       }
     }));
@@ -645,8 +884,8 @@ Protagonist: ${currentProject.characters?.[0]?.name} (Age: ${currentProject.char
 Want: ${currentProject.characters?.[0]?.want}
 Need: ${currentProject.characters?.[0]?.need}
 World Setting: ${currentProject.world?.era}, ${currentProject.world?.settingType}
+Canon Facts Count: ${currentProject.storyBrain.canonFacts.length}
 Format: ${currentProject.format}
-Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
     `.trim();
 
     try {
@@ -657,7 +896,7 @@ Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
         ...prev,
         {
           sender: 'tattvaCo',
-          text: `Analyzing "${text}": The narrative engine demonstrates strong commercial velocity and tension. Ensure character conflict peaks at the Midpoint reversal.`,
+          text: `[Story Brain Analysis]: For "${text}", checking against Canon Fact #CF-01 and #CF-04: The narrative engine requires Aanya's forensic discovery to occur before the Act II midpoint.`,
           time: 'Just now'
         }
       ]);
@@ -680,21 +919,17 @@ Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
     }));
   };
 
-  const updateTreatment = (updates: Partial<any>) => {
+  const updateTreatment = (updates: Partial<TreatmentData>) => {
     updateCurrentProject(prev => ({
       ...prev,
       treatment: { ...prev.treatment, ...updates }
     }));
   };
 
-  const resolveQAInconsistency = (issueId: string) => {
-    resolveQAIssue(issueId);
-  };
-
   const updateScreenplayLine = (lineId: string, content: string) => {
     updateCurrentProject(prev => ({
       ...prev,
-      screenplay: prev.screenplay.map(l => l.id === lineId ? { ...l, content } : l)
+      screenplay: prev.screenplay.map(l => l.id === lineId ? { ...l, content, candidateState: 'HUMAN_EDITED' } : l)
     }));
   };
 
@@ -709,7 +944,7 @@ Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
     applyDialogueAlternative(text, 'AARANYA');
   };
 
-  const updateScene = (sceneId: string, updates: Partial<any>) => {
+  const updateScene = (sceneId: string, updates: Partial<SceneItem>) => {
     updateCurrentProject(prev => ({
       ...prev,
       scenes: prev.scenes.map(s => s.id === sceneId ? { ...s, ...updates } : s)
@@ -729,6 +964,11 @@ Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
         currentStepIndex,
         isCopilotOpen,
         impactState,
+        activeContextPackage,
+        isContextResolverOpen,
+        resolveContext,
+        openContextResolver,
+        closeContextResolver,
         setActiveScreen,
         goToStep,
         nextStep,
@@ -744,16 +984,25 @@ Budget Envelope: ₹${currentProject.production?.budgetTotalCr} Cr
         selectFormat,
         selectTemplate,
         applyDialogueAlternative,
-        resolveQAIssue,
         toggleChecklistItem,
         submitGreenlight,
+        addCanonFact,
+        toggleLockCanonFact,
+        logCreativeDecision,
+        resolveDependencyStaleness,
+        resolveContinuityIssue,
+        repairSceneWithCanon,
+        resolveQAIssue,
+        resolveQAInconsistency,
+        runStoryEvaluation,
+        signOffEvaluation,
+        setArtifactCandidateState,
         triggerChangeImpact,
         closeImpactModal,
         approveAndPropagateImpact,
         setProjectFormat,
         setProjectTemplate,
         updateTreatment,
-        resolveQAInconsistency,
         updateScreenplayLine,
         addScreenplayLine,
         swapDialogueSuggestion,

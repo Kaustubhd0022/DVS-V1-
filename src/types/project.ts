@@ -1,5 +1,11 @@
 export type ApprovalStatus = 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'LOCKED';
 
+/**
+ * 5-Stage Canonical State Machine as defined in Unified AI-Native Product Specification (Section 11)
+ * AI_PROPOSAL -> CANDIDATE -> HUMAN_EDITED -> APPROVED -> CANONICAL (with SUPERSEDED for historical versions)
+ */
+export type CanonicalState = 'AI_PROPOSAL' | 'CANDIDATE' | 'HUMAN_EDITED' | 'APPROVED' | 'CANONICAL' | 'SUPERSEDED';
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -21,6 +27,8 @@ export interface ProjectIntent {
   targetAudience: string;
   status: ApprovalStatus;
   missingQuestions: string[];
+  ambiguitiesIdentified?: string[];
+  storyBrainProposed?: boolean;
 }
 
 export interface ResearchQuestion {
@@ -36,12 +44,16 @@ export interface ResearchFinding {
   claim: string;
   evidence: string;
   source: string;
-  sourceType: 'Primary Source' | 'Academic' | 'Established Publication' | 'Government';
+  sourceType: 'Primary Source' | 'Academic' | 'Established Publication' | 'Government' | 'Field Report';
+  sourceUrl?: string;
+  evidenceQuote?: string;
+  implicationForPlot?: string;
   date: string;
   confidence: number;
-  status: 'Verified' | 'Needs Review' | 'Conflicting';
+  status: 'Verified' | 'Needs Review' | 'Conflicting' | 'Insufficient Evidence';
   usedIn: string[];
   imageUrl?: string;
+  candidateState?: CanonicalState;
 }
 
 export interface StoryDirection {
@@ -63,6 +75,9 @@ export interface StoryDirection {
   tags: string[];
   imageUrl: string;
   isSelected: boolean;
+  candidateState?: CanonicalState;
+  rationale?: string;
+  compTitles?: string;
 }
 
 export interface FormatOption {
@@ -103,7 +118,8 @@ export interface Character {
   quote: string;
   photoUrl: string;
   status: ApprovalStatus;
-  // Deep Schema
+  candidateState?: CanonicalState;
+  // Deep Schema as required by Character Intelligence Agent
   want: string;
   need: string;
   fear: string;
@@ -140,6 +156,7 @@ export interface StoryWorld {
   socioPolitical: string;
   cultureLifestyle: string;
   institutions: string;
+  worldRules?: string[];
 }
 
 export interface StructureBeat {
@@ -150,6 +167,7 @@ export interface StructureBeat {
   title: string;
   description: string;
   imageUrl: string;
+  candidateState?: CanonicalState;
 }
 
 export interface StoryTimelineMilestone {
@@ -178,6 +196,7 @@ export interface PlotBeatItem {
   title: string;
   act: 'ACT I' | 'ACT II' | 'ACT III';
   description: string;
+  candidateState?: CanonicalState;
 }
 
 export interface TreatmentData {
@@ -188,6 +207,7 @@ export interface TreatmentData {
   themes: string[];
   tone: string[];
   status: ApprovalStatus;
+  candidateState?: CanonicalState;
   plotBeats: PlotBeatItem[];
   checklist: { item: string; completed: boolean }[];
 }
@@ -211,6 +231,7 @@ export interface SceneItem {
   dialogueHighlights: string;
   visualNotes: string;
   imageUrl: string;
+  candidateState?: CanonicalState;
   insights: {
     storyRole: string;
     emotionalTone: string;
@@ -228,6 +249,7 @@ export interface ScreenplayLine {
   type: 'scene_heading' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition';
   characterName?: string;
   content: string;
+  candidateState?: CanonicalState;
 }
 
 export interface DialogueSuggestion {
@@ -236,21 +258,178 @@ export interface DialogueSuggestion {
   label: string;
   text: string;
   tone: string;
+  candidateState?: CanonicalState;
 }
 
-export interface QAInconsistency {
+// -------------------------------------------------------------
+// STORY BRAIN & CANONICAL PROJECT INTELLIGENCE DEFINITIONS
+// -------------------------------------------------------------
+
+export interface CanonFact {
+  id: string;
+  statement: string;
+  category: 'World Rule' | 'Character Truth' | 'Timeline' | 'Institutional Reality' | 'Plot Law';
+  entityIds: string[];
+  source: string;
+  dateEstablished: string;
+  isLocked: boolean;
+  version: string;
+  tags: string[];
+}
+
+export interface CreativeDecision {
+  id: string;
+  title: string;
+  rationale: string;
+  author: string;
+  role: string;
+  date: string;
+  status: 'Approved' | 'Proposed' | 'Reversed';
+  impactedAreas: string[];
+}
+
+export interface StoryDependency {
+  id: string;
+  sourceEntityId: string;
+  sourceName: string;
+  targetEntityId: string;
+  targetName: string;
+  dependencyType: 'Character -> Scene' | 'Canon -> Motivation' | 'Research -> Plot' | 'Beat -> Dialogue';
+  description: string;
+  isStale: boolean;
+  staleReason?: string;
+}
+
+export interface StoryBrain {
+  canonFacts: CanonFact[];
+  creativeDecisions: CreativeDecision[];
+  dependencies: StoryDependency[];
+  activeEntitiesCount: number;
+  lastUpdated: string;
+}
+
+// -------------------------------------------------------------
+// CONTEXT RESOLVER MODEL
+// -------------------------------------------------------------
+
+export interface ContextResolverPackage {
+  taskId: string;
+  taskType: 'Story Direction' | 'Treatment Beat' | 'Scene Drafting' | 'Dialogue Voice' | 'Continuity Check' | 'Evaluation';
+  targetArtifact: string;
+  retrievedCanonFacts: CanonFact[];
+  retrievedCharacterContext: { name: string; want: string; need: string; fear: string; voiceStyle: string }[];
+  retrievedResearch: ResearchFinding[];
+  retrievedWorldRules: string[];
+  rationale: string;
+  tokenEstimate: number;
+  resolvedAt: string;
+}
+
+// -------------------------------------------------------------
+// CANON & CONTINUITY ENGINE MODEL
+// -------------------------------------------------------------
+
+export interface ContinuityIssue {
   id: string;
   sceneNumber: number;
-  type: 'Prop Mismatch' | 'Costume Change' | 'Time Continuity' | 'Dialogue Overlap' | 'Spatial Direction';
+  category: 'Timeline' | 'Character Motivation' | 'World Rule' | 'Physical Prop' | 'Relationship Dynamic';
+  severity: 'Critical Blocker' | 'Warning' | 'Advisory';
   title: string;
   description: string;
-  status: 'Open' | 'Resolved';
-  referenceShotLabel: string;
-  currentShotLabel: string;
-  referenceShotImg: string;
-  currentShotImg: string;
-  fixAction: string;
+  establishedCanonEvidence: string;
+  canonSource: string;
+  conflictingContentEvidence: string;
+  contentLocation: string;
+  affectedEntities: string[];
+  resolutionState: 'Open' | 'Resolved' | 'Exception Granted';
+  resolutionNotes?: string;
+  fixAction?: string;
 }
+
+// Backward-compatible alias for existing code
+export type QAInconsistency = ContinuityIssue;
+
+// -------------------------------------------------------------
+// AI STORY EVALUATION HARNESS MODEL
+// -------------------------------------------------------------
+
+export interface EvaluationDimension {
+  id: string;
+  name: string;
+  score: number; // 0-100
+  weight: number;
+  diagnostic: string;
+  strengths: string[];
+  gaps: string[];
+  recommendation: string;
+}
+
+export interface StoryEvaluation {
+  overallScore: number;
+  readinessStatus: 'Draft' | 'Needs Revisions' | 'Pilot Ready' | 'Greenlight Recommended';
+  dimensions: EvaluationDimension[];
+  criticalRisks: string[];
+  keyStrengths: string[];
+  actionItems: string[];
+  evaluatorModel: string;
+  evaluatedAt: string;
+  humanSignOff?: {
+    approvedBy: string;
+    role: string;
+    date: string;
+    comments: string;
+  };
+}
+
+// -------------------------------------------------------------
+// PILOT INSTRUMENTATION & TELEMETRY MODEL
+// -------------------------------------------------------------
+
+export interface PilotMetrics {
+  verificationRate: number; // % research verified by human
+  continuityCatchRate: number; // % contradictions surfaced
+  candidateAcceptanceRate: number; // % candidates accepted/edited vs rejected
+  timeToPackageMins: number; // estimated or elapsed turnaround
+  activeEntitiesCount: number;
+  canonicalFactsCount: number;
+  totalAiRuns: number;
+  averageLatencyMs: number;
+}
+
+// -------------------------------------------------------------
+// CHANGE IMPACT ANALYSIS MODEL
+// -------------------------------------------------------------
+
+export interface ImpactChangeItem {
+  id: string;
+  category: 'Characters' | 'Story' | 'Scenes' | 'Dialogue' | 'Visuals' | 'Production';
+  objectName: string;
+  field: string;
+  oldValue: string;
+  newValue: string;
+  reason: string;
+  severity: 'High' | 'Medium' | 'Low';
+  approved: boolean;
+}
+
+export interface ImpactAnalysisState {
+  isOpen: boolean;
+  sourceTrigger: string;
+  totalAffected: number;
+  summary: {
+    characters: number;
+    story: number;
+    scenes: number;
+    dialogue: number;
+    visuals: number;
+    production: number;
+  };
+  items: ImpactChangeItem[];
+}
+
+// -------------------------------------------------------------
+// VISUAL DEV & PRODUCTION (LEGACY / DEFERRED)
+// -------------------------------------------------------------
 
 export interface VisualKeyFrame {
   id: string;
@@ -329,32 +508,9 @@ export interface PackageData {
   stakeholders: StakeholderApproval[];
 }
 
-export interface ImpactChangeItem {
-  id: string;
-  category: 'Characters' | 'Story' | 'Scenes' | 'Dialogue' | 'Visuals' | 'Production';
-  objectName: string;
-  field: string;
-  oldValue: string;
-  newValue: string;
-  reason: string;
-  severity: 'High' | 'Medium' | 'Low';
-  approved: boolean;
-}
-
-export interface ImpactAnalysisState {
-  isOpen: boolean;
-  sourceTrigger: string;
-  totalAffected: number;
-  summary: {
-    characters: number;
-    story: number;
-    scenes: number;
-    dialogue: number;
-    visuals: number;
-    production: number;
-  };
-  items: ImpactChangeItem[];
-}
+// -------------------------------------------------------------
+// CORE PROJECT MODEL (Tattava V1 Pilot)
+// -------------------------------------------------------------
 
 export interface TattvaCoProject {
   id: string;
@@ -372,7 +528,21 @@ export interface TattvaCoProject {
   tags: string[];
   teamMembers: TeamMember[];
   status: ApprovalStatus;
-  // Sub-modules
+  canonicalVersion?: string;
+
+  // The Heart of Tattava: Story Brain System of Record
+  storyBrain: StoryBrain;
+
+  // Pilot Instrumentation
+  pilotMetrics: PilotMetrics;
+
+  // AI Story Evaluation Harness
+  evaluation: StoryEvaluation;
+
+  // Context Resolver active cache
+  activeContextPackage?: ContextResolverPackage;
+
+  // Pipeline Modules
   intent: ProjectIntent;
   researchQuestions: ResearchQuestion[];
   researchFindings: ResearchFinding[];
@@ -389,15 +559,19 @@ export interface TattvaCoProject {
   selectedSceneId: string;
   screenplay: ScreenplayLine[];
   dialogueSuggestions: DialogueSuggestion[];
-  qaIssues: QAInconsistency[];
+  continuityIssues: ContinuityIssue[];
+  qaIssues: ContinuityIssue[]; // Alias
+
+  // Deferred / Out of Scope (Retained for preview compatibility)
   visualDev: VisualDevData;
   production: ProductionPlanData;
   package: PackageData;
-  // Aliases for screen accessibility
+
+  // Screen accessibility aliases
   format?: string;
   template?: string;
   screenplayLines?: ScreenplayLine[];
-  qaInconsistencies?: QAInconsistency[];
+  qaInconsistencies?: ContinuityIssue[];
   productionPlan?: ProductionPlanData;
   packageData?: PackageData;
 }

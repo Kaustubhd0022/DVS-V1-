@@ -50,10 +50,10 @@ export const TopHeader: React.FC = () => {
         <button
           onClick={() => setShowAiModal(true)}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all shadow-sm"
-          title="tattvaCo AI Engine (Gemini 3.6 Flash)"
+          title="tattvaCo AI Engine (Groq LPU • 120B)"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="hidden sm:inline font-mono text-[11px]">Gemini 3.6</span>
+          <span className="hidden sm:inline font-mono text-[11px]">Groq LPU</span>
         </button>
 
         {/* Contextual AI Copilot Toggle */}

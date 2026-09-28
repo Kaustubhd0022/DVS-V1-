@@ -5,6 +5,7 @@ import {
   ArrowRight, Sliders, ShieldCheck, ChevronRight, BarChart3, AlertCircle, FileText
 } from 'lucide-react';
 import { FormatOption, TemplateOption } from '../../types/project';
+import { askCopilot } from '../../services/aiService';
 
 export const FormatTemplateScreen: React.FC = () => {
   const { currentProject, setProjectFormat, setProjectTemplate, nextStep } = useProject();
@@ -77,6 +78,9 @@ export const FormatTemplateScreen: React.FC = () => {
 
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [showRationale, setShowRationale] = useState(true);
+  const [aiRationaleText, setAiRationaleText] = useState(
+    `Based on Aanya Verma’s singular moral dilemma, a 48-hour ticking clock monsoon scenario, and target theatrical release, a 125-minute feature film provides tighter stakes and higher ROI than an elongated series.`
+  );
 
   const handleSelectFormat = (id: string, title: string) => {
     setFormats(prev => prev.map(f => ({ ...f, isSelected: f.id === id })));
@@ -88,11 +92,19 @@ export const FormatTemplateScreen: React.FC = () => {
     setProjectTemplate(title);
   };
 
-  const reevaluateWithAI = () => {
+  const reevaluateWithAI = async () => {
     setAiAnalyzing(true);
-    setTimeout(() => {
+    try {
+      const prompt = `Give a crisp 2-sentence executive rationale recommending the optimal narrative format (Feature vs Series) and pacing for: "${currentProject.title}" (Premise: ${currentProject.intent?.premise || currentProject.tagline}). Keep it sharp and commercial.`;
+      const reply = await askCopilot(prompt, `Project: ${currentProject.title}`);
+      if (reply) {
+        setAiRationaleText(reply);
+      }
+    } catch (e) {
+      console.warn('Reevaluate AI error', e);
+    } finally {
       setAiAnalyzing(false);
-    }, 900);
+    }
   };
 
   const selectedFormatObj = formats.find(f => f.isSelected) || formats[0];
@@ -156,7 +168,7 @@ export const FormatTemplateScreen: React.FC = () => {
                 Recommended Format: <span className="text-amber-400">Feature Film (120 Mins)</span> with Three-Act Classical Arc
               </h2>
               <p className="text-xs text-white/70 mt-1 max-w-3xl leading-relaxed">
-                Based on Aanya Verma’s singular moral dilemma, a 48-hour ticking clock monsoon scenario, and target theatrical release, a 125-minute feature film provides tighter stakes and higher ROI than an elongated series.
+                {aiRationaleText}
               </p>
             </div>
           </div>

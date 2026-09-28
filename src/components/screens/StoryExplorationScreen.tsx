@@ -12,7 +12,11 @@ import {
   TrendingUp, 
   AlertTriangle,
   Plus,
-  Compass
+  Compass,
+  Database,
+  Lock,
+  Shield,
+  FileCheck
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 
@@ -21,6 +25,8 @@ export const StoryExplorationScreen: React.FC = () => {
     currentProject, 
     selectStoryDirection, 
     combineDirections, 
+    setArtifactCandidateState,
+    openContextResolver,
     nextStep, 
     prevStep 
   } = useProject();
@@ -39,67 +45,71 @@ export const StoryExplorationScreen: React.FC = () => {
     setShowCombineModal(false);
   };
 
+  const handleApproveAsCanon = (dirId: string) => {
+    setArtifactCandidateState('direction', dirId, 'CANONICAL');
+  };
+
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
-      {/* Step Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn pb-16">
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-white/10">
         <div>
-          <span className="text-[11px] uppercase tracking-widest font-extrabold text-[#f25b2a]">
-            STEP 4 OF 16
-          </span>
-          <h1 className="text-3xl font-extrabold text-white mt-1 tracking-tight">
-            Story Exploration
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Flow 3 • Story Development & Candidates
+            </span>
+            <span className="text-xs text-white/40">• Human Approval Boundary</span>
+          </div>
+          <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            Story Directions & Narrative Engines
           </h1>
-          <p className="text-sm text-[#8b99ac] mt-1">
-            Explore multiple creative directions. Compare, combine, or create a new version. tattvaCo helps you find the strongest story.
+          <p className="text-sm text-white/70 mt-1 max-w-2xl">
+            In accordance with Section 8 & 11: Story alternatives are candidate proposals until explicitly reviewed and approved into authoritative canon.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => openContextResolver()}
+            className="px-3.5 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          >
+            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Inspect Injected Context</span>
+          </button>
+
           <button
             onClick={() => setShowCombineModal(true)}
-            className="flex items-center gap-1.5 bg-[#1b212e] hover:bg-[#232b3c] border border-[#2d374a] text-xs font-semibold text-white px-3.5 py-2 rounded-xl transition-all"
+            className="flex items-center gap-1.5 bg-[#1b212e] hover:bg-[#232b3c] border border-white/10 text-xs font-semibold text-white px-3.5 py-2 rounded-xl transition-all"
           >
-            <GitMerge className="w-3.5 h-3.5 text-[#f25b2a]" />
-            <span>Combine Directions</span>
+            <GitMerge className="w-3.5 h-3.5 text-amber-400" />
+            <span>Synthesize Directions</span>
+          </button>
+
+          <button
+            onClick={nextStep}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-amber-500/20 transition-all"
+          >
+            <span>Next: Format & Template</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Sub-tabs */}
-      <div className="flex items-center gap-6 border-b border-[#242c3d] pb-2 text-xs font-semibold">
-        {['Story Directions', 'Compare', 'Combine Ideas', 'Saved Concepts (3)', 'Notes'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              if (tab === 'Combine Ideas') setShowCombineModal(true);
-            }}
-            className={`transition-colors pb-2 ${
-              activeTab === tab 
-                ? 'text-[#f25b2a] border-b-2 border-[#f25b2a]' 
-                : 'text-[#8b99ac] hover:text-white'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column (8.5 cols): Direction Cards */}
         <div className="lg:col-span-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {directions.map((dir) => {
               const isSelected = dir.isSelected;
+              const isCanonical = dir.candidateState === 'CANONICAL';
 
               return (
                 <div
                   key={dir.id}
                   className={`rounded-2xl border overflow-hidden flex flex-col justify-between transition-all duration-300 ${
                     isSelected
-                      ? 'bg-[#161a25] border-[#f25b2a] shadow-glow-orange ring-1 ring-[#f25b2a]/40'
-                      : 'bg-[#141822] border-[#242c3d] hover:border-[#354157]'
+                      ? 'bg-[#161a25] border-amber-500 shadow-lg shadow-black/50 ring-1 ring-amber-500/40'
+                      : 'bg-[#141822] border-white/10 hover:border-white/20'
                   }`}
                 >
                   {/* Visual Header */}
@@ -111,9 +121,17 @@ export const StoryExplorationScreen: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#141822] via-[#141822]/40 to-transparent" />
 
-                    {/* Badge Letter */}
-                    <div className="absolute top-3 left-3 w-7 h-7 rounded-lg bg-black/70 backdrop-blur-sm border border-white/20 flex items-center justify-center font-bold text-xs text-white">
-                      {dir.badgeLetter}
+                    <div className="absolute top-3 left-3 flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-black/70 backdrop-blur-sm border border-white/20 flex items-center justify-center font-bold text-xs text-white">
+                        {dir.badgeLetter}
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border backdrop-blur-sm ${
+                        isCanonical
+                          ? 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50'
+                          : 'bg-black/60 text-amber-300 border-amber-500/40'
+                      }`}>
+                        {dir.candidateState || 'CANDIDATE'}
+                      </span>
                     </div>
 
                     <div className="absolute bottom-2.5 left-3 right-3 flex flex-wrap gap-1.5">
@@ -131,59 +149,67 @@ export const StoryExplorationScreen: React.FC = () => {
                       <h3 className="text-sm font-bold text-white leading-snug">
                         {dir.title}
                       </h3>
-                      <p className="text-xs text-[#9bb0c7] mt-1.5 line-clamp-3 leading-relaxed">
+                      <p className="text-xs text-white/70 mt-1.5 line-clamp-3 leading-relaxed">
                         {dir.logline}
                       </p>
                     </div>
 
-                    <div className="space-y-1.5 pt-2 border-t border-[#1f2637] text-[11px]">
-                      <div className="flex items-center justify-between text-[#7d8c9e]">
+                    <div className="space-y-1.5 pt-2 border-t border-white/5 text-[11px]">
+                      <div className="flex items-center justify-between text-white/60">
                         <span>Tone:</span>
                         <span className="font-semibold text-white truncate max-w-[120px]">{dir.tone}</span>
                       </div>
-                      <div className="flex items-center justify-between text-[#7d8c9e]">
+                      <div className="flex items-center justify-between text-white/60">
                         <span>Audience:</span>
                         <span className="font-semibold text-white truncate max-w-[120px]">{dir.audience}</span>
                       </div>
-                      <div className="flex items-center justify-between text-[#7d8c9e]">
-                        <span>Potential:</span>
+                      <div className="flex items-center justify-between text-white/60">
+                        <span>Commercial Potential:</span>
                         <span className="font-semibold text-emerald-400 truncate max-w-[120px]">{dir.potential}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[#7d8c9e]">
-                        <span>Risks:</span>
-                        <span className="text-amber-300 truncate max-w-[120px]">{dir.risks}</span>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="grid grid-cols-2 gap-2 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setDetailedDirectionId(dir.id)}
-                        className="flex items-center justify-center gap-1 bg-[#191f2c] hover:bg-[#222a3b] text-xs font-semibold text-[#a6b6cb] hover:text-white py-2 rounded-xl border border-[#263143] transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Details</span>
-                      </button>
+                    <div className="space-y-2 pt-2 border-t border-white/5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDetailedDirectionId(dir.id)}
+                          className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/80 hover:text-white py-2 rounded-xl border border-white/10 transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Rationale</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => selectStoryDirection(dir.id)}
-                        className={`flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                          isSelected
-                            ? 'bg-[#f25b2a] text-white shadow-sm'
-                            : 'bg-[#202737] hover:bg-[#2b354a] text-white'
-                        }`}
-                      >
-                        {isSelected ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            <span>Selected</span>
-                          </>
-                        ) : (
-                          <span>Select</span>
-                        )}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => selectStoryDirection(dir.id)}
+                          className={`flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                            isSelected
+                              ? 'bg-amber-500 text-black shadow-sm'
+                              : 'bg-white/10 hover:bg-white/20 text-white'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Selected</span>
+                            </>
+                          ) : (
+                            <span>Select</span>
+                          )}
+                        </button>
+                      </div>
+
+                      {isSelected && !isCanonical && (
+                        <button
+                          onClick={() => handleApproveAsCanon(dir.id)}
+                          className="w-full py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <FileCheck className="w-3.5 h-3.5" />
+                          <span>Approve Direction as Canon</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -191,19 +217,19 @@ export const StoryExplorationScreen: React.FC = () => {
             })}
           </div>
 
-          {/* Detailed Direction Drawer / Modal if clicked */}
+          {/* Detailed Direction Deep-Dive Drawer */}
           {detailedDirectionId && (
-            <div className="bg-[#141822] border border-[#2b3548] rounded-2xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-[#21293a]">
+            <div className="bg-[#141822] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div>
-                  <span className="text-[10px] text-[#f25b2a] font-bold uppercase tracking-wider">Direction Deep-Dive</span>
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">AI Rationale & Trade-Off Analysis</span>
                   <h3 className="text-base font-bold text-white">
                     {directions.find(d => d.id === detailedDirectionId)?.title}
                   </h3>
                 </div>
                 <button
                   onClick={() => setDetailedDirectionId(null)}
-                  className="text-xs text-[#718094] hover:text-white"
+                  className="text-xs text-white/50 hover:text-white"
                 >
                   Close
                 </button>
@@ -213,15 +239,24 @@ export const StoryExplorationScreen: React.FC = () => {
                 const target = directions.find(d => d.id === detailedDirectionId)!;
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div className="space-y-2">
-                      <p><strong className="text-white">Narrative Engine:</strong> <span className="text-[#a0b0c2]">{target.narrativeEngine}</span></p>
-                      <p><strong className="text-white">Protagonist Arc:</strong> <span className="text-[#a0b0c2]">{target.protagonistArc}</span></p>
-                      <p><strong className="text-white">Core Conflict:</strong> <span className="text-[#a0b0c2]">{target.conflict}</span></p>
+                    <div className="space-y-2 text-white/80">
+                      <p><strong className="text-white">Narrative Engine:</strong> {target.narrativeEngine}</p>
+                      <p><strong className="text-white">Protagonist Arc:</strong> {target.protagonistArc}</p>
+                      <p><strong className="text-white">Core Conflict:</strong> {target.conflict}</p>
+                      {target.rationale && (
+                        <p className="p-2.5 rounded-lg bg-black/40 border border-white/5 text-amber-200/90">
+                          <strong className="text-amber-300 block mb-0.5">Grounding Rationale:</strong>
+                          {target.rationale}
+                        </p>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <p><strong className="text-white">Stakes:</strong> <span className="text-[#a0b0c2]">{target.stakes}</span></p>
+                    <div className="space-y-2 text-white/80">
+                      <p><strong className="text-white">Stakes:</strong> {target.stakes}</p>
                       <p><strong className="text-white">Strengths:</strong> <span className="text-emerald-400">{target.strengths}</span></p>
                       <p><strong className="text-white">Identified Risk:</strong> <span className="text-amber-300">{target.risks}</span></p>
+                      {target.compTitles && (
+                        <p><strong className="text-white">Commercial Comps:</strong> {target.compTitles}</p>
+                      )}
                     </div>
                   </div>
                 );
@@ -230,167 +265,116 @@ export const StoryExplorationScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Right Column (3.5 cols): AI Analysis & Generator */}
+        {/* Right Column (3.5 cols): Governance & Active Story Rationale */}
         <div className="lg:col-span-4 space-y-5">
-          {/* AI Analysis Card */}
-          <div className="bg-[#141822] border border-[#242c3d] rounded-2xl p-5 space-y-3.5 shadow-card">
+          <div className="bg-[#141822] border border-amber-500/30 rounded-2xl p-5 space-y-3.5 shadow-md">
             <div className="flex items-center gap-2 text-white text-xs font-bold">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>AI Analysis</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
-                Beta
-              </span>
+              <Shield className="w-4 h-4 text-amber-400" />
+              <span>Active Canonical Selection</span>
             </div>
-            <p className="text-xs text-[#a0b2c6] leading-relaxed">
-              Based on your project intent, research and themes, these three directions offer distinct creative possibilities.
-            </p>
 
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-[#cad5e2]">
-              <p className="text-[11px] leading-relaxed text-[#b1becf]">
-                <strong>Creative recommendation:</strong> Direction B has the strongest emotional core, while Direction A adds a compelling mystery element. Consider combining both into a hybrid direction.
-              </p>
+            <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-2">
+              <span className="text-xs font-bold text-amber-300 block">{selectedDirection.title}</span>
+              <p className="text-xs text-white/80 leading-relaxed">{selectedDirection.logline}</p>
+              <div className="text-[10px] text-white/50 pt-1 border-t border-white/5">
+                Stakes: {selectedDirection.stakes}
+              </div>
             </div>
-          </div>
 
-          {/* Key Themes Across Directions */}
-          <div className="bg-[#141822] border border-[#242c3d] rounded-2xl p-5 space-y-3 shadow-card">
-            <h4 className="text-xs font-bold text-white">Key Themes Across Directions</h4>
-            <div className="space-y-2 text-xs">
-              {[
-                { title: 'System vs Individual', icon: '⚖️' },
-                { title: 'Truth and Consequence', icon: '🔍' },
-                { title: 'Identity and Belonging', icon: '🌱' },
-                { title: 'Hope amidst Disillusionment', icon: '✨' }
-              ].map((theme) => (
-                <div key={theme.title} className="flex items-center gap-2.5 p-2 rounded-xl bg-[#181d28] border border-[#273042] text-[#cad5e2]">
-                  <span>{theme.icon}</span>
-                  <span className="font-medium text-white">{theme.title}</span>
-                </div>
-              ))}
+            <div className="text-xs text-white/70 space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <span>State:</span>
+                <span className="font-bold text-emerald-400">{selectedDirection.candidateState || 'CANDIDATE'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Downstream Gate:</span>
+                <span className="text-white font-medium">Screenplay & Treatment Unlocked</span>
+              </div>
             </div>
           </div>
 
-          {/* Generate Alternative Direction CTA */}
-          <div className="bg-[#141822] border border-[#242c3d] rounded-2xl p-5 space-y-3 shadow-card text-center">
-            <h4 className="text-xs font-bold text-white">Want something different?</h4>
-            <p className="text-[11px] text-[#718094]">
-              Ask tattvaCo to create an alternative high-concept direction tailored to your exact notes.
+          <div className="bg-[#141822] border border-white/10 rounded-2xl p-5 space-y-3 shadow-md text-xs text-white/70 leading-relaxed">
+            <h4 className="font-bold text-white flex items-center gap-2">
+              <Compass className="w-4 h-4 text-cyan-400" />
+              Story Agent Operating Contract
+            </h4>
+            <p>
+              Story alternatives are produced by the Story Agent resolving context from Story Brain + verified research. 
+              The selected direction becomes the structural spine for downstream scenes and beat sheets.
             </p>
-            <button
-              onClick={() => setShowCombineModal(true)}
-              className="w-full flex items-center justify-center gap-2 bg-[#1f2636] hover:bg-[#273145] text-white border border-[#2e3b52] py-2.5 rounded-xl text-xs font-bold transition-all"
-            >
-              <Compass className="w-3.5 h-3.5 text-[#f25b2a]" />
-              <span>Generate New Direction</span>
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Combine Directions Modal */}
+      {/* SYNTHESIS MODAL */}
       {showCombineModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-lg bg-[#141822] border border-[#2a3447] rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-[#21293a]">
-              <div className="flex items-center gap-2">
-                <GitMerge className="w-4 h-4 text-[#f25b2a]" />
-                <h3 className="text-base font-bold text-white">Combine Story Directions</h3>
-              </div>
-              <button onClick={() => setShowCombineModal(false)} className="text-xs text-[#718094] hover:text-white">
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-[#a0b0c2] leading-relaxed">
-              tattvaCo can synthesize elements from multiple directions to create a new, richer Direction D without destroying canonical records.
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#141724] border border-amber-500/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <GitMerge className="w-4 h-4 text-amber-400" />
+              Synthesize Story Directions
+            </h3>
+            <p className="text-xs text-white/70">
+              Combine the narrative engine of one direction with the emotional core of another to produce Direction D.
             </p>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3">
               <div>
-                <label className="block text-white font-semibold mb-1">Combined Concept Title</label>
+                <label className="text-xs text-white/60 block mb-1">Combined Concept Title</label>
                 <input
                   type="text"
                   value={combinedTitle}
-                  onChange={(e) => setCombinedTitle(e.target.value)}
-                  className="w-full bg-[#181d28] border border-[#2a3447] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f25b2a]"
+                  onChange={e => setCombinedTitle(e.target.value)}
+                  className="w-full p-2.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white"
                 />
               </div>
 
-              <div>
-                <label className="block text-white font-semibold mb-2">Select Directions to Merge</label>
-                <div className="space-y-2">
-                  {directions.slice(0, 3).map(dir => (
-                    <label
-                      key={dir.id}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#181d28] border border-[#273042] cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedForCombine.includes(dir.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedForCombine([...selectedForCombine, dir.id]);
-                          } else {
-                            setSelectedForCombine(selectedForCombine.filter(id => id !== dir.id));
-                          }
-                        }}
-                        className="rounded text-[#f25b2a] focus:ring-[#f25b2a] bg-[#1a202c]"
-                      />
-                      <span className="font-bold text-white">{dir.title}</span>
-                      <span className="text-[#718094]">({dir.genre})</span>
-                    </label>
-                  ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-white/60 block mb-1">Direction A (Plot Engine)</label>
+                  <select
+                    value={selectedForCombine[0]}
+                    onChange={e => setSelectedForCombine([e.target.value, selectedForCombine[1]])}
+                    className="w-full p-2 rounded-lg bg-black/40 border border-white/10 text-xs text-white"
+                  >
+                    {directions.map(d => (
+                      <option key={d.id} value={d.id}>{d.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-white/60 block mb-1">Direction B (Emotional Core)</label>
+                  <select
+                    value={selectedForCombine[1]}
+                    onChange={e => setSelectedForCombine([selectedForCombine[0], e.target.value])}
+                    className="w-full p-2 rounded-lg bg-black/40 border border-white/10 text-xs text-white"
+                  >
+                    {directions.map(d => (
+                      <option key={d.id} value={d.id}>{d.title}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-[#202737] flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
               <button
                 onClick={() => setShowCombineModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-[#8b99ac] hover:text-white"
+                className="px-3 py-1.5 rounded-lg text-xs text-white/60 hover:text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExecuteCombine}
-                className="flex items-center gap-2 bg-[#f25b2a] hover:bg-[#e04b1a] text-white px-5 py-2 rounded-xl text-xs font-bold shadow-glow-orange transition-all"
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Synthesize Direction D</span>
+                Generate Synthesis Candidate
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Bottom Sticky Action Bar */}
-      <div className="pt-4 border-t border-[#222836] flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={prevStep}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-[#8b99ac] hover:text-white hover:bg-[#181d28] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
-        </button>
-
-        <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-4 py-2 rounded-xl text-xs font-medium">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>Story direction "{selectedDirection.title}" selected. You can refine or move to format selection.</span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-[#718094]">Step 4 of 16</span>
-          <button
-            type="button"
-            onClick={nextStep}
-            className="flex items-center gap-2 bg-[#f25b2a] hover:bg-[#e04b1a] text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-glow-orange transition-all active:scale-95"
-          >
-            <span>Continue to Format & Template</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 };

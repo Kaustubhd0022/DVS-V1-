@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   FileCode2, Sparkles, ArrowRight, Download, Share2, 
-  ChevronRight, AlignLeft, Type, Edit3, Plus, CheckCircle2, Sliders
+  ChevronRight, AlignLeft, Type, Edit3, Plus, CheckCircle2, Sliders, Brain
 } from 'lucide-react';
 import { ScreenplayLine } from '../../types/project';
 import { punchUpDialogue } from '../../services/geminiService';
 
 export const ScreenplayScreen: React.FC = () => {
-  const { currentProject, updateScreenplayLine, addScreenplayLine, nextStep } = useProject();
+  const { currentProject, updateScreenplayLine, addScreenplayLine, nextStep, openContextResolver } = useProject();
   const scriptLines = currentProject.screenplayLines || currentProject.screenplay || [];
 
   const [activeSceneNumber, setActiveSceneNumber] = useState<number>(1);
@@ -74,6 +74,13 @@ export const ScreenplayScreen: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => openContextResolver('Scene Drafting', 'Screenplay Draft Scene 1')}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all"
+          >
+            <Brain className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Inspect Scoped Context</span>
+          </button>
           <button
             onClick={runAiDialoguePunchUp}
             disabled={aiPunchingUp}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { Character, CharacterRelationship } from '../../types/project';
+import { askCopilot } from '../../services/aiService';
 import { 
   Users, Sparkles, AlertTriangle, ArrowRight, ShieldCheck, 
   Edit3, GitFork, MessageSquare, Network, Activity, 
@@ -35,11 +36,29 @@ export const CharacterScreen: React.FC = () => {
     triggerChangeImpact('Protagonist Age Modification (24 → 34)');
   };
 
-  const runAiCharacterTool = (toolName: string) => {
+  const [aiResult, setAiResult] = useState<{ tool: string; text: string } | null>(null);
+
+  const runAiCharacterTool = async (toolName: string) => {
     setAiGenerating(toolName);
-    setTimeout(() => {
+    setAiResult(null);
+    try {
+      let prompt = '';
+      if (toolName === 'Backstory') {
+        prompt = `Synthesize a visceral, 2-sentence formative trauma for ${selectedChar.name} (Age ${selectedChar.age}, Flaw: ${selectedChar.flaw}) in the film "${currentProject.title}".`;
+      } else if (toolName === 'Linguistics') {
+        prompt = `Audit the dialogue voice and speech rhythm for ${selectedChar.name} (${selectedChar.role}). Provide 2 concise sentences on their linguistic cadence, code-switching, and subtextual tells.`;
+      } else if (toolName === 'Pressure Test') {
+        prompt = `Pressure test ${selectedChar.name}’s core want ("${selectedChar.want}") against their greatest fear ("${selectedChar.fear}"). In 2 sentences, outline the exact breaking point where they will compromise their morals.`;
+      } else {
+        prompt = `Provide a razor-sharp 2-sentence character psychometric analysis for ${selectedChar.name} in "${currentProject.title}".`;
+      }
+      const reply = await askCopilot(prompt, `Character: ${selectedChar.name}, Role: ${selectedChar.role}, Premise: ${currentProject.intent?.premise || currentProject.tagline}`);
+      setAiResult({ tool: toolName, text: reply });
+    } catch (e) {
+      console.warn('Character AI error', e);
+    } finally {
       setAiGenerating(null);
-    }, 1000);
+    }
   };
 
   return (
@@ -504,7 +523,17 @@ export const CharacterScreen: React.FC = () => {
                 {aiGenerating && (
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Running AI character engine for {aiGenerating}...</span>
+                    <span>Running Groq LPU character engine for {aiGenerating}...</span>
+                  </div>
+                )}
+
+                {aiResult && !aiGenerating && (
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/30 to-black/60 border border-amber-500/40 text-xs text-white space-y-2 animate-fadeIn">
+                    <div className="flex items-center gap-2 text-amber-400 font-bold">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI Output: {aiResult.tool}</span>
+                    </div>
+                    <p className="text-white/80 leading-relaxed font-sans">{aiResult.text}</p>
                   </div>
                 )}
               </div>

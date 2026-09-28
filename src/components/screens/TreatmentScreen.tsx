@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   FileText, Sparkles, CheckCircle2, ArrowRight, 
-  BookOpen, Edit3, ShieldCheck, Download, Share2, Eye, ListChecks
+  BookOpen, Edit3, ShieldCheck, Download, Share2, Eye, ListChecks, Brain
 } from 'lucide-react';
 import { PlotBeatItem } from '../../types/project';
 
 export const TreatmentScreen: React.FC = () => {
-  const { currentProject, updateTreatment, nextStep } = useProject();
+  const { currentProject, updateTreatment, nextStep, openContextResolver } = useProject();
   const treatment = currentProject.treatment;
 
   const [activeAct, setActiveAct] = useState<'ALL' | 'ACT I' | 'ACT II' | 'ACT III'>('ALL');
@@ -51,6 +51,13 @@ export const TreatmentScreen: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => openContextResolver('Treatment Beat', 'Prose Synopsis Draft')}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all"
+          >
+            <Brain className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Inspect Scoped Context</span>
+          </button>
           <button
             onClick={runAiEnhancement}
             disabled={aiEnhancing}

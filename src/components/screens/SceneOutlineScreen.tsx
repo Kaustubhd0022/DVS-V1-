@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   Clapperboard, Play, Pause, Volume2, Sparkles, CheckCircle2, 
-  ArrowRight, Clock, MapPin, Users, Eye, AlertCircle, ChevronRight, Activity
+  ArrowRight, Clock, MapPin, Users, Eye, AlertCircle, ChevronRight, Activity, Brain
 } from 'lucide-react';
 import { SceneItem } from '../../types/project';
 
 export const SceneOutlineScreen: React.FC = () => {
-  const { currentProject, updateScene, nextStep } = useProject();
+  const { currentProject, updateScene, nextStep, openContextResolver } = useProject();
   const scenes = currentProject.scenes;
 
   const [selectedSceneId, setSelectedSceneId] = useState<string>(scenes[0]?.id || 'scn-1');
@@ -47,6 +47,13 @@ export const SceneOutlineScreen: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => openContextResolver('Scene Drafting', 'Scene Breakdown Draft')}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all"
+          >
+            <Brain className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Inspect Scoped Context</span>
+          </button>
           <button
             onClick={nextStep}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-all shadow-lg shadow-amber-500/20"

@@ -5,11 +5,13 @@ import { TopHeader } from './components/layout/TopHeader';
 import { ProjectSubheader } from './components/layout/ProjectSubheader';
 import { ContextualCopilot } from './components/copilot/ContextualCopilot';
 import { ChangeImpactModal } from './components/modals/ChangeImpactModal';
+import { ContextResolverModal } from './components/modals/ContextResolverModal';
 
-// All 17 Pipeline Screens
+// All V1 Pipeline Screens
 import { HomeScreen } from './components/screens/HomeScreen';
 import { CreateProjectScreen } from './components/screens/CreateProjectScreen';
 import { IntakeScreen } from './components/screens/IntakeScreen';
+import { StoryBrainScreen } from './components/screens/StoryBrainScreen';
 import { ResearchScreen } from './components/screens/ResearchScreen';
 import { StoryExplorationScreen } from './components/screens/StoryExplorationScreen';
 import { FormatTemplateScreen } from './components/screens/FormatTemplateScreen';
@@ -21,14 +23,17 @@ import { SceneOutlineScreen } from './components/screens/SceneOutlineScreen';
 import { ScreenplayScreen } from './components/screens/ScreenplayScreen';
 import { DialogueScreen } from './components/screens/DialogueScreen';
 import { ContinuityQAScreen } from './components/screens/ContinuityQAScreen';
+import { EvaluationScreen } from './components/screens/EvaluationScreen';
+import { PackageDeliveryScreen } from './components/screens/PackageDeliveryScreen';
+
+// Deferred / Out of Scope (Retained for preview compatibility)
 import { VisualDevScreen } from './components/screens/VisualDevScreen';
 import { ProductionPlanningScreen } from './components/screens/ProductionPlanningScreen';
-import { PackageDeliveryScreen } from './components/screens/PackageDeliveryScreen';
 
 import { Image, Layers, Sparkles, X, ChevronRight, Zap } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const { activeScreen, setActiveScreen, isCopilotOpen, impactState, closeImpactModal } = useProject();
+  const { activeScreen, setActiveScreen, isCopilotOpen, impactState, isContextResolverOpen } = useProject();
   const [designOverlayPage, setDesignOverlayPage] = useState<number | null>(null);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
 
@@ -38,6 +43,7 @@ export const App: React.FC = () => {
       case 'home': return 1;
       case 'create-project': return 2;
       case 'intake': return 3;
+      case 'story-brain': return 3; // Story Brain
       case 'research': return 4;
       case 'story-exploration': return 5;
       case 'format-template': return 6;
@@ -48,7 +54,9 @@ export const App: React.FC = () => {
       case 'scene-outline': return 11;
       case 'screenplay': return 12;
       case 'dialogue': return 13;
+      case 'continuity':
       case 'qa': return 14;
+      case 'evaluation': return 14;
       case 'visual-dev': return 15;
       case 'production': return 16;
       case 'package': return 17;
@@ -64,6 +72,8 @@ export const App: React.FC = () => {
         return <CreateProjectScreen />;
       case 'intake':
         return <IntakeScreen />;
+      case 'story-brain':
+        return <StoryBrainScreen />;
       case 'research':
         return <ResearchScreen />;
       case 'story-exploration':
@@ -84,14 +94,17 @@ export const App: React.FC = () => {
         return <ScreenplayScreen />;
       case 'dialogue':
         return <DialogueScreen />;
+      case 'continuity':
       case 'qa':
         return <ContinuityQAScreen />;
+      case 'evaluation':
+        return <EvaluationScreen />;
+      case 'package':
+        return <PackageDeliveryScreen />;
       case 'visual-dev':
         return <VisualDevScreen />;
       case 'production':
         return <ProductionPlanningScreen />;
-      case 'package':
-        return <PackageDeliveryScreen />;
       default:
         return <HomeScreen />;
     }
@@ -124,23 +137,26 @@ export const App: React.FC = () => {
       {/* Flagship Modal: Downstream Change Impact Analysis Engine */}
       {impactState.isOpen && <ChangeImpactModal />}
 
-      {/* Floating Design Reference & Quick Switcher Widget */}
-      <div className="fixed bottom-4 left-20 lg:left-64 z-40 flex items-center gap-2">
-        <button
-          onClick={() => setDesignOverlayPage(currentDesignPage)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/80 hover:bg-black text-white/70 hover:text-white border border-white/10 hover:border-amber-500/40 text-xs shadow-lg backdrop-blur-md transition-all group"
-          title="Compare with original Figma screen design"
-        >
-          <Image className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-          <span className="font-mono text-[11px]">Compare Page {currentDesignPage < 10 ? `0${currentDesignPage}` : currentDesignPage} Design</span>
-        </button>
+      {/* Flagship Modal: Scoped Context Resolver Inspector */}
+      {isContextResolverOpen && <ContextResolverModal />}
 
+      {/* Floating Fast Jump & Reference Widget */}
+      <div className="fixed bottom-4 left-20 lg:left-64 z-40 flex items-center gap-2">
         <button
           onClick={() => setQuickJumpOpen(!quickJumpOpen)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs shadow-lg backdrop-blur-md transition-all font-semibold"
         >
           <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>Jump to Screen</span>
+          <span>V1 Golden Loop Jump</span>
+        </button>
+
+        <button
+          onClick={() => setDesignOverlayPage(currentDesignPage)}
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/80 hover:bg-black text-white/70 hover:text-white border border-white/10 hover:border-amber-500/40 text-xs shadow-lg backdrop-blur-md transition-all group"
+          title="Compare with original Figma screen design"
+        >
+          <Image className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+          <span className="font-mono text-[11px]">Compare Page {currentDesignPage < 10 ? `0${currentDesignPage}` : currentDesignPage} Design</span>
         </button>
       </div>
 
@@ -148,13 +164,13 @@ export const App: React.FC = () => {
       {quickJumpOpen && (
         <div className="fixed bottom-14 left-20 lg:left-64 z-50 w-80 max-h-96 overflow-y-auto bg-[#14161f] border border-amber-500/40 rounded-2xl p-2 shadow-2xl shadow-black backdrop-blur-xl animate-fadeIn">
           <div className="p-2 border-b border-white/10 flex items-center justify-between text-xs font-bold text-white">
-            <span>tattvaCo 17-Screen Fast Jump</span>
+            <span>Tattava V1 Workflow Jump</span>
             <button onClick={() => setQuickJumpOpen(false)} className="text-white/40 hover:text-white">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
           
-          <div className="py-1">
+          <div className="py-1 space-y-0.5">
             <button
               onClick={() => {
                 setActiveScreen('home');
@@ -164,13 +180,12 @@ export const App: React.FC = () => {
                 activeScreen === 'home' ? 'bg-amber-500 text-black font-bold' : 'text-white/80 hover:bg-white/5'
               }`}
             >
-              <span>01. Home Dashboard</span>
-              <span className="font-mono text-[10px] opacity-70">Screen 01</span>
+              <span>00. Workspace Dashboard</span>
+              <span className="font-mono text-[10px] opacity-70">Home</span>
             </button>
 
             {PIPELINE_STEPS.map((step) => {
-              const isSelected = activeScreen === step.id;
-              const screenNum = step.step + 1;
+              const isSelected = activeScreen === step.id || (step.id === 'continuity' && activeScreen === 'qa');
               return (
                 <button
                   key={step.id}
@@ -178,12 +193,12 @@ export const App: React.FC = () => {
                     setActiveScreen(step.id);
                     setQuickJumpOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between ${
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs flex items-center justify-between ${
                     isSelected ? 'bg-amber-500 text-black font-bold' : 'text-white/80 hover:bg-white/5'
                   }`}
                 >
                   <span className="truncate">
-                    {screenNum < 10 ? `0${screenNum}` : screenNum}. {step.label}
+                    {step.step < 10 ? `0${step.step}` : step.step}. {step.label}
                   </span>
                   <span className="font-mono text-[10px] opacity-70">
                     Step {step.step}

@@ -4,7 +4,10 @@ import {
   ChevronDown, 
   Sparkles, 
   Download, 
-  Layers
+  Layers,
+  Database,
+  ShieldCheck,
+  Brain
 } from 'lucide-react';
 import { useProject, PIPELINE_STEPS } from '../../context/ProjectContext';
 
@@ -14,6 +17,7 @@ export const ProjectSubheader: React.FC = () => {
     activeScreen, 
     goToStep, 
     toggleCopilot,
+    openContextResolver,
     projects,
     openProject
   } = useProject();
@@ -24,8 +28,9 @@ export const ProjectSubheader: React.FC = () => {
     return null;
   }
 
+  const normalizedScreen = activeScreen === 'qa' ? 'continuity' : activeScreen;
   const currentStepIndex = (() => {
-    const found = PIPELINE_STEPS.find(s => s.id === activeScreen);
+    const found = PIPELINE_STEPS.find(s => s.id === normalizedScreen);
     return found ? found.step : 1;
   })();
 
@@ -41,17 +46,23 @@ export const ProjectSubheader: React.FC = () => {
             className="w-8 h-11 object-cover rounded-md border border-[#323b4e] shadow-sm flex-shrink-0" 
           />
           <div>
-            <button 
-              onClick={() => setShowProjectPicker(!showProjectPicker)}
-              className="flex items-center gap-1.5 text-base font-bold text-white hover:text-[#f25b2a] transition-colors"
-            >
-              <span>{currentProject.title}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#8b96a8]" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowProjectPicker(!showProjectPicker)}
+                className="flex items-center gap-1.5 text-base font-bold text-white hover:text-amber-400 transition-colors"
+              >
+                <span>{currentProject.title}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#8b96a8]" />
+              </button>
+              <span className="px-2 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                {currentProject.canonicalVersion || 'v1.2-canonical'}
+              </span>
+            </div>
+            
             <div className="flex items-center gap-2 text-xs text-[#8b96a8]">
               <span>{currentProject.contentType}</span>
               <span>•</span>
-              <span>{currentProject.language}</span>
+              <span>{currentProject.genre}</span>
               <span>•</span>
               <span className="inline-flex items-center px-2 py-0.2 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 {currentProject.stage}
@@ -85,20 +96,32 @@ export const ProjectSubheader: React.FC = () => {
           )}
         </div>
 
-        {/* Action buttons on the right */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-2 bg-[#171b24] border border-[#272e3d] rounded-xl px-3 py-1.5 text-xs text-[#cad3e0]">
-            <Layers className="w-3.5 h-3.5 text-[#f25b2a]" />
-            <span className="font-medium">Project Context</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        {/* Action buttons & Pilot Telemetry on the right */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Pilot Telemetry Quick Tag */}
+          <div className="hidden lg:flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1 text-[11px] text-white/70">
+            <span className="text-amber-400 font-bold">Pilot Score: {Math.round(currentProject.evaluation?.overallScore || 87)}%</span>
+            <span className="text-white/30">•</span>
+            <span className="text-cyan-300">Verified: {currentProject.pilotMetrics.verificationRate}%</span>
           </div>
+
+          {/* Clickable Context Resolver Inspector */}
+          <button 
+            onClick={() => openContextResolver()}
+            className="flex items-center gap-1.5 bg-[#171b24] hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400/50 rounded-xl px-3 py-1.5 text-xs text-cyan-300 font-semibold transition-all shadow-sm"
+            title="Inspect Scoped Context Package"
+          >
+            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="font-medium">Context Resolver</span>
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          </button>
 
           <button 
             onClick={() => goToStep(16)}
             className="flex items-center gap-1.5 bg-[#171b24] hover:bg-[#202532] border border-[#272e3d] text-xs text-[#cad3e0] px-3 py-1.5 rounded-xl transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">Package</span>
           </button>
 
           <button 
@@ -124,7 +147,7 @@ export const ProjectSubheader: React.FC = () => {
                   onClick={() => goToStep(stepItem.step)}
                   className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs ${
                     isCurrent
-                      ? 'bg-[#f25b2a]/15 border border-[#f25b2a]/40 text-[#f25b2a] font-bold'
+                      ? 'bg-amber-500/15 border border-amber-500/40 text-amber-400 font-bold'
                       : isCompleted
                       ? 'text-[#8b96a8] hover:text-white hover:bg-[#1a1f2b]'
                       : 'text-[#586375] hover:text-[#8b96a8] hover:bg-[#151922]'
@@ -134,7 +157,7 @@ export const ProjectSubheader: React.FC = () => {
                   <div
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
                       isCurrent
-                        ? 'bg-[#f25b2a] text-white shadow-glow-orange scale-110'
+                        ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30 scale-110'
                         : isCompleted
                         ? 'bg-[#222938] text-emerald-400 border border-emerald-500/40'
                         : 'bg-[#181d26] text-[#6b788c] border border-[#272e3c]'
@@ -149,7 +172,7 @@ export const ProjectSubheader: React.FC = () => {
 
                 {index < PIPELINE_STEPS.length - 1 && (
                   <div 
-                    className={`w-3 h-[1px] ${
+                    className={`w-2.5 h-[1px] ${
                       isCompleted ? 'bg-emerald-500/40' : 'bg-[#242b3a]'
                     }`} 
                   />
