@@ -247,7 +247,38 @@ export const CharacterScreen: React.FC = () => {
       </div>
 
       {/* Main Grid: Left Characters List, Right Character Detail Canvas */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      {characters.length === 0 ? (
+        <div className="p-12 text-center bg-[#141822] border border-dashed border-white/10 rounded-3xl space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+            <Users className="w-8 h-8" />
+          </div>
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-lg font-bold text-white">No Characters Added Yet</h3>
+            <p className="text-xs text-white/60 leading-relaxed">
+              Synthesize your protagonist, antagonist, or ensemble cast derived from <span className="text-amber-300">"{currentProject.title}"</span>.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => handleSynthesizeCharacter('Protagonist')}
+              disabled={isGeneratingCandidate}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all hover:scale-105 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 fill-black" />
+              <span>{isGeneratingCandidate ? 'Synthesizing...' : 'Synthesize Protagonist (AI)'}</span>
+            </button>
+            <button
+              onClick={() => handleSynthesizeCharacter('Antagonist')}
+              disabled={isGeneratingCandidate}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-rose-500/20 disabled:opacity-50 transition-all hover:scale-105 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Synthesize Antagonist (AI)</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         
         {/* Left Column: Character Cards List (4 cols) */}
         <div className="xl:col-span-4 space-y-3">
@@ -266,7 +297,7 @@ export const CharacterScreen: React.FC = () => {
 
           <div className="space-y-3">
             {currentProject.characters.map(char => {
-              const isSelected = char.id === selectedChar.id;
+              const isSelected = selectedChar ? char.id === selectedChar.id : false;
               const isAanya = char.id === 'char-aanya';
 
               return (
@@ -347,8 +378,12 @@ export const CharacterScreen: React.FC = () => {
         {/* Right Column: Deep Character Dossier & Reactive Workspace (8 cols) */}
         <div className="xl:col-span-8 bg-[#12141a]/95 rounded-2xl border border-white/10 overflow-hidden flex flex-col">
           
-          {/* Dossier Header */}
-          <div className="p-6 bg-gradient-to-r from-black/80 via-[#181b26]/60 to-black/80 border-b border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          {!selectedChar ? (
+            <div className="p-12 text-center text-white/50">Select a character from the roster to view their profile.</div>
+          ) : (
+            <>
+              {/* Dossier Header */}
+              <div className="p-6 bg-gradient-to-r from-black/80 via-[#181b26]/60 to-black/80 border-b border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               <img
                 src={selectedChar.photoUrl}
@@ -665,9 +700,12 @@ export const CharacterScreen: React.FC = () => {
             )}
 
           </div>
+          </>
+          )}
         </div>
 
       </div>
+      )}
     </div>
   );
 };

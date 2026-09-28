@@ -24,7 +24,7 @@ export const FormatTemplateScreen: React.FC = () => {
       id: 'format-limited',
       title: 'Limited Series',
       duration: '6 – 8 Episodes (45 min each)',
-      description: 'Deep-dive serialized investigation exploring multiple perspectives across Delhi political corridors and regional investigative units.',
+      description: 'Deep-dive serialized investigation exploring multiple perspectives and institutional layers across episodic arcs.',
       isRecommended: false,
       isSelected: currentProject.format === 'Limited Series',
       imageUrl: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=800&q=80'
@@ -33,7 +33,7 @@ export const FormatTemplateScreen: React.FC = () => {
       id: 'format-episodic',
       title: 'Episodic Procedural',
       duration: '10 – 12 Episodes',
-      description: 'Case-of-the-week framework with an overarching conspiracy arc anchored by Aanya Verma’s ongoing investigative department.',
+      description: 'Case-of-the-week framework with an overarching conspiracy arc anchored by the ensemble cast.',
       isRecommended: false,
       isSelected: currentProject.format === 'Episodic Procedural',
       imageUrl: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&q=80'
@@ -42,7 +42,7 @@ export const FormatTemplateScreen: React.FC = () => {
       id: 'format-vertical',
       title: 'Vertical Mini-Series',
       duration: '20 – 30 Micro-Episodes (2 min)',
-      description: 'Mobile-first snackable thriller with high-frequency cliffhangers targeted at Gen-Z social streaming platforms.',
+      description: 'Mobile-first snackable thriller with high-frequency cliffhangers targeted at digital-native streaming platforms.',
       isRecommended: false,
       isSelected: currentProject.format === 'Vertical Mini-Series',
       imageUrl: 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=800&q=80'
@@ -53,7 +53,7 @@ export const FormatTemplateScreen: React.FC = () => {
     {
       id: 'tmpl-3act',
       title: 'Three-Act Classical Thriller',
-      description: 'Inciting incident at Min 12, Midpoint reversal at Min 60, All is Lost at Min 85, Climax at Min 105. Optimized for Indian cinematic pacing.',
+      description: 'Inciting incident in Act I, Midpoint reversal in Act II, All is Lost and Climax in Act III. Optimized for maximum dramatic tension.',
       tags: ['Syd Field', 'Hero’s Journey', 'Commercial Pacing'],
       isSelected: true,
       imageUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80'
@@ -69,7 +69,7 @@ export const FormatTemplateScreen: React.FC = () => {
     {
       id: 'tmpl-nonlinear',
       title: 'Rashomon Non-Linear Mesh',
-      description: 'Dual timeline intertwining Aanya’s present interrogation with the fateful 48 hours before the meteorological dam breach.',
+      description: 'Multi-timeline architecture intertwining present-day revelations with past pivotal events that led to the crisis.',
       tags: ['Non-Linear', 'Mystery', 'Auteur Driven'],
       isSelected: false,
       imageUrl: 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?w=800&q=80'
@@ -79,7 +79,7 @@ export const FormatTemplateScreen: React.FC = () => {
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [showRationale, setShowRationale] = useState(true);
   const [aiRationaleText, setAiRationaleText] = useState(
-    `Based on Aanya Verma’s singular moral dilemma, a 48-hour ticking clock monsoon scenario, and target theatrical release, a 125-minute feature film provides tighter stakes and higher ROI than an elongated series.`
+    `Based on "${currentProject.title}"'s core dramatic conflict and target pacing, a focused Feature Film structure provides the tightest escalation and maximum cinematic payoff.`
   );
 
   const handleSelectFormat = (id: string, title: string) => {

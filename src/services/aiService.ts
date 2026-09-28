@@ -16,7 +16,11 @@ import {
   ContinuityIssue,
   DiscoveryTurn,
   DiscoveryCandidateOption,
-  DiscoverySession
+  DiscoverySession,
+  WorldLocation,
+  StructureBeat,
+  SceneItem,
+  PlotBeatItem
 } from '../types/project';
 
 const DEFAULT_GROQ_KEY = '';
@@ -1316,4 +1320,471 @@ Return ONLY a valid JSON object matching this schema:
     };
   }
 }
+
+/**
+ * GENERATE WORLD LOCATIONS
+ */
+export const generateWorldLocations = async (
+  project: TattavaProject
+): Promise<WorldLocation[]> => {
+  const context = buildProjectContext(project, 'Synthesize 4 primary dramatic world locations');
+  const prompt = `${context}
+
+TASK:
+Synthesize 4 distinct, highly visual world locations for this narrative universe.
+Include varying environments (e.g. Headquarters / Arena / Sanctuary / Threshold).
+
+Return ONLY valid JSON matching:
+{
+  "locations": [
+    {
+      "name": "Location Name",
+      "subtitle": "Short spatial descriptor",
+      "type": "Urban",
+      "description": "2-sentence sensory description of this setting and its dramatic pressure.",
+      "coordinates": { "x": 35, "y": 42 },
+      "isPrimary": true
+    }
+  ]
+}`;
+
+  try {
+    const raw = await callGroq([
+      { role: 'system', content: 'You are an elite cinematic worldbuilder. Return valid JSON only.' },
+      { role: 'user', content: prompt }
+    ], {
+      temperature: 0.7,
+      max_tokens: 2000,
+      jsonMode: true,
+      taskName: 'World Location Synthesis',
+      contextSnapshot: context
+    });
+
+    const parsed = extractJsonFromResponse(raw);
+    const locs: any[] = Array.isArray(parsed?.locations) ? parsed.locations : [];
+    
+    return locs.map((loc, idx) => ({
+      id: `loc-${Date.now()}-${idx + 1}`,
+      name: loc.name || `Setting Area ${idx + 1}`,
+      subtitle: loc.subtitle || 'Key Story Environment',
+      description: loc.description || 'Primary backdrop for dramatic tension.',
+      type: (['Urban', 'Coastal', 'Mountain', 'Town'] as const).includes(loc.type) ? loc.type : 'Urban',
+      coordinates: loc.coordinates || { x: 20 + idx * 20, y: 30 + (idx % 2) * 20 },
+      imageUrl: idx === 0 
+        ? 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop'
+        : idx === 1
+        ? 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=800&auto=format&fit=crop'
+        : idx === 2
+        ? 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?q=80&w=800&auto=format&fit=crop'
+        : 'https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop',
+      isPrimary: idx === 0
+    }));
+  } catch (err) {
+    console.error('generateWorldLocations failed:', err);
+    return [
+      {
+        id: `loc-def-1`,
+        name: `${project.title} — Primary Nexus`,
+        subtitle: 'Epicenter of Tension',
+        description: `The main staging ground for ${project.intent?.premise || 'the unfolding narrative crisis'}.`,
+        type: 'Urban',
+        coordinates: { x: 38, y: 48 },
+        imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop',
+        isPrimary: true
+      },
+      {
+        id: `loc-def-2`,
+        name: 'The Perimeter Threshold',
+        subtitle: 'Outer Border & Escape Route',
+        description: 'Contested border territory with high surveillance and spatial friction.',
+        type: 'Town',
+        coordinates: { x: 65, y: 72 },
+        imageUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=800&auto=format&fit=crop',
+        isPrimary: false
+      }
+    ];
+  }
+};
+
+/**
+ * GENERATE STRUCTURE BEATS
+ */
+export const generateStructureBeats = async (
+  project: TattavaProject
+): Promise<{ act1: StructureBeat[]; act2: StructureBeat[]; act3: StructureBeat[] }> => {
+  const context = buildProjectContext(project, 'Synthesize Three-Act Classical Beat Sheet');
+  const prompt = `${context}
+
+TASK:
+Synthesize 9 cardinal dramatic beats across 3 Acts (3 in Act I, 4 in Act II, 2 in Act III).
+Return ONLY valid JSON matching:
+{
+  "act1": [
+    {
+      "number": 1,
+      "act": "ACT I - SETUP",
+      "timeRange": "00:00 - 12:00",
+      "title": "Opening Image & Status Quo",
+      "description": "Detailed 2-sentence description of the beat."
+    }
+  ],
+  "act2": [
+    {
+      "number": 4,
+      "act": "ACT II - CONFRONTATION",
+      "timeRange": "30:00 - 45:00",
+      "title": "B-Story & Escalation",
+      "description": "Detailed description."
+    }
+  ],
+  "act3": [
+    {
+      "number": 8,
+      "act": "ACT III - RESOLUTION",
+      "timeRange": "90:00 - 105:00",
+      "title": "Climax & Moral Reckoning",
+      "description": "Detailed description."
+    }
+  ]
+}`;
+
+  try {
+    const raw = await callGroq([
+      { role: 'system', content: 'You are an elite narrative dramaturge. Return valid JSON only.' },
+      { role: 'user', content: prompt }
+    ], {
+      temperature: 0.7,
+      max_tokens: 3000,
+      jsonMode: true,
+      taskName: 'Structure Beat Synthesis',
+      contextSnapshot: context
+    });
+
+    const parsed = extractJsonFromResponse(raw);
+    const mapBeat = (b: any, fallbackNum: number, actName: any): StructureBeat => ({
+      id: `beat-${Date.now()}-${fallbackNum}`,
+      number: b?.number || fallbackNum,
+      act: actName,
+      timeRange: b?.timeRange || (fallbackNum <= 3 ? '00:00 - 30:00' : fallbackNum <= 7 ? '30:00 - 85:00' : '85:00 - 110:00'),
+      title: b?.title || `Cardinal Beat ${fallbackNum}`,
+      description: b?.description || 'Crucial dramatic turning point in the structural spine.',
+      imageUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80',
+      candidateState: 'AI_PROPOSAL'
+    });
+
+    const act1 = (Array.isArray(parsed?.act1) ? parsed.act1 : []).map((b: any, i: number) => mapBeat(b, i + 1, 'ACT I - SETUP'));
+    const act2 = (Array.isArray(parsed?.act2) ? parsed.act2 : []).map((b: any, i: number) => mapBeat(b, i + 4, 'ACT II - CONFRONTATION'));
+    const act3 = (Array.isArray(parsed?.act3) ? parsed.act3 : []).map((b: any, i: number) => mapBeat(b, i + 8, 'ACT III - RESOLUTION'));
+
+    return { act1, act2, act3 };
+  } catch (err) {
+    console.error('generateStructureBeats failed:', err);
+    return {
+      act1: [
+        {
+          id: 'beat-1',
+          number: 1,
+          act: 'ACT I - SETUP',
+          timeRange: '00:00 - 10:00',
+          title: 'Opening Inciting Spark',
+          description: `Introduction to the world of "${project.title}" and the destabilizing event that shatters normal life.`,
+          imageUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80',
+          candidateState: 'AI_PROPOSAL'
+        },
+        {
+          id: 'beat-2',
+          number: 2,
+          act: 'ACT I - SETUP',
+          timeRange: '10:00 - 25:00',
+          title: 'Crossing the Threshold',
+          description: 'Protagonist commits to the irreversible journey into high stakes opposition.',
+          imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80',
+          candidateState: 'AI_PROPOSAL'
+        }
+      ],
+      act2: [
+        {
+          id: 'beat-3',
+          number: 3,
+          act: 'ACT II - CONFRONTATION',
+          timeRange: '25:00 - 55:00',
+          title: 'The Midpoint Reversal',
+          description: 'A shocking revelation inverts the power dynamic and escalates the danger.',
+          imageUrl: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=800&q=80',
+          candidateState: 'AI_PROPOSAL'
+        },
+        {
+          id: 'beat-4',
+          number: 4,
+          act: 'ACT II - CONFRONTATION',
+          timeRange: '55:00 - 85:00',
+          title: 'All Hope Shattered',
+          description: 'A major collapse forces the protagonist to confront their deepest flaw.',
+          imageUrl: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800&q=80',
+          candidateState: 'AI_PROPOSAL'
+        }
+      ],
+      act3: [
+        {
+          id: 'beat-5',
+          number: 5,
+          act: 'ACT III - RESOLUTION',
+          timeRange: '85:00 - 110:00',
+          title: 'Climax & Final Truth',
+          description: 'The definitive confrontation where moral sacrifice dictates survival.',
+          imageUrl: 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?w=800&q=80',
+          candidateState: 'AI_PROPOSAL'
+        }
+      ]
+    };
+  }
+};
+
+/**
+ * GENERATE SCENE BREAKDOWN
+ */
+export const generateSceneBreakdown = async (
+  project: TattavaProject
+): Promise<SceneItem[]> => {
+  const context = buildProjectContext(project, 'Synthesize initial scene breakdown');
+  const prompt = `${context}
+
+TASK:
+Synthesize 4 cardinal scripted scenes establishing the core narrative arc of this film.
+Return ONLY valid JSON:
+{
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "act": "ACT I - SETUP",
+      "slugline": "INT. SEED LOCATION - NIGHT",
+      "subheading": "Dramatic confrontation beat",
+      "duration": "2.5 Mins",
+      "location": "Central Room",
+      "timeOfDay": "NIGHT",
+      "intExt": "INT.",
+      "characters": ["Protagonist"],
+      "summary": "2-sentence summary of the scene.",
+      "purpose": "What this scene accomplishes dramatically.",
+      "emotionalBeat": "Tension / Fear / Defiance",
+      "conflictLevel": "High"
+    }
+  ]
+}`;
+
+  try {
+    const raw = await callGroq([
+      { role: 'system', content: 'You are an elite script supervisor. Return valid JSON only.' },
+      { role: 'user', content: prompt }
+    ], {
+      temperature: 0.7,
+      max_tokens: 3000,
+      jsonMode: true,
+      taskName: 'Scene Breakdown Synthesis',
+      contextSnapshot: context
+    });
+
+    const parsed = extractJsonFromResponse(raw);
+    const scenes: any[] = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+
+    return scenes.map((s, idx) => ({
+      id: `scn-${Date.now()}-${idx + 1}`,
+      sceneNumber: s.sceneNumber || idx + 1,
+      act: s.act || 'ACT I - SETUP',
+      slugline: s.slugline || `INT. LOCATION ${idx + 1} - DAY`,
+      duration: s.duration || '3 Mins',
+      location: s.location || 'Primary Location',
+      timeOfDay: (['DAY', 'NIGHT', 'EVENING', 'MORNING'] as const).includes(s.timeOfDay) ? s.timeOfDay : 'NIGHT',
+      intExt: s.intExt === 'EXT.' ? 'EXT.' : 'INT.',
+      characters: Array.isArray(s.characters) ? s.characters : [project.characters[0]?.name || 'Protagonist'],
+      characterIds: [project.characters[0]?.id || 'char-1'],
+      subheading: s.subheading || 'Key dramatic exchange',
+      summary: s.summary || 'Characters engage in decisive confrontation.',
+      purpose: s.purpose || 'Advance core objective and test vulnerability.',
+      emotionalBeat: s.emotionalBeat || 'Mounting pressure and moral stakes.',
+      keyElements: 'Rain ambience, tight framing, high subtext.',
+      dialogueHighlights: 'Sharp, clipped dialogue with veiled threats.',
+      visualNotes: 'Low key lighting, sodium-vapor glow.',
+      imageUrl: idx === 0 
+        ? 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop'
+        : idx === 1
+        ? 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=800&auto=format&fit=crop'
+        : 'https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop',
+      candidateState: 'AI_PROPOSAL',
+      insights: {
+        storyRole: s.purpose || 'Catalyst Scene',
+        emotionalTone: s.emotionalBeat || 'Urgent',
+        pacing: 'Rapid',
+        conflictLevel: (['Low', 'Medium', 'High'] as const).includes(s.conflictLevel) ? s.conflictLevel : 'High',
+        characterFocus: project.characters[0]?.name || 'Lead',
+        theme: project.intent?.themes?.[0] || 'Survival & Duty'
+      },
+      notes: [
+        { id: `note-${idx}-1`, text: 'Ensure sound design amplifies environmental tension.', done: false }
+      ]
+    }));
+  } catch (err) {
+    console.error('generateSceneBreakdown failed:', err);
+    return [
+      {
+        id: `scn-def-1`,
+        sceneNumber: 1,
+        act: 'ACT I - SETUP',
+        slugline: 'INT. COMMAND ROOM - NIGHT',
+        duration: '3.5 Mins',
+        location: 'Command Center',
+        timeOfDay: 'NIGHT',
+        intExt: 'INT.',
+        characters: [project.characters[0]?.name || 'Protagonist'],
+        characterIds: ['char-1'],
+        subheading: 'Inciting discovery beat',
+        summary: `The initial breach is detected, establishing the core crisis of "${project.title}".`,
+        purpose: 'Establish ticking clock and protagonist responsibility.',
+        emotionalBeat: 'Controlled Panic',
+        keyElements: 'Emergency lighting, incoming monitors.',
+        dialogueHighlights: 'Forensic reports confirm an anomaly.',
+        visualNotes: 'High contrast shadows, amber screens.',
+        imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop',
+        candidateState: 'AI_PROPOSAL',
+        insights: {
+          storyRole: 'Inciting Incident',
+          emotionalTone: 'Tense',
+          pacing: 'Brisk',
+          conflictLevel: 'High',
+          characterFocus: project.characters[0]?.name || 'Lead',
+          theme: 'Accountability'
+        },
+        notes: [
+          { id: 'note-1', text: 'Calibrate tension before initial call.', done: false }
+        ]
+      }
+    ];
+  }
+};
+
+export const generateTreatmentData = async (
+  project: TattavaProject
+): Promise<{ synopsis: string; plotBeats: PlotBeatItem[]; tone: string[]; themes: string[] }> => {
+  const charactersStr = project.characters.map(c => `${c.name} (${c.role}): Flaw: ${c.flaw}, Need: ${c.need}`).join('; ');
+  const canonFacts = (project.storyBrain?.canonFacts || []).map(f => f.statement).join(' | ');
+
+  const prompt = `
+Generate a compelling narrative treatment synopsis and a 6-beat cardinal plot progression for the film project:
+Title: "${project.title}"
+Format: ${project.format || 'Feature Film'}
+Premise: ${project.intent?.premise || project.tagline || 'Original Drama'}
+Core Conflict: ${project.intent?.conflict || 'Internal and external crisis'}
+Characters: ${charactersStr || 'Protagonist against institutional antagonist'}
+Canon Facts: ${canonFacts || 'Standard continuity'}
+
+Output purely JSON matching this schema:
+{
+  "synopsis": "A 3-paragraph evocative narrative treatment synopsis establishing the opening image, rising conflict, midpoint revelation, dark night of the soul, and thematic resolution.",
+  "tone": ["Procedural", "Noir", "Tense", "Atmospheric"],
+  "themes": ["Accountability", "Moral Agency", "Institutional Truth"],
+  "plotBeats": [
+    {
+      "number": 1,
+      "act": "ACT I",
+      "title": "Opening Image & Normal World",
+      "description": "2-sentence vivid prose description of the opening beat."
+    },
+    {
+      "number": 2,
+      "act": "ACT I",
+      "title": "Inciting Incident",
+      "description": "The event that shatters the status quo."
+    },
+    {
+      "number": 3,
+      "act": "ACT II",
+      "title": "Crossing the First Threshold",
+      "description": "Commitment to the dangerous investigation or journey."
+    },
+    {
+      "number": 4,
+      "act": "ACT II",
+      "title": "Midpoint Crisis & False Victory",
+      "description": "The revelation that flips the stakes upside down."
+    },
+    {
+      "number": 5,
+      "act": "ACT III",
+      "title": "All is Lost & Dark Night",
+      "description": "The lowest point where surrender feels inevitable."
+    },
+    {
+      "number": 6,
+      "act": "ACT III",
+      "title": "Climactic Confrontation & Resolution",
+      "description": "Final confrontation and thematic catharsis."
+    }
+  ]
+}
+`;
+
+  try {
+    const raw = await callGroq([
+      { role: 'system', content: 'You are a veteran development executive and story editor. Return only clean valid JSON.' },
+      { role: 'user', content: prompt }
+    ], {
+      temperature: 0.6,
+      max_tokens: 3000,
+      jsonMode: true,
+      taskName: 'Narrative Treatment Synthesis'
+    });
+
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON payload in AI response');
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      synopsis: parsed.synopsis || `In "${project.title}", the journey begins when an urgent disruption breaks the normal order. Faced with personal resistance and mounting external consequences, the protagonist is forced into high-stakes moral choices that redefine their sense of truth.`,
+      tone: Array.isArray(parsed.tone) ? parsed.tone : ['Dramatic', 'High Stakes', 'Cinematic'],
+      themes: Array.isArray(parsed.themes) ? parsed.themes : ['Truth', 'Resilience'],
+      plotBeats: (parsed.plotBeats || []).map((b: any, idx: number) => ({
+        id: `tb-${Date.now()}-${idx + 1}`,
+        number: b.number || idx + 1,
+        act: (['ACT I', 'ACT II', 'ACT III'] as const).includes(b.act) ? b.act : idx < 2 ? 'ACT I' : idx < 4 ? 'ACT II' : 'ACT III',
+        title: b.title || `Plot Beat ${idx + 1}`,
+        description: b.description || 'Dramatic narrative movement.',
+        candidateState: 'AI_PROPOSAL' as const
+      }))
+    };
+  } catch (err) {
+    console.error('generateTreatmentData error:', err);
+    return {
+      synopsis: `In "${project.title}", escalating tensions force the protagonist to confront the fragility of the systems they rely upon. As pressure mounts from all sides, every choice tests their personal integrity against survival.`,
+      tone: ['Dramatic', 'Tense', 'Atmospheric'],
+      themes: ['Accountability', 'Truth'],
+      plotBeats: [
+        {
+          id: `tb-fallback-1`,
+          number: 1,
+          act: 'ACT I',
+          title: 'Status Quo & Disruption',
+          description: `The existing reality of "${project.title}" is introduced right before an unavoidable crisis occurs.`,
+          candidateState: 'AI_PROPOSAL'
+        },
+        {
+          id: `tb-fallback-2`,
+          number: 2,
+          act: 'ACT II',
+          title: 'The Pressure Point',
+          description: 'Rising stakes expose underlying vulnerabilities and isolate key allies.',
+          candidateState: 'AI_PROPOSAL'
+        },
+        {
+          id: `tb-fallback-3`,
+          number: 3,
+          act: 'ACT III',
+          title: 'Resolution & Aftermath',
+          description: 'A decisive resolution establishes the new reality and irreversible consequences.',
+          candidateState: 'AI_PROPOSAL'
+        }
+      ]
+    };
+  }
+};
+
 

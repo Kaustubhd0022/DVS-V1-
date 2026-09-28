@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   FileCode2, Sparkles, ArrowRight, Download, Share2, 
-  ChevronRight, AlignLeft, Type, Edit3, Plus, CheckCircle2, Sliders, Brain
+  ChevronRight, AlignLeft, Type, Edit3, Plus, CheckCircle2, Sliders, Brain,
+  RefreshCw
 } from 'lucide-react';
 import { ScreenplayLine } from '../../types/project';
 import { punchUpDialogue } from '../../services/geminiService';
@@ -14,6 +15,7 @@ export const ScreenplayScreen: React.FC = () => {
   const [activeSceneNumber, setActiveSceneNumber] = useState<number>(1);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [aiPunchingUp, setAiPunchingUp] = useState(false);
+  const [isDraftingScene, setIsDraftingScene] = useState(false);
 
   const filteredLines = scriptLines.filter(l => l.sceneNumber === activeSceneNumber);
 
@@ -22,16 +24,73 @@ export const ScreenplayScreen: React.FC = () => {
   };
 
   const leadName = (currentProject.characters[0]?.name || 'PROTAGONIST').toUpperCase();
+  const secondCharName = (currentProject.characters[1]?.name || 'INTERLOCUTOR').toUpperCase();
 
   const handleAddNewLine = (type: ScreenplayLine['type']) => {
     const newLine: ScreenplayLine = {
-      id: `scr-user-${Date.now()}`,
+      id: `scr-user-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       sceneNumber: activeSceneNumber,
       type,
       content: type === 'character' ? leadName : type === 'parenthetical' ? '(hesitant)' : 'Type line content...',
       characterName: type === 'dialogue' || type === 'parenthetical' ? leadName : undefined
     };
     addScreenplayLine(newLine);
+  };
+
+  const handleDraftSceneWithAi = () => {
+    setIsDraftingScene(true);
+    setTimeout(() => {
+      const locName = currentProject.world?.locations?.[0]?.name?.toUpperCase() || 'COMMAND CENTER';
+      const sampleLines: ScreenplayLine[] = [
+        {
+          id: `scr-gen-${Date.now()}-1`,
+          sceneNumber: activeSceneNumber,
+          type: 'scene_heading',
+          content: `INT. ${locName} - NIGHT`
+        },
+        {
+          id: `scr-gen-${Date.now()}-2`,
+          sceneNumber: activeSceneNumber,
+          type: 'action',
+          content: `Monsoon rain lashes against the reinforced windows. The glow of surveillance monitors bathes ${leadName} in cold cyan light.`
+        },
+        {
+          id: `scr-gen-${Date.now()}-3`,
+          sceneNumber: activeSceneNumber,
+          type: 'character',
+          content: leadName
+        },
+        {
+          id: `scr-gen-${Date.now()}-4`,
+          sceneNumber: activeSceneNumber,
+          type: 'dialogue',
+          content: `The telemetry reports were manipulated before the breach occurred. Someone signed off on the bypass.`,
+          characterName: leadName
+        },
+        {
+          id: `scr-gen-${Date.now()}-5`,
+          sceneNumber: activeSceneNumber,
+          type: 'character',
+          content: secondCharName
+        },
+        {
+          id: `scr-gen-${Date.now()}-6`,
+          sceneNumber: activeSceneNumber,
+          type: 'parenthetical',
+          content: '(calm, measuring every word)'
+        },
+        {
+          id: `scr-gen-${Date.now()}-7`,
+          sceneNumber: activeSceneNumber,
+          type: 'dialogue',
+          content: `And who do you think authorized that bypass? Some questions don't have survivable answers.`,
+          characterName: secondCharName
+        }
+      ];
+
+      sampleLines.forEach(l => addScreenplayLine(l));
+      setIsDraftingScene(false);
+    }, 600);
   };
 
   const runAiDialoguePunchUp = async () => {
@@ -54,6 +113,11 @@ export const ScreenplayScreen: React.FC = () => {
     setAiPunchingUp(false);
   };
 
+  // Determine available scene numbers (from project scenes or default 1..4)
+  const sceneNumbers = currentProject.scenes && currentProject.scenes.length > 0
+    ? currentProject.scenes.map(s => s.sceneNumber)
+    : [1, 2, 3, 4];
+
   return (
     <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto pb-16">
       {/* Top Header */}
@@ -69,25 +133,25 @@ export const ScreenplayScreen: React.FC = () => {
             Screenplay Production Draft
           </h1>
           <p className="text-sm text-white/60 mt-1 max-w-2xl">
-            Courier Prime standard format • Page 1 of 118 • Estimated Runtime: 118 Mins • Ready for Table Read
+            Courier Prime standard format • Page {activeSceneNumber} of 118 • Project: <strong className="text-white">"{currentProject.title}"</strong>
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => openContextResolver('Scene Drafting', 'Screenplay Draft Scene 1')}
+            onClick={() => openContextResolver('Scene Drafting', `Screenplay Draft Scene ${activeSceneNumber}`)}
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all"
           >
             <Brain className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Inspect Scoped Context</span>
+            <span>Scoped Context</span>
           </button>
           <button
             onClick={runAiDialoguePunchUp}
-            disabled={aiPunchingUp}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-medium transition-all"
+            disabled={aiPunchingUp || filteredLines.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-medium transition-all disabled:opacity-40"
           >
             <Sparkles className={`w-3.5 h-3.5 text-amber-400 ${aiPunchingUp ? 'animate-spin' : ''}`} />
-            <span>{aiPunchingUp ? 'Sharpening Subtext...' : 'AI Subtext Punch-Up'}</span>
+            <span>{aiPunchingUp ? 'Sharpening Subtext...' : 'Subtext Punch-Up'}</span>
           </button>
           <button
             onClick={nextStep}
@@ -104,8 +168,8 @@ export const ScreenplayScreen: React.FC = () => {
         {/* Scene Selector */}
         <div className="flex items-center gap-3">
           <span className="text-xs font-bold uppercase tracking-wider text-white/40">Scene:</span>
-          <div className="flex items-center gap-1.5">
-            {[1, 2, 3, 4].map(num => (
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {sceneNumbers.slice(0, 8).map(num => (
               <button
                 key={num}
                 onClick={() => setActiveSceneNumber(num)}
@@ -149,113 +213,136 @@ export const ScreenplayScreen: React.FC = () => {
         
         {/* Top Page Header */}
         <div className="flex items-center justify-between text-white/40 text-xs font-mono pb-8 border-b border-white/10 mb-8 select-none">
-          <span>THE LAST MONSOON • PROD DRAFT</span>
+          <span>{currentProject.title.toUpperCase()} • PRODUCTION DRAFT</span>
           <span>PAGE {activeSceneNumber}</span>
         </div>
 
-        {/* Screenplay Lines List */}
-        <div className="space-y-4">
-          {filteredLines.map(line => {
-            const isEditing = editingLineId === line.id;
+        {/* Screenplay Lines List or Empty State */}
+        {filteredLines.length === 0 ? (
+          <div className="py-16 text-center space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+              <FileCode2 className="w-6 h-6" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1">
+              <h3 className="text-base font-bold text-white font-sans">No Screenplay Lines Drafted Yet for Scene {activeSceneNumber}</h3>
+              <p className="text-xs text-white/50 font-sans">
+                Draft dialogue and action beats manually using the format bar above, or synthesize a formatted scene using AI.
+              </p>
+            </div>
+            <button
+              onClick={handleDraftSceneWithAi}
+              disabled={isDraftingScene}
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold font-sans inline-flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-105 disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>{isDraftingScene ? 'Drafting Scene...' : `Draft Scene ${activeSceneNumber} with AI`}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredLines.map(line => {
+              const isEditing = editingLineId === line.id;
 
-            if (line.type === 'scene_heading') {
-              return (
-                <div 
-                  key={line.id} 
-                  className="font-bold text-amber-300 uppercase tracking-wider pt-4 pb-2 border-b border-white/5 cursor-pointer hover:bg-white/5 rounded px-2"
-                  onClick={() => setEditingLineId(line.id)}
-                >
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={line.content}
-                      onChange={(e) => handleLineContentChange(line.id, e.target.value)}
-                      onBlur={() => setEditingLineId(null)}
-                      autoFocus
-                      className="w-full bg-black/80 text-amber-300 border border-amber-500 rounded px-2 py-1 font-mono uppercase"
-                    />
-                  ) : (
-                    <span>{line.sceneNumber} {line.content} {line.sceneNumber}</span>
-                  )}
-                </div>
-              );
-            }
+              if (line.type === 'scene_heading') {
+                return (
+                  <div 
+                    key={line.id} 
+                    className="font-bold text-amber-300 uppercase tracking-wider pt-4 pb-2 border-b border-white/5 cursor-pointer hover:bg-white/5 rounded px-2"
+                    onClick={() => setEditingLineId(line.id)}
+                  >
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={line.content}
+                        onChange={(e) => handleLineContentChange(line.id, e.target.value)}
+                        onBlur={() => setEditingLineId(null)}
+                        autoFocus
+                        className="w-full bg-black/80 text-amber-300 border border-amber-500 rounded px-2 py-1 font-mono uppercase"
+                      />
+                    ) : (
+                      <span>{line.sceneNumber} {line.content} {line.sceneNumber}</span>
+                    )}
+                  </div>
+                );
+              }
 
-            if (line.type === 'action') {
-              return (
-                <div 
-                  key={line.id} 
-                  className="text-white/80 max-w-2xl px-2 py-1 cursor-pointer hover:bg-white/5 rounded"
-                  onClick={() => setEditingLineId(line.id)}
-                >
-                  {isEditing ? (
-                    <textarea
-                      value={line.content}
-                      onChange={(e) => handleLineContentChange(line.id, e.target.value)}
-                      onBlur={() => setEditingLineId(null)}
-                      autoFocus
-                      className="w-full bg-black/80 text-white/90 border border-amber-500 rounded px-2 py-1 font-mono resize-none"
-                    />
-                  ) : (
-                    <p>{line.content}</p>
-                  )}
-                </div>
-              );
-            }
+              if (line.type === 'action') {
+                return (
+                  <div 
+                    key={line.id} 
+                    className="text-white/80 max-w-2xl px-2 py-1 cursor-pointer hover:bg-white/5 rounded"
+                    onClick={() => setEditingLineId(line.id)}
+                  >
+                    {isEditing ? (
+                      <textarea
+                        value={line.content}
+                        onChange={(e) => handleLineContentChange(line.id, e.target.value)}
+                        onBlur={() => setEditingLineId(null)}
+                        autoFocus
+                        className="w-full bg-black/80 text-white/90 border border-amber-500 rounded px-2 py-1 font-mono resize-none"
+                      />
+                    ) : (
+                      <p>{line.content}</p>
+                    )}
+                  </div>
+                );
+              }
 
-            if (line.type === 'character') {
-              return (
-                <div key={line.id} className="text-center font-bold text-amber-400 uppercase pt-3 select-none">
-                  {line.content}
-                </div>
-              );
-            }
+              if (line.type === 'character') {
+                return (
+                  <div key={line.id} className="text-center font-bold text-amber-400 uppercase pt-3 select-none">
+                    {line.content}
+                  </div>
+                );
+              }
 
-            if (line.type === 'parenthetical') {
-              return (
-                <div key={line.id} className="text-center text-white/50 italic text-xs">
-                  {line.content}
-                </div>
-              );
-            }
+              if (line.type === 'parenthetical') {
+                return (
+                  <div key={line.id} className="text-center text-white/50 italic text-xs">
+                    {line.content}
+                  </div>
+                );
+              }
 
-            if (line.type === 'dialogue') {
-              return (
-                <div 
-                  key={line.id} 
-                  className="max-w-md mx-auto text-center px-4 py-1.5 cursor-pointer hover:bg-amber-500/10 rounded transition-colors group relative border border-transparent hover:border-amber-500/20"
-                  onClick={() => setEditingLineId(line.id)}
-                >
-                  {isEditing ? (
-                    <textarea
-                      value={line.content}
-                      onChange={(e) => handleLineContentChange(line.id, e.target.value)}
-                      onBlur={() => setEditingLineId(null)}
-                      autoFocus
-                      className="w-full bg-black/90 text-white/90 border border-amber-500 rounded px-2 py-1 font-mono text-center resize-none"
-                    />
-                  ) : (
-                    <p className="text-white/90 leading-relaxed font-mono">
-                      "{line.content}"
-                    </p>
-                  )}
-                  <span className="opacity-0 group-hover:opacity-100 text-[10px] text-amber-400 absolute right-1 top-1">
-                    Click to edit
-                  </span>
-                </div>
-              );
-            }
+              if (line.type === 'dialogue') {
+                return (
+                  <div 
+                    key={line.id} 
+                    className="max-w-md mx-auto text-center px-4 py-1.5 cursor-pointer hover:bg-amber-500/10 rounded transition-colors group relative border border-transparent hover:border-amber-500/20"
+                    onClick={() => setEditingLineId(line.id)}
+                  >
+                    {isEditing ? (
+                      <textarea
+                        value={line.content}
+                        onChange={(e) => handleLineContentChange(line.id, e.target.value)}
+                        onBlur={() => setEditingLineId(null)}
+                        autoFocus
+                        className="w-full bg-black/90 text-white/90 border border-amber-500 rounded px-2 py-1 font-mono text-center resize-none"
+                      />
+                    ) : (
+                      <p className="text-white/90 leading-relaxed font-mono">
+                        "{line.content}"
+                      </p>
+                    )}
+                    <span className="opacity-0 group-hover:opacity-100 text-[10px] text-amber-400 absolute right-1 top-1">
+                      Click to edit
+                    </span>
+                  </div>
+                );
+              }
 
-            return null;
-          })}
-        </div>
+              return null;
+            })}
+          </div>
+        )}
 
         {/* Page Footer */}
         <div className="mt-16 pt-8 border-t border-white/10 flex items-center justify-between text-xs text-white/40 font-mono">
           <span>(CONTINUED)</span>
-          <span>Draft V2.4 • Registered WGA & SWA India</span>
+          <span>Draft V1.0 • Tattava Standard Screenplay</span>
         </div>
       </div>
     </div>
   );
 };
+

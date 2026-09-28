@@ -27,6 +27,8 @@ import { ContinuityQAScreen } from './components/screens/ContinuityQAScreen';
 import { EvaluationScreen } from './components/screens/EvaluationScreen';
 import { PackageDeliveryScreen } from './components/screens/PackageDeliveryScreen';
 
+import { ErrorBoundary } from './components/layout/ErrorBoundary';
+
 // Deferred / Out of Scope (Retained for preview compatibility)
 import { VisualDevScreen } from './components/screens/VisualDevScreen';
 import { ProductionPlanningScreen } from './components/screens/ProductionPlanningScreen';
@@ -131,7 +133,12 @@ export const App: React.FC = () => {
 
         {/* Main Dynamic View Canvas */}
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
-          {renderActiveScreen()}
+          <ErrorBoundary
+            key={activeScreen}
+            fallbackScreen={() => setActiveScreen('discovery')}
+          >
+            {renderActiveScreen()}
+          </ErrorBoundary>
         </main>
       </div>
 

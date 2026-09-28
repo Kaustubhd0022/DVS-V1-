@@ -2,22 +2,61 @@ import React, { useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   FileText, Sparkles, CheckCircle2, ArrowRight, 
-  BookOpen, Edit3, ShieldCheck, Download, Share2, Eye, ListChecks, Brain
+  BookOpen, Edit3, ShieldCheck, Download, Share2, Eye, ListChecks, Brain,
+  RefreshCw, AlertCircle
 } from 'lucide-react';
 import { PlotBeatItem } from '../../types/project';
+import { generateTreatmentData } from '../../services/aiService';
 
 export const TreatmentScreen: React.FC = () => {
   const { currentProject, updateTreatment, nextStep, openContextResolver } = useProject();
-  const treatment = currentProject.treatment;
+  const treatment = currentProject.treatment || {
+    version: 'v0.1',
+    wordCount: 0,
+    logline: currentProject.intent?.premise || '',
+    synopsis: '',
+    themes: [],
+    tone: [],
+    status: 'DRAFT',
+    plotBeats: [],
+    checklist: []
+  };
+
+  const plotBeats = treatment.plotBeats || [];
+  const tones = treatment.tone || [];
+  const checklist = treatment.checklist || [];
 
   const [activeAct, setActiveAct] = useState<'ALL' | 'ACT I' | 'ACT II' | 'ACT III'>('ALL');
   const [isEditingSynopsis, setIsEditingSynopsis] = useState(false);
-  const [synopsisText, setSynopsisText] = useState(treatment.synopsis);
+  const [synopsisText, setSynopsisText] = useState(treatment.synopsis || '');
   const [aiEnhancing, setAiEnhancing] = useState(false);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [treatmentError, setTreatmentError] = useState<string | null>(null);
 
   const handleSaveSynopsis = () => {
-    updateTreatment({ synopsis: synopsisText });
+    updateTreatment({ synopsis: synopsisText, wordCount: synopsisText.split(/\s+/).filter(Boolean).length });
     setIsEditingSynopsis(false);
+  };
+
+  const handleSynthesizeTreatment = async () => {
+    setIsSynthesizing(true);
+    setTreatmentError(null);
+    try {
+      const generated = await generateTreatmentData(currentProject);
+      updateTreatment({
+        synopsis: generated.synopsis,
+        wordCount: generated.synopsis.split(/\s+/).filter(Boolean).length,
+        tone: generated.tone,
+        themes: generated.themes,
+        plotBeats: generated.plotBeats,
+        status: 'IN_REVIEW'
+      });
+      setSynopsisText(generated.synopsis);
+    } catch (err: any) {
+      setTreatmentError(err.message || 'AI service error generating treatment.');
+    } finally {
+      setIsSynthesizing(false);
+    }
   };
 
   const runAiEnhancement = () => {
@@ -28,8 +67,10 @@ export const TreatmentScreen: React.FC = () => {
   };
 
   const filteredBeats = activeAct === 'ALL'
-    ? treatment.plotBeats
-    : treatment.plotBeats.filter(b => b.act === activeAct);
+    ? plotBeats
+    : plotBeats.filter(b => b.act === activeAct);
+
+  const wordCount = treatment.wordCount || (treatment.synopsis ? treatment.synopsis.split(/\s+/).filter(Boolean).length : 0);
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto pb-16">
@@ -38,7 +79,7 @@ export const TreatmentScreen: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              Pipeline Step 09
+              Pipeline Step 10
             </span>
             <span className="text-xs text-white/40">• Comprehensive Prose Blueprint</span>
           </div>
@@ -46,25 +87,25 @@ export const TreatmentScreen: React.FC = () => {
             Narrative Treatment & Prose Dossier
           </h1>
           <p className="text-sm text-white/60 mt-1 max-w-2xl">
-            Version {treatment.version} • {treatment.wordCount.toLocaleString()} Words • Complete Scene-by-Scene Narrative Spine
+            Version {treatment.version || 'v0.1'} • {wordCount.toLocaleString()} Words • Complete Scene-by-Scene Narrative Spine for <strong className="text-white">"{currentProject.title}"</strong>
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
+            onClick={handleSynthesizeTreatment}
+            disabled={isSynthesizing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSynthesizing ? 'animate-spin' : ''}`} />
+            <span>{isSynthesizing ? 'Synthesizing Treatment...' : 'Synthesize Treatment (AI)'}</span>
+          </button>
+          <button
             onClick={() => openContextResolver('Treatment Beat', 'Prose Synopsis Draft')}
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all"
           >
             <Brain className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Inspect Scoped Context</span>
-          </button>
-          <button
-            onClick={runAiEnhancement}
-            disabled={aiEnhancing}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-medium transition-all"
-          >
-            <Sparkles className={`w-3.5 h-3.5 text-amber-400 ${aiEnhancing ? 'animate-spin' : ''}`} />
-            <span>{aiEnhancing ? 'Polishing Sensory Prose...' : 'AI Prose Polish'}</span>
+            <span>Scoped Context</span>
           </button>
           <button
             onClick={nextStep}
@@ -76,29 +117,43 @@ export const TreatmentScreen: React.FC = () => {
         </div>
       </div>
 
+      {treatmentError && (
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{treatmentError}</span>
+          </div>
+          <button onClick={() => setTreatmentError(null)} className="text-white/40 hover:text-white">✕</button>
+        </div>
+      )}
+
       {/* Metadata Pill Bar */}
       <div className="p-4 rounded-xl bg-[#12141a]/90 border border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs">
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5 text-white/60">
             <BookOpen className="w-4 h-4 text-amber-400" />
-            <span>Word Count: <strong className="text-white">{treatment.wordCount.toLocaleString()}</strong></span>
+            <span>Word Count: <strong className="text-white">{wordCount.toLocaleString()}</strong></span>
           </span>
           <span className="text-white/20">•</span>
           <span className="text-white/60">
-            Reading Time: <strong className="text-white">~42 Mins</strong>
+            Reading Time: <strong className="text-white">~{Math.max(1, Math.round(wordCount / 200))} Mins</strong>
           </span>
           <span className="text-white/20">•</span>
           <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-            <ShieldCheck className="w-4 h-4" /> Status: {treatment.status}
+            <ShieldCheck className="w-4 h-4" /> Status: {treatment.status || 'DRAFT'}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {treatment.tone.map((t, idx) => (
-            <span key={idx} className="px-2.5 py-0.5 rounded bg-white/5 text-white/70 border border-white/10 font-mono text-[11px]">
-              {t}
-            </span>
-          ))}
+          {tones.length === 0 ? (
+            <span className="text-white/40 text-[11px] italic">No tones assigned</span>
+          ) : (
+            tones.map((t, idx) => (
+              <span key={idx} className="px-2.5 py-0.5 rounded bg-white/5 text-white/70 border border-white/10 font-mono text-[11px]">
+                {t}
+              </span>
+            ))
+          )}
         </div>
       </div>
 
@@ -111,7 +166,7 @@ export const TreatmentScreen: React.FC = () => {
             <div>
               <span className="text-[11px] font-mono uppercase tracking-wider text-amber-400">Executive Logline</span>
               <h2 className="text-sm font-semibold text-white/90 italic mt-1 leading-relaxed">
-                "{treatment.logline}"
+                "{treatment.logline || currentProject.intent?.premise || 'No logline defined yet.'}"
               </h2>
             </div>
           </div>
@@ -153,38 +208,25 @@ export const TreatmentScreen: React.FC = () => {
                 rows={12}
                 className="w-full p-4 rounded-xl bg-black/60 border border-amber-500 text-white/90 text-sm leading-relaxed focus:outline-none font-serif resize-none"
               />
+            ) : !treatment.synopsis ? (
+              <div className="p-8 text-center bg-black/40 border border-white/5 rounded-xl space-y-3">
+                <p className="text-xs text-white/50">
+                  No narrative synopsis drafted yet for "{currentProject.title}".
+                </p>
+                <button
+                  onClick={handleSynthesizeTreatment}
+                  disabled={isSynthesizing}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold inline-flex items-center gap-1.5 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Draft Synopsis with AI</span>
+                </button>
+              </div>
             ) : (
               <div className="p-5 rounded-xl bg-black/40 border border-white/5 text-sm text-white/80 leading-relaxed space-y-4 font-serif">
-                <p>{treatment.synopsis}</p>
-                <p className="text-xs text-white/50 font-sans italic border-l-2 border-amber-500/50 pl-3">
-                  "The monsoon is not mere atmospheric backdrop; it is a moral barometer. Every millimeter of rainfall tests the fragile boundaries between institutional preservation and human survival."
-                </p>
+                <p className="whitespace-pre-line">{treatment.synopsis}</p>
               </div>
             )}
-          </div>
-
-          {/* Visual Moodboard Inset */}
-          <div className="pt-4 border-t border-white/10">
-            <span className="text-xs font-bold uppercase tracking-wider text-white/50 block mb-3">
-              Treatment Visual Keyframes Inset
-            </span>
-            <div className="grid grid-cols-3 gap-3">
-              <img
-                src="https://images.unsplash.com/photo-1514565131-fce0801e5785?w=600&q=80"
-                alt="Mood 1"
-                className="w-full h-24 object-cover rounded-lg border border-white/10"
-              />
-              <img
-                src="https://images.unsplash.com/photo-1518173946687-a4c8a383392e?w=600&q=80"
-                alt="Mood 2"
-                className="w-full h-24 object-cover rounded-lg border border-white/10"
-              />
-              <img
-                src="https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&q=80"
-                alt="Mood 3"
-                className="w-full h-24 object-cover rounded-lg border border-white/10"
-              />
-            </div>
           </div>
         </div>
 
@@ -196,7 +238,7 @@ export const TreatmentScreen: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                  12 Cardinal Plot Beats
+                  Cardinal Plot Beats ({plotBeats.length})
                 </h3>
                 <p className="text-[11px] text-white/50">Progression from Opening Image to Final Resolution</p>
               </div>
@@ -217,29 +259,45 @@ export const TreatmentScreen: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
-              {filteredBeats.map(beat => (
-                <div
-                  key={beat.id}
-                  className="p-3.5 rounded-xl bg-black/40 hover:bg-black/60 border border-white/5 hover:border-amber-500/30 transition-all"
+            {plotBeats.length === 0 ? (
+              <div className="p-8 text-center bg-black/30 border border-dashed border-white/10 rounded-xl space-y-3">
+                <p className="text-xs text-white/50">
+                  No cardinal plot beats mapped yet.
+                </p>
+                <button
+                  onClick={handleSynthesizeTreatment}
+                  disabled={isSynthesizing}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold inline-flex items-center gap-1.5 transition-all"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-white/10 text-amber-400 text-[10px] font-mono flex items-center justify-center">
-                        {beat.number}
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Synthesize Plot Beats (AI)</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                {filteredBeats.map(beat => (
+                  <div
+                    key={beat.id}
+                    className="p-3.5 rounded-xl bg-black/40 hover:bg-black/60 border border-white/5 hover:border-amber-500/30 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-white/10 text-amber-400 text-[10px] font-mono flex items-center justify-center">
+                          {beat.number}
+                        </span>
+                        {beat.title}
                       </span>
-                      {beat.title}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60">
-                      {beat.act}
-                    </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60">
+                        {beat.act}
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/60 mt-1.5 pl-7 leading-relaxed">
+                      {beat.description}
+                    </p>
                   </div>
-                  <p className="text-xs text-white/60 mt-1.5 pl-7 leading-relaxed">
-                    {beat.description}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quality Audit Checklist */}
@@ -249,14 +307,22 @@ export const TreatmentScreen: React.FC = () => {
                 <ListChecks className="w-4 h-4 text-emerald-400" />
                 Treatment Quality Audit
               </span>
-              <span className="text-xs text-emerald-400 font-mono font-bold">100% Ready</span>
+              <span className="text-xs text-emerald-400 font-mono font-bold">
+                {treatment.synopsis && plotBeats.length > 0 ? 'Ready' : 'In Progress'}
+              </span>
             </div>
 
             <div className="space-y-2">
-              {treatment.checklist.map((chk, idx) => (
+              {(checklist.length === 0 ? [
+                { item: 'Logline Approved', completed: !!treatment.logline },
+                { item: 'Core Protagonist Flaw Defined', completed: currentProject.characters.length > 0 },
+                { item: 'Act I Inciting Incident Established', completed: plotBeats.some(b => b.act === 'ACT I') },
+                { item: 'Midpoint Reversal Mapped', completed: plotBeats.some(b => b.act === 'ACT II') },
+                { item: 'Climax & Thematic Resolution', completed: plotBeats.some(b => b.act === 'ACT III') }
+              ] : checklist).map((chk, idx) => (
                 <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-white/5">
                   <span className="text-xs text-white/80">{chk.item}</span>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${chk.completed ? 'text-emerald-400' : 'text-white/20'}`} />
                 </div>
               ))}
             </div>
@@ -268,3 +334,4 @@ export const TreatmentScreen: React.FC = () => {
     </div>
   );
 };
+
