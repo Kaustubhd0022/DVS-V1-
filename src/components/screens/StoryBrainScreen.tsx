@@ -40,13 +40,13 @@ export const StoryBrainScreen: React.FC = () => {
   const [isAddDecisionOpen, setIsAddDecisionOpen] = useState(false);
   const [decisionTitle, setDecisionTitle] = useState('');
   const [decisionRationale, setDecisionRationale] = useState('');
-  const [decisionAuthor, setDecisionAuthor] = useState('Kaustubh Deshmukh');
-  const [decisionRole, setDecisionRole] = useState('AI Product Manager');
+  const [decisionAuthor, setDecisionAuthor] = useState('Story Development Lead');
+  const [decisionRole, setDecisionRole] = useState('Story Editor');
   const [decisionImpacts, setDecisionImpacts] = useState('');
 
-  const canonFacts = currentProject.storyBrain.canonFacts;
-  const decisions = currentProject.storyBrain.creativeDecisions;
-  const dependencies = currentProject.storyBrain.dependencies;
+  const canonFacts = currentProject.storyBrain?.canonFacts || [];
+  const decisions = currentProject.storyBrain?.creativeDecisions || currentProject.storyBrain?.decisionLog || [];
+  const dependencies = currentProject.storyBrain?.dependencies || [];
 
   const filteredFacts = canonFacts.filter(fact => {
     const matchesSearch = fact.statement.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -60,10 +60,12 @@ export const StoryBrainScreen: React.FC = () => {
     e.preventDefault();
     if (!newStatement.trim()) return;
 
+    const defaultEntityId = currentProject.characters?.[0]?.id || 'entity-core';
+
     addCanonFact({
       statement: newStatement.trim(),
       category: newCategory,
-      entityIds: ['char-aanya'],
+      entityIds: [defaultEntityId],
       source: newSource.trim() || 'Creative Executive Decision',
       isLocked: true,
       tags: newTags.split(',').map(t => t.trim()).filter(Boolean)
@@ -278,7 +280,33 @@ export const StoryBrainScreen: React.FC = () => {
 
           {/* Facts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredFacts.map(fact => (
+            {canonFacts.length === 0 ? (
+              <div className="col-span-1 md:col-span-2 p-12 rounded-2xl bg-[#141724] border border-white/10 text-center space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div className="max-w-md mx-auto space-y-1.5">
+                  <h3 className="text-base font-bold text-white">No Approved Canon Facts Yet</h3>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    Story Brain starts completely clean. Run Project Intake to deconstruct your premise into baseline truths, or manually record a canonical fact below.
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={() => setActiveScreen('intake')}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20"
+                  >
+                    <span>Run Project Intake</span>
+                  </button>
+                  <button
+                    onClick={() => setIsAddFactOpen(true)}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold border border-white/10 transition-all"
+                  >
+                    <span>+ Add Fact Manually</span>
+                  </button>
+                </div>
+              </div>
+            ) : filteredFacts.map(fact => (
               <div 
                 key={fact.id}
                 className="bg-[#141724] border border-white/10 hover:border-amber-500/40 rounded-xl p-5 transition-all space-y-3 relative group"

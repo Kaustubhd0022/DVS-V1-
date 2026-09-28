@@ -12,27 +12,79 @@ import {
   ExternalLink, 
   Clock, 
   Share2, 
-  Printer,
-  Copy,
-  Brain,
-  BookOpen,
-  Users,
-  Layers,
-  ShieldAlert,
-  UserCheck,
-  Check
+  Printer, 
+  Copy, 
+  Brain, 
+  BookOpen, 
+  Users, 
+  Layers, 
+  ShieldAlert, 
+  UserCheck, 
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DeliverableCard, StakeholderApproval } from '../../types/project';
 
 export const PackageDeliveryScreen: React.FC = () => {
-  const { currentProject, submitForGreenlight, setActiveScreen } = useProject();
-  const pkg = currentProject.packageData || currentProject.package;
+  const { currentProject, submitGreenlight, setActiveScreen } = useProject();
+  const pkg = currentProject.packageData || currentProject.package || {};
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [showGreenlitCelebration, setShowGreenlitCelebration] = useState(false);
   const [dossierModalOpen, setDossierModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Dynamic deliverables based on current project state
+  const deliverables = [
+    {
+      id: 'del-treatment',
+      title: `${currentProject.title} — Narrative Treatment & Synopsis`,
+      type: 'DOC',
+      version: currentProject.canonicalVersion || 'v0.1',
+      size: `${Math.max(1, Math.round((currentProject.treatment?.synopsis?.length || 500) / 100))} KB`,
+      color: '#3b82f6',
+      content: currentProject.treatment?.synopsis || currentProject.intent?.premise || 'Synopsis under development.'
+    },
+    {
+      id: 'del-bible',
+      title: `${currentProject.title} — Character Bible (${currentProject.characters.length} Cast)`,
+      type: 'BBL',
+      version: currentProject.canonicalVersion || 'v0.1',
+      size: `${Math.max(1, currentProject.characters.length * 2)} KB`,
+      color: '#8b5cf6',
+      content: currentProject.characters.map(c => `${c.name} (${c.role}, Age ${c.age})\nWant: ${c.want}\nNeed: ${c.need}\nFlaw: ${c.flaw}`).join('\n\n') || 'Characters not yet registered.'
+    },
+    {
+      id: 'del-storybrain',
+      title: `Story Brain Canon Matrix (${currentProject.storyBrain?.canonFacts?.length || 0} Facts)`,
+      type: 'CAN',
+      version: currentProject.canonicalVersion || 'v0.1',
+      size: `${Math.max(1, (currentProject.storyBrain?.canonFacts?.length || 1) * 3)} KB`,
+      color: '#f59e0b',
+      content: currentProject.storyBrain?.canonFacts?.map((f, i) => `#CF-0${i+1} [${f.category}]: ${f.statement} (Source: ${f.source})`).join('\n') || 'No canon facts locked.'
+    },
+    {
+      id: 'del-research',
+      title: `Traceable Research Dossier (${currentProject.researchFindings?.length || 0} Citations)`,
+      type: 'RES',
+      version: currentProject.canonicalVersion || 'v0.1',
+      size: `${Math.max(1, (currentProject.researchFindings?.length || 1) * 2)} KB`,
+      color: '#10b981',
+      content: currentProject.researchFindings?.map(r => `• ${r.topic}: ${r.claim}\n  Evidence: ${r.evidence} [${r.sourceType}: ${r.source}]`).join('\n\n') || 'No research conducted.'
+    },
+    {
+      id: 'del-eval',
+      title: `AI Narrative Quality Evaluation Report`,
+      type: 'EVL',
+      version: 'v1.0',
+      size: '4 KB',
+      color: '#06b6d4',
+      content: currentProject.evaluation 
+        ? `Readiness Index: ${Math.round(currentProject.evaluation.overallScore)}%\nStatus: ${currentProject.evaluation.readinessStatus}\nModel: ${currentProject.evaluation.evaluatorModel}\nStrengths: ${currentProject.evaluation.keyStrengths?.join(', ')}\nRisks: ${currentProject.evaluation.criticalRisks?.join(', ')}`
+        : 'Evaluation pending execution.'
+    }
+  ];
 
   const handleDownload = (id: string, title: string) => {
     setDownloadingId(id);
@@ -44,37 +96,37 @@ export const PackageDeliveryScreen: React.FC = () => {
 TATTAVA COPILOT — V1 STORY DEVELOPMENT PACKAGE
 =============================================================
 Title: ${currentProject.title}
-Version: ${currentProject.canonicalVersion || 'v1.2-canonical'}
+Version: ${currentProject.canonicalVersion || 'v0.1'}
 Status: APPROVED CANONICAL STATE
 Date: ${new Date().toLocaleDateString()}
 Deliverable: ${title}
 
 1. EXECUTIVE LOGLINE:
-${currentProject.intent?.premise}
+${currentProject.intent?.premise || 'No premise set.'}
 
-2. CORE PROTAGONIST ARC:
-${currentProject.characters[0]?.name} (Age: ${currentProject.characters[0]?.age})
-Want: ${currentProject.characters[0]?.want}
-Need: ${currentProject.characters[0]?.need}
+2. PROTAGONIST ARC:
+${currentProject.characters[0] ? `${currentProject.characters[0].name} (Age: ${currentProject.characters[0].age})\nWant: ${currentProject.characters[0].want}\nNeed: ${currentProject.characters[0].need}\nFlaw: ${currentProject.characters[0].flaw}` : 'No protagonist established.'}
 
-3. CANONICAL STORY BRAIN FACTS:
-${currentProject.storyBrain.canonFacts.map(f => `• [${f.id.toUpperCase()}] ${f.statement} (Source: ${f.source})`).join('\n')}
+3. CANONICAL STORY BRAIN FACTS (${currentProject.storyBrain?.canonFacts?.length || 0} Locked):
+${currentProject.storyBrain?.canonFacts?.map((f, i) => `• [CF-0${i+1}] ${f.statement} (Source: ${f.source})`).join('\n') || 'None'}
 
-4. TRACEABLE RESEARCH DOSSIER:
-${currentProject.researchFindings.map(r => `• ${r.topic}: ${r.claim} [${r.sourceType}: ${r.source}] (${r.confidence}% confidence)`).join('\n')}
+4. TRACEABLE RESEARCH DOSSIER (${currentProject.researchFindings?.length || 0} Citations):
+${currentProject.researchFindings?.map(r => `• ${r.topic}: ${r.claim} [${r.sourceType}: ${r.source}] (${r.confidence}% confidence)`).join('\n') || 'None'}
 
 5. AI STORY EVALUATION INDEX:
-Overall Readiness Score: ${Math.round(currentProject.evaluation?.overallScore || 87)}%
-Readiness Status: ${currentProject.evaluation?.readinessStatus || 'Pilot Ready'}
-Key Strengths: ${currentProject.evaluation?.keyStrengths.join(', ')}
+Overall Readiness Score: ${currentProject.evaluation ? Math.round(currentProject.evaluation.overallScore) + '%' : 'Pending'}
+Readiness Status: ${currentProject.evaluation?.readinessStatus || 'Not evaluated'}
+Key Strengths: ${currentProject.evaluation?.keyStrengths?.join(', ') || 'N/A'}
+Critical Risks: ${currentProject.evaluation?.criticalRisks?.join(', ') || 'None identified'}
 
 6. STAKEHOLDER SIGN-OFF:
-Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
+Sign-Off: ${currentProject.evaluation?.humanSignOff?.approvedBy || 'Pending Producer Review'}
+Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-off.'}
 =============================================================`
       ], { type: 'text/plain' });
 
       element.href = URL.createObjectURL(file);
-      element.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_v1.2.txt`;
+      element.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${currentProject.canonicalVersion || 'v0.1'}.txt`;
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
@@ -82,7 +134,7 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
   };
 
   const handleGreenlightClick = () => {
-    submitForGreenlight();
+    submitGreenlight();
     setShowGreenlitCelebration(true);
 
     confetti({
@@ -108,24 +160,29 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
   };
 
   const copyDossier = () => {
-    const text = `TATTAVA COPILOT STORY DEVELOPMENT PACKAGE: ${currentProject.title}\nLogline: ${currentProject.intent.premise}\nCanon Facts: ${currentProject.storyBrain.canonFacts.length}\nEvaluation Readiness: ${currentProject.evaluation.overallScore}%`;
+    const text = `TATTAVA COPILOT STORY DEVELOPMENT PACKAGE: ${currentProject.title}\nLogline: ${currentProject.intent?.premise}\nCanon Facts: ${currentProject.storyBrain?.canonFacts?.length || 0}\nEvaluation Readiness: ${currentProject.evaluation ? Math.round(currentProject.evaluation.overallScore) + '%' : 'Pending'}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const canonCount = currentProject.storyBrain?.canonFacts?.length || 0;
+  const researchCount = currentProject.researchFindings?.length || 0;
+  const charCount = currentProject.characters?.length || 0;
+  const openBlockers = (currentProject.continuityIssues || []).filter(i => i.resolutionState === 'Open').length;
+
   const checklist = [
-    { label: 'Project Intent & Ambiguity Clarified', completed: true, stage: 'Intake' },
-    { label: 'Story Brain System of Record Initialized (8 Facts Locked)', completed: true, stage: 'Story Brain' },
-    { label: 'Traceable Research Dossier Verified with Provenance', completed: true, stage: 'Research' },
-    { label: 'Story Directions & High-Concept Synthesis Approved', completed: true, stage: 'Story' },
-    { label: 'Character Psychometrics & Voice Styles Finalized', completed: true, stage: 'Characters' },
-    { label: 'Three-Act Structure & Beat Breakdown Locked', completed: true, stage: 'Structure' },
-    { label: 'Treatment & Narrative Synopsis Written (v1.2)', completed: true, stage: 'Treatment' },
-    { label: 'Key Screenplay Sequences Drafted with Grounded Dialogue', completed: true, stage: 'Script' },
-    { label: 'Canon & Continuity Clearances Verified (No Blockers)', completed: true, stage: 'Continuity' },
-    { label: 'AI Story Evaluation Harness Passed (>85% Index)', completed: true, stage: 'Evaluation' }
+    { label: 'Project Intent & Ambiguity Clarified', completed: !!currentProject.intent?.premise, stage: 'Intake' },
+    { label: `Story Brain System of Record (${canonCount} Facts Locked)`, completed: canonCount > 0, stage: 'Story Brain' },
+    { label: `Traceable Research Dossier (${researchCount} Citations)`, completed: researchCount > 0, stage: 'Research' },
+    { label: `Character Architecture (${charCount} Cast Members)`, completed: charCount > 0, stage: 'Characters' },
+    { label: 'Three-Act Structure & Treatment Synopsis', completed: !!(currentProject.treatment?.synopsis || currentProject.intent?.premise), stage: 'Treatment' },
+    { label: `Canon & Continuity Cleared (${openBlockers} Inconsistencies)`, completed: openBlockers === 0, stage: 'Continuity' },
+    { label: 'AI Story Evaluation Harness Executed', completed: !!currentProject.evaluation, stage: 'Evaluation' }
   ];
+
+  const completedSteps = checklist.filter(c => c.completed).length;
+  const auditPercent = Math.round((completedSteps / checklist.length) * 100);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fadeIn">
@@ -141,15 +198,15 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
                 V1 North-Star Deliverable • Final Step 16
               </span>
               <span className="px-2.5 py-0.5 rounded text-[11px] font-mono bg-white/10 text-white/70 border border-white/10">
-                {currentProject.canonicalVersion || 'v1.2-canonical'}
+                {currentProject.canonicalVersion || 'v0.1'}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
               Story Development Package & Greenlight Sign-Off
             </h1>
             <p className="text-sm text-white/70 max-w-3xl leading-relaxed">
-              The synthesized V1 end-product: structured Story Brain, traceable research, deep character bibles, 
-              three-act treatment, grounded script sequences, and formal evaluation clearance. Ready for executive committee greenlight.
+              The synthesized V1 end-product for <strong className="text-white">"{currentProject.title}"</strong>: 
+              structured Story Brain, traceable research, character bibles, treatment synopsis, continuity verification, and evaluation clearance.
             </p>
           </div>
 
@@ -185,7 +242,7 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
             <span className="text-[11px] text-white/50 block font-medium">Readiness Index</span>
             <span className="text-xl font-black text-emerald-400 flex items-center gap-1.5 mt-0.5">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              {Math.round(currentProject.evaluation?.overallScore || 87.3)}%
+              {currentProject.evaluation ? Math.round(currentProject.evaluation.overallScore) + '%' : 'Pending'}
             </span>
           </div>
 
@@ -193,7 +250,7 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
             <span className="text-[11px] text-white/50 block font-medium">Story Brain Canon</span>
             <span className="text-xl font-black text-amber-400 flex items-center gap-1.5 mt-0.5">
               <Brain className="w-4 h-4 text-amber-400" />
-              {currentProject.storyBrain.canonFacts.length} Facts Locked
+              {canonCount} Facts Locked
             </span>
           </div>
 
@@ -201,15 +258,15 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
             <span className="text-[11px] text-white/50 block font-medium">Verified Research</span>
             <span className="text-xl font-black text-cyan-400 flex items-center gap-1.5 mt-0.5">
               <BookOpen className="w-4 h-4 text-cyan-400" />
-              {currentProject.researchFindings.filter(r => r.status === 'Verified').length} Citations
+              {researchCount} Citations
             </span>
           </div>
 
           <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Stakeholder Consensus</span>
+            <span className="text-[11px] text-white/50 block font-medium">Audit Completion</span>
             <span className="text-xl font-black text-white flex items-center gap-1.5 mt-0.5">
               <UserCheck className="w-4 h-4 text-emerald-400" />
-              4/4 Approved
+              {auditPercent}%
             </span>
           </div>
         </div>
@@ -225,7 +282,7 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
             <div>
               <h3 className="text-base font-bold text-white">Project Officially Approved for Greenlight</h3>
               <p className="text-xs text-white/70">
-                All 16 story development stages completed, canon verified, and stakeholder approvals locked in attributable audit log.
+                All development stages completed, canon verified, and sign-offs recorded in attributable audit log.
               </p>
             </div>
           </div>
@@ -241,15 +298,19 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
 
       {/* Two Column Layout: Completeness Audit vs Deliverables */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: 10-Point Story Development Audit (5 cols) */}
+        {/* Left Column: Completeness Audit (5 cols) */}
         <div className="lg:col-span-5 bg-[#131624] border border-white/10 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div>
               <h3 className="text-sm font-bold text-white">Story Development Completeness Audit</h3>
-              <p className="text-[11px] text-white/60">Verification checklist required by V1 Unified Specification.</p>
+              <p className="text-[11px] text-white/60">Verification checklist derived from current project state.</p>
             </div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              100% Passed
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+              auditPercent >= 80 
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+            }`}>
+              {auditPercent}% Passed
             </span>
           </div>
 
@@ -260,8 +321,8 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
                 className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between gap-3 text-xs"
               >
                 <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span className="text-white/90 font-medium">{item.label}</span>
+                  <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${item.completed ? 'text-emerald-400' : 'text-white/20'}`} />
+                  <span className={`font-medium ${item.completed ? 'text-white/90' : 'text-white/40'}`}>{item.label}</span>
                 </div>
                 <span className="text-[10px] font-mono text-white/40 px-2 py-0.5 rounded bg-white/5">
                   {item.stage}
@@ -272,16 +333,15 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
 
           <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
             <strong className="text-amber-300 block mb-0.5">Pilot Governance Note:</strong>
-            All narrative materials have passed through the 5-stage Canonical State Machine: 
+            All narrative materials pass through the 5-stage Canonical State Machine: 
             <span className="font-mono text-[10px] block mt-1 text-white/70">
               AI_PROPOSAL → CANDIDATE → HUMAN_EDITED → APPROVED → CANONICAL
             </span>
           </div>
         </div>
 
-        {/* Right Column: Downloadable Package Deliverables & Stakeholder Sign-Off (7 cols) */}
+        {/* Right Column: Exportable Deliverables (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Deliverables Cards */}
           <div className="bg-[#131624] border border-white/10 rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
@@ -289,16 +349,16 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
                 <p className="text-[11px] text-white/60">Structured dossiers assembled from approved Project Intelligence.</p>
               </div>
               <button
-                onClick={() => handleDownload('all', 'Complete_Story_Package_Bundle')}
+                onClick={() => handleDownload('all', `${currentProject.title}_Full_Dossier`)}
                 className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Export All (.zip)</span>
+                <span>Export Master Dossier (.txt)</span>
               </button>
             </div>
 
             <div className="space-y-3">
-              {pkg.deliverables.map(del => {
+              {deliverables.map(del => {
                 const isDownloading = downloadingId === del.id;
 
                 return (
@@ -337,33 +397,33 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
             </div>
           </div>
 
-          {/* Stakeholder Sign-Off Audit */}
-          <div className="bg-[#131624] border border-white/10 rounded-2xl p-6 space-y-4">
-            <div className="pb-3 border-b border-white/10">
-              <h3 className="text-sm font-bold text-white">Attributable Stakeholder Sign-Off Log</h3>
-              <p className="text-[11px] text-white/60">Recorded sign-offs from creative leaders and department heads.</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {pkg.stakeholders.map(sh => (
-                <div key={sh.id} className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <img src={sh.avatar} alt={sh.name} className="w-8 h-8 rounded-full object-cover border border-amber-500/30" />
-                    <div>
-                      <span className="text-xs font-bold text-white block">{sh.name}</span>
-                      <span className="text-[10px] text-white/50">{sh.role}</span>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      Approved
-                    </span>
-                    <span className="text-[9px] font-mono text-white/30 block mt-0.5">{sh.date || '28 Sep 2026'}</span>
-                  </div>
+          {/* Producer Sign-off Status */}
+          <div className="bg-[#131624] border border-white/10 rounded-2xl p-6 space-y-3">
+            <h3 className="text-sm font-bold text-white">Attributable Stakeholder Sign-Off</h3>
+            {currentProject.evaluation?.humanSignOff ? (
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-white block">{currentProject.evaluation.humanSignOff.approvedBy}</span>
+                  <span className="text-[11px] text-emerald-300">{currentProject.evaluation.humanSignOff.role} • Approved on {currentProject.evaluation.humanSignOff.date}</span>
+                  {currentProject.evaluation.humanSignOff.comments && (
+                    <p className="text-[11px] text-white/70 mt-1 italic">"{currentProject.evaluation.humanSignOff.comments}"</p>
+                  )}
                 </div>
-              ))}
-            </div>
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                  APPROVED
+                </span>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-xs text-white/50">
+                <span>Formal producer sign-off pending in Evaluation module.</span>
+                <button
+                  onClick={() => setActiveScreen('evaluation')}
+                  className="text-amber-400 hover:text-amber-300 font-semibold"
+                >
+                  Review & Sign Off →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -379,7 +439,7 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
                   Master Story Development Dossier • {currentProject.title}
                 </h3>
                 <span className="text-xs text-white/50 font-mono">
-                  {currentProject.canonicalVersion} • Approved Canonical State
+                  {currentProject.canonicalVersion || 'v0.1'} • Approved Canonical State
                 </span>
               </div>
 
@@ -403,48 +463,68 @@ Approved by Creative Producer Rhea Kapoor and AI Product Lead Kaustubh Deshmukh.
             <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-white/80 leading-relaxed font-sans">
               <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">1. Executive Overview</h4>
-                <p><strong className="text-white">Premise:</strong> {currentProject.intent.premise}</p>
-                <p><strong className="text-white">Protagonist:</strong> {currentProject.intent.protagonist}</p>
-                <p><strong className="text-white">Stakes:</strong> {currentProject.intent.stakes}</p>
-                <p><strong className="text-white">Tone:</strong> {currentProject.intent.tone}</p>
+                <p><strong className="text-white">Premise:</strong> {currentProject.intent?.premise || 'Not specified'}</p>
+                <p><strong className="text-white">Content Type:</strong> {currentProject.contentType || 'Feature Film'}</p>
+                <p><strong className="text-white">Genre:</strong> {currentProject.genre || 'Drama'}</p>
               </div>
 
               <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">2. Canonical Story Brain Truths</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">2. Canonical Story Brain Truths ({canonCount})</h4>
                 <div className="space-y-1.5">
-                  {currentProject.storyBrain.canonFacts.map(fact => (
-                    <div key={fact.id} className="text-xs text-white/80 pl-2 border-l border-amber-500/40">
-                      <span className="font-mono text-[10px] text-amber-300 font-bold block">{fact.id.toUpperCase()} • {fact.category}</span>
-                      "{fact.statement}"
-                    </div>
-                  ))}
+                  {currentProject.storyBrain?.canonFacts?.length ? (
+                    currentProject.storyBrain.canonFacts.map((fact, idx) => (
+                      <div key={fact.id} className="text-xs text-white/80 pl-2 border-l border-amber-500/40">
+                        <span className="font-mono text-[10px] text-amber-300 font-bold block">#CF-0{idx+1} • {fact.category}</span>
+                        "{fact.statement}"
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-white/40 italic">No canon facts locked yet.</p>
+                  )}
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">3. Narrative Treatment Synopsis</h4>
-                <p className="whitespace-pre-line text-white/70">{currentProject.treatment.synopsis}</p>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">3. Registered Characters ({charCount})</h4>
+                {currentProject.characters?.length ? (
+                  <div className="space-y-2">
+                    {currentProject.characters.map(c => (
+                      <div key={c.id} className="p-2.5 rounded-lg bg-black/30 border border-white/5">
+                        <span className="font-bold text-white">{c.name} ({c.role}, Age {c.age})</span>
+                        <p className="text-[11px] text-white/70 mt-0.5">Want: {c.want} • Need: {c.need} • Flaw: {c.flaw}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-white/40 italic">No characters registered yet.</p>
+                )}
               </div>
 
               <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">4. AI Narrative Evaluation Quality Index</h4>
-                <p><strong className="text-white">Readiness Score:</strong> {currentProject.evaluation.overallScore}% ({currentProject.evaluation.readinessStatus})</p>
-                <p><strong className="text-white">Evaluator Model:</strong> {currentProject.evaluation.evaluatorModel}</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
-                  {currentProject.evaluation.dimensions.map(dim => (
-                    <div key={dim.id} className="p-2 rounded bg-black/30 text-[11px]">
-                      <span className="text-white/50 block">{dim.name}</span>
-                      <span className="text-amber-400 font-bold">{dim.score}%</span>
+                {currentProject.evaluation ? (
+                  <>
+                    <p><strong className="text-white">Readiness Score:</strong> {Math.round(currentProject.evaluation.overallScore)}% ({currentProject.evaluation.readinessStatus})</p>
+                    <p><strong className="text-white">Evaluator Model:</strong> {currentProject.evaluation.evaluatorModel}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
+                      {currentProject.evaluation.dimensions?.map(dim => (
+                        <div key={dim.id} className="p-2 rounded bg-black/30 text-[11px]">
+                          <span className="text-white/50 block">{dim.name}</span>
+                          <span className="text-amber-400 font-bold">{dim.score}%</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                ) : (
+                  <p className="text-white/40 italic">Evaluation not yet executed.</p>
+                )}
               </div>
             </div>
 
             <div className="p-4 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-white/50">
-              <span>Ready for Export • Certified by Don Vanzara Showbiz LLP</span>
+              <span>Ready for Export • Tattava Copilot Certified State</span>
               <button
-                onClick={() => handleDownload('master-dossier', 'Master_Story_Dossier')}
+                onClick={() => handleDownload('master-dossier', `${currentProject.title}_Master_Dossier`)}
                 className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />

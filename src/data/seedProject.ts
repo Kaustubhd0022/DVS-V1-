@@ -2,8 +2,8 @@ import { TattvaCoProject } from '../types/project';
 
 export const seedProject: TattvaCoProject = {
   id: 'proj-the-last-monsoon',
-  title: 'The Last Monsoon',
-  tagline: 'Every rain reveals a truth.',
+  title: '[SAMPLE DEMO] The Last Monsoon',
+  tagline: 'SAMPLE DEMO DATA — Pre-populated for pipeline inspection.',
   posterUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=900&auto=format&fit=crop',
   contentType: 'Feature Film',
   language: 'Hindi',
@@ -11,11 +11,12 @@ export const seedProject: TattvaCoProject = {
   stage: 'Pilot Ready / Story Development',
   progressPercent: 78,
   lastUpdated: 'Updated 10 mins ago',
-  owner: 'Kaustubh Deshmukh',
-  visibility: 'Internal (Don Vanzara Team)',
-  tags: ['Politics', 'Ambition', 'Truth', 'Redemption', 'Pilot Golden Loop'],
+  owner: 'Don Vanzara Story Team',
+  visibility: 'Demo Project (Read-Only Template)',
+  tags: ['Demo', 'Politics', 'Ambition', 'Truth', 'Redemption'],
   status: 'IN_REVIEW',
   canonicalVersion: 'v1.2-canonical',
+  isDemo: true,
 
   // -------------------------------------------------------------
   // STORY BRAIN — THE PERSISTENT SYSTEM OF RECORD (PILOT BASELINE)

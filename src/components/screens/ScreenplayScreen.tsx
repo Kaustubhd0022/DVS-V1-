@@ -21,34 +21,34 @@ export const ScreenplayScreen: React.FC = () => {
     updateScreenplayLine(id, newContent);
   };
 
+  const leadName = (currentProject.characters[0]?.name || 'PROTAGONIST').toUpperCase();
+
   const handleAddNewLine = (type: ScreenplayLine['type']) => {
     const newLine: ScreenplayLine = {
       id: `scr-user-${Date.now()}`,
       sceneNumber: activeSceneNumber,
       type,
-      content: type === 'character' ? 'AANYA' : type === 'parenthetical' ? '(hesitant)' : 'Type line content...',
-      characterName: type === 'dialogue' || type === 'parenthetical' ? 'AANYA' : undefined
+      content: type === 'character' ? leadName : type === 'parenthetical' ? '(hesitant)' : 'Type line content...',
+      characterName: type === 'dialogue' || type === 'parenthetical' ? leadName : undefined
     };
     addScreenplayLine(newLine);
   };
 
   const runAiDialoguePunchUp = async () => {
     setAiPunchingUp(true);
-    const aanyaDialogue = filteredLines.find(l => l.type === 'dialogue');
-    if (aanyaDialogue) {
+    const leadDialogue = filteredLines.find(l => l.type === 'dialogue');
+    if (leadDialogue) {
       try {
         const punched = await punchUpDialogue(
-          aanyaDialogue.content,
-          aanyaDialogue.characterName || 'AANYA',
-          `Scene ${activeSceneNumber}: EXT. MUMBAI RADAR TOWER - NIGHT. High storm alert, sluice gates compromised.`,
-          'Inject acute subtext, procedural coldness, and urgent cinematic weight.'
+          leadDialogue.content,
+          leadDialogue.characterName || leadName,
+          `Scene ${activeSceneNumber}: ${currentProject.intent?.setting || 'Dramatic Setting'}. High stakes confrontation.`,
+          currentProject,
+          'Inject acute subtext, procedural coldness, and urgent dramatic weight.'
         );
-        updateScreenplayLine(aanyaDialogue.id, punched);
-      } catch (e) {
-        updateScreenplayLine(
-          aanyaDialogue.id,
-          "The telemetry isn't glitching, Raghav. Someone in Sector 4 cut the power grid before the rain began."
-        );
+        updateScreenplayLine(leadDialogue.id, punched);
+      } catch (e: any) {
+        console.error('AI Dialogue punch-up failed:', e);
       }
     }
     setAiPunchingUp(false);

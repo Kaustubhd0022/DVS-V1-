@@ -18,7 +18,9 @@ import {
   StoryEvaluation
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
+import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
+import { evaluateProjectNarrative, getGroqApiKey } from '../services/aiService';
 
 export type ScreenId = 
   | 'home' 
@@ -93,12 +95,22 @@ interface ProjectContextType {
   nextStep: () => void;
   prevStep: () => void;
   openProject: (projectId: string, targetScreen?: ScreenId) => void;
+  openDemoProject: () => void;
   createNewProject: (data: Partial<TattavaProject>) => string;
   duplicateProject: (projectId: string) => void;
   deleteProject: (projectId: string) => void;
 
   // Project Mutators
   updateCurrentProject: (updater: (prev: TattavaProject) => TattavaProject) => void;
+  initializeStoryBrainFromIntake: (breakdown: {
+    premise: string;
+    protagonist: string;
+    setting: string;
+    conflict: string;
+    stakes: string;
+    themes: string[];
+    tone: string;
+  }) => void;
   updateCharacter: (charId: string, updates: Partial<Character>) => void;
   selectStoryDirection: (dirId: string) => void;
   combineDirections: (dirAId: string, dirBId: string, combinedTitle: string) => void;
@@ -160,18 +172,21 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure projects have storyBrain and pilotMetrics
-        if (parsed?.[0]?.storyBrain) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       } catch (e) {
         console.error('Failed to parse saved projects', e);
       }
     }
-    return [seedProject, ...secondaryProjects];
+    // Start with empty array by default so users see the First-Time Creation Hub
+    return [];
   });
 
-  const [currentProjectId, setCurrentProjectId] = useState<string>(seedProject.id);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(() => {
+    return projects[0]?.id || null;
+  });
+
   const [activeScreen, setActiveScreen] = useState<ScreenId>('home');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isContextResolverOpen, setIsContextResolverOpen] = useState<boolean>(false);
@@ -182,7 +197,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [copilotMessages, setCopilotMessages] = useState<Array<{ sender: 'user' | 'tattvaCo' | 'tattava'; text: string; time: string }>>([
     { 
       sender: 'tattvaCo', 
-      text: 'Welcome to Tattava Copilot V1 Pilot. I am your Project Intelligence & Narrative Reasoning copilot. All reasoning is strictly grounded in your persistent Story Brain and verified canon.', 
+      text: 'Welcome to Tattava Copilot V1 Pilot. I am your Project Intelligence & Narrative Reasoning copilot. All reasoning is strictly grounded in your active project input and verified canon.', 
       time: '10:24 AM' 
     }
   ]);
@@ -190,14 +205,14 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [impactState, setImpactState] = useState<ImpactAnalysisState>({
     isOpen: false,
     sourceTrigger: '',
-    totalAffected: 12,
+    totalAffected: 0,
     summary: {
-      characters: 1,
-      story: 2,
-      scenes: 8,
-      dialogue: 3,
-      visuals: 4,
-      production: 2
+      characters: 0,
+      story: 0,
+      scenes: 0,
+      dialogue: 0,
+      visuals: 0,
+      production: 0
     },
     items: []
   });
@@ -207,19 +222,37 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
   }, [projects]);
 
-  const rawProject = projects.find(p => p.id === currentProjectId) || projects[0] || seedProject;
+  // Clean empty fallback project if no project has been created yet
+  const fallbackEmpty = createEmptyProject('default-empty', 'Welcome to Tattava', 'Start a new project or explore the demo.');
+  const rawProject = (currentProjectId ? projects.find(p => p.id === currentProjectId) : projects[0]) || fallbackEmpty;
   
-  // Guarantee Story Brain & Pilot Metrics exist on currentProject
+  // Clean project state — NO hardcoded data injected!
   const currentProject: TattavaProject = {
     ...rawProject,
-    storyBrain: rawProject.storyBrain || seedProject.storyBrain,
-    pilotMetrics: rawProject.pilotMetrics || seedProject.pilotMetrics,
-    evaluation: rawProject.evaluation || seedProject.evaluation,
-    continuityIssues: rawProject.continuityIssues || rawProject.qaIssues || seedProject.continuityIssues,
-    qaIssues: rawProject.continuityIssues || rawProject.qaIssues || seedProject.continuityIssues,
+    storyBrain: rawProject.storyBrain || {
+      lastUpdated: 'Initialized',
+      activeEntitiesCount: 0,
+      canonFacts: [],
+      entityNodes: [],
+      decisionLog: [],
+      dependencies: []
+    },
+    pilotMetrics: rawProject.pilotMetrics || {
+      verificationRate: 0,
+      continuityCatchRate: 0,
+      candidateAcceptanceRate: 0,
+      timeToPackageMins: 0,
+      activeEntitiesCount: 0,
+      canonicalFactsCount: 0,
+      totalAiRuns: 0,
+      averageLatencyMs: 0
+    },
+    evaluation: rawProject.evaluation || null,
+    continuityIssues: rawProject.continuityIssues || rawProject.qaIssues || [],
+    qaIssues: rawProject.continuityIssues || rawProject.qaIssues || [],
     format: rawProject.format || rawProject.formats?.find(f => f.isSelected)?.title || 'Feature Film',
     template: rawProject.template || rawProject.templates?.find(t => t.isSelected)?.title || 'Three-Act Classical Thriller',
-    screenplayLines: rawProject.screenplayLines || rawProject.screenplay,
+    screenplayLines: rawProject.screenplayLines || rawProject.screenplay || [],
     productionPlan: rawProject.productionPlan || rawProject.production,
     packageData: rawProject.packageData || rawProject.package
   };
@@ -274,14 +307,14 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     taskType: ContextResolverPackage['taskType'],
     targetArtifact: string
   ): ContextResolverPackage => {
-    const protagonist = currentProject.characters.find(c => c.role === 'Protagonist') || currentProject.characters[0];
-    const antagonist = currentProject.characters.find(c => c.role === 'Antagonist') || currentProject.characters[1];
+    const protagonist = currentProject.characters?.find(c => c.role === 'Protagonist') || currentProject.characters?.[0];
+    const antagonist = currentProject.characters?.find(c => c.role === 'Antagonist') || currentProject.characters?.[1];
 
-    const retrievedCanon = currentProject.storyBrain.canonFacts.slice(0, 4);
-    const retrievedResearch = currentProject.researchFindings.filter(r => r.status === 'Verified').slice(0, 3);
+    const retrievedCanon = currentProject.storyBrain?.canonFacts?.slice(0, 4) || [];
+    const retrievedResearch = currentProject.researchFindings?.filter(r => r.status === 'Verified')?.slice(0, 3) || [];
     const retrievedRules = currentProject.world?.worldRules || [];
 
-    const characterContext = [
+    const characterContext = protagonist ? [
       {
         name: protagonist.name,
         want: protagonist.want,
@@ -296,7 +329,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         fear: antagonist.fear,
         voiceStyle: antagonist.voiceStyle
       }] : [])
-    ];
+    ] : [];
 
     const pkg: ContextResolverPackage = {
       taskId: 'ctx-' + Date.now(),
@@ -452,8 +485,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (s.sceneNumber === 4 || s.id === 'sc-4') {
             return {
               ...s,
-              subheading: 'Flashback 2018: The Gold Medal and Origin of the Debt',
-              summary: 'In 2018, Aanya (26) receives her university engineering medal. Raghav proudly reveals he mortgaged the press to pay for her Delhi coaching, launching her decade-long struggle.',
+              subheading: 'Flashback 2018: The Origin of the Conflict',
+              summary: 'In 2018, initial investigative evidence is uncovered, setting the foundation for present narrative stakes.',
               notes: s.notes.map(n => ({ ...n, done: true }))
             };
           }
@@ -465,7 +498,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             ? {
                 ...i,
                 resolutionState: 'Resolved' as const,
-                resolutionNotes: 'Auto-repaired Scene 4 timestamp to 2018 (age 26 in flashback, 34 in present canon).'
+                resolutionNotes: 'Auto-repaired Scene 4 chronology to align with Story Brain canon.'
               }
             : i
         );
@@ -484,11 +517,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             ...prev.storyBrain,
             dependencies: updatedDeps
           },
-          evaluation: {
+          evaluation: prev.evaluation ? {
             ...prev.evaluation,
             overallScore: 89.5,
-            criticalRisks: prev.evaluation.criticalRisks.filter(r => !r.includes('Scene 4'))
-          }
+            criticalRisks: (prev.evaluation.criticalRisks || []).filter(r => !r.includes('Scene 4'))
+          } : null
         };
       }
 
@@ -501,47 +534,107 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const resolveQAInconsistency = (issueId: string) => resolveContinuityIssue(issueId, 'Resolved');
 
   // -------------------------------------------------------------
-  // AI STORY EVALUATION RUNNER
+  // AI STORY EVALUATION RUNNER (DYNAMIC AI HARNESS)
   // -------------------------------------------------------------
-  const runStoryEvaluation = () => {
-    updateCurrentProject(prev => {
-      const openBlockers = prev.continuityIssues.filter(i => i.resolutionState === 'Open' && i.severity === 'Critical Blocker').length;
-      const baseScore = openBlockers > 0 ? 84.5 : 91.2;
+  const runStoryEvaluation = async () => {
+    try {
+      const evalRes = await evaluateProjectNarrative(currentProject);
+      updateCurrentProject(prev => {
+        const fullDimensions = [
+          {
+            id: 'dim-logic',
+            name: 'Causal & Timeline Logic',
+            score: evalRes.dimensions?.find(d => d.name.toLowerCase().includes('logic'))?.score || Math.round(evalRes.overallScore),
+            weight: 20,
+            diagnostic: evalRes.dimensions?.find(d => d.name.toLowerCase().includes('logic'))?.notes || 'Cause-and-effect progression verified against Story Brain canon.',
+            strengths: ['Clear narrative causation derived from premise'],
+            gaps: [],
+            recommendation: 'Ensure secondary characters have clear causal motivations.'
+          },
+          {
+            id: 'dim-char',
+            name: 'Character Psychology & Flaw Coherence',
+            score: evalRes.dimensions?.find(d => d.name.toLowerCase().includes('character'))?.score || Math.max(50, Math.round(evalRes.overallScore - 3)),
+            weight: 20,
+            diagnostic: evalRes.dimensions?.find(d => d.name.toLowerCase().includes('character'))?.notes || 'Protagonist internal conflict and stakes verified.',
+            strengths: ['Protagonist wants and needs are clearly established'],
+            gaps: [],
+            recommendation: 'Deepen vulnerability in midpoint sequences.'
+          },
+          {
+            id: 'dim-grounding',
+            name: 'Context Grounding & Research Depth',
+            score: evalRes.dimensions?.find(d => d.name.toLowerCase().includes('grounding') || d.name.toLowerCase().includes('research'))?.score || Math.min(98, Math.round(evalRes.overallScore + 2)),
+            weight: 20,
+            diagnostic: evalRes.dimensions?.find(d => d.name.toLowerCase().includes('grounding') || d.name.toLowerCase().includes('research'))?.notes || 'Authenticity grounded in project evidence dossier.',
+            strengths: ['Domain specifics anchor the premise'],
+            gaps: [],
+            recommendation: 'Expand institutional or environmental nuances.'
+          },
+          {
+            id: 'dim-canon',
+            name: 'Canon Adherence & Zero Leakage',
+            score: (prev.continuityIssues?.filter(i => i.resolutionState === 'Open').length || 0) === 0 ? 98 : 74,
+            weight: 20,
+            diagnostic: `${prev.storyBrain?.canonFacts?.length || 0} locked canon facts checked with zero cross-project leakage.`,
+            strengths: ['Deterministic consistency across established facts'],
+            gaps: [],
+            recommendation: 'Commit approved narrative beats to canonical memory.'
+          },
+          {
+            id: 'dim-commercial',
+            name: 'Market & Emotional Resonance',
+            score: evalRes.dimensions?.find(d => d.name.toLowerCase().includes('market') || d.name.toLowerCase().includes('emotional'))?.score || Math.round(evalRes.overallScore - 1),
+            weight: 20,
+            diagnostic: 'Audience engagement potential and structural velocity.',
+            strengths: ['High-concept hook with distinct genre appeal'],
+            gaps: [],
+            recommendation: 'Sharpen climax catharsis.'
+          }
+        ];
 
-      const updatedEval: StoryEvaluation = {
-        ...prev.evaluation,
-        overallScore: baseScore,
-        readinessStatus: openBlockers === 0 ? 'Greenlight Recommended' : 'Pilot Ready',
-        evaluatedAt: 'Just now (Tattava Evaluator v1.0)',
-        criticalRisks: openBlockers > 0 
-          ? ['Unresolved critical blocker in Scene 4 flashback chronology.']
-          : ['Ensure Vikrant dialogue in Scene 18 preserves agro-warehousing economic rationale.']
-      };
+        const updatedEval: StoryEvaluation = {
+          overallScore: evalRes.overallScore,
+          readinessStatus: evalRes.readinessStatus,
+          evaluatorModel: 'openai/gpt-oss-120b (Groq LPU)',
+          evaluatedAt: new Date().toLocaleDateString() + ' (tattvaCo Evaluator v1.0)',
+          dimensions: fullDimensions,
+          keyStrengths: evalRes.keyStrengths?.length > 0 ? evalRes.keyStrengths : (evalRes.strengths?.length ? evalRes.strengths : ['Original premise hook', 'Grounded dramatic conflict']),
+          criticalRisks: evalRes.criticalRisks?.length > 0 ? evalRes.criticalRisks : ['Ensure third-act escalation matches initial stakes.'],
+          actionItems: evalRes.actionItems || ['Review second act transitions and maintain thematic pressure']
+        };
 
-      return {
-        ...prev,
-        evaluation: updatedEval,
-        pilotMetrics: {
-          ...prev.pilotMetrics,
-          totalAiRuns: prev.pilotMetrics.totalAiRuns + 1
-        }
-      };
-    });
+        return {
+          ...prev,
+          evaluation: updatedEval,
+          pilotMetrics: {
+            ...prev.pilotMetrics,
+            totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1
+          }
+        };
+      });
+    } catch (err) {
+      console.error('Failed to run dynamic story evaluation:', err);
+      throw err;
+    }
   };
 
   const signOffEvaluation = (approverName: string, role: string, comments: string) => {
-    updateCurrentProject(prev => ({
-      ...prev,
-      evaluation: {
-        ...prev.evaluation,
-        humanSignOff: {
-          approvedBy: approverName,
-          role,
-          date: new Date().toLocaleDateString(),
-          comments
+    updateCurrentProject(prev => {
+      if (!prev.evaluation) return prev;
+      return {
+        ...prev,
+        evaluation: {
+          ...prev.evaluation,
+          humanSignOff: {
+            approvedBy: approverName,
+            role,
+            date: new Date().toLocaleDateString(),
+            comments
+          }
         }
-      }
-    }));
+      };
+    });
   };
 
   // -------------------------------------------------------------
@@ -588,26 +681,203 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // -------------------------------------------------------------
   const createNewProject = (data: Partial<TattavaProject>): string => {
     const newId = 'proj-' + Date.now();
-    const newProj: TattavaProject = {
-      ...seedProject,
+    const cleanPremise = data.intent?.premise || data.tagline || '';
+    const newProj = createEmptyProject(
+      newId,
+      data.title || 'Untitled Project',
+      cleanPremise,
+      {
+        contentType: data.contentType,
+        language: data.language,
+        genre: data.genre,
+        uploadedMaterialName: data.intent?.uploadedMaterialName,
+        uploadedMaterialContent: data.intent?.uploadedMaterialContent
+      }
+    );
+
+    const finalized: TattavaProject = {
+      ...newProj,
+      ...data,
       id: newId,
-      title: data.title || 'Untitled Project',
-      tagline: data.tagline || 'A new cinematic journey.',
-      contentType: data.contentType || 'Feature Film',
-      language: data.language || 'Hindi',
-      genre: data.genre || 'Drama',
-      stage: 'Intake & Ambiguity Detection',
-      progressPercent: 10,
-      lastUpdated: 'Just now',
-      tags: data.tags || ['Original', 'Pilot'],
-      status: 'DRAFT',
-      canonicalVersion: 'v0.1-draft',
-      ...data
+      intent: {
+        ...newProj.intent,
+        ...(data.intent || {}),
+        premise: cleanPremise,
+        rawConcept: cleanPremise
+      },
+      storyBrain: {
+        lastUpdated: 'Initialized',
+        activeEntitiesCount: 0,
+        canonFacts: [],
+        creativeDecisions: [],
+        entityNodes: [],
+        decisionLog: [],
+        dependencies: []
+      },
+      characters: [],
+      researchFindings: [],
+      researchQuestions: [],
+      continuityIssues: [],
+      qaIssues: [],
+      evaluation: null,
+      isDemo: false
     };
-    setProjects(prev => [newProj, ...prev]);
+
+    setProjects(prev => [finalized, ...prev]);
     setCurrentProjectId(newId);
     setActiveScreen('intake');
     return newId;
+  };
+
+  const openDemoProject = () => {
+    const existing = projects.find(p => p.id === seedProject.id);
+    if (!existing) {
+      setProjects(prev => [seedProject, ...prev]);
+    }
+    setCurrentProjectId(seedProject.id);
+    setActiveScreen('story-brain');
+  };
+
+  const initializeStoryBrainFromIntake = (breakdown: {
+    premise: string;
+    protagonist: string;
+    setting: string;
+    conflict: string;
+    stakes: string;
+    themes: string[];
+    tone: string;
+  }) => {
+    updateCurrentProject(prev => {
+      const charId = 'char-' + Date.now();
+      const protagonistName = breakdown.protagonist.split(',')[0].replace(/^Dr\.\s*|^Prof\.\s*/, '').trim() || 'Protagonist';
+
+      const protagonistChar: Character = {
+        id: charId,
+        name: protagonistName,
+        age: 30,
+        gender: 'Non-specified',
+        occupation: 'Lead Protagonist',
+        location: breakdown.setting || 'Primary Setting',
+        quote: 'The truth must be uncovered regardless of the cost.',
+        photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop',
+        status: 'APPROVED',
+        role: 'Protagonist',
+        archetype: 'Seeker of Truth',
+        want: breakdown.conflict || 'Uncover the truth and survive',
+        need: 'Confront emotional reality and take a definitive stand',
+        flaw: 'Relentless moral stubbornness under systemic pressure',
+        fear: breakdown.stakes || 'Catastrophic personal and community ruin',
+        strength: 'Decisiveness and forensic perception',
+        secret: 'Guards an unshared piece of the central mystery',
+        arc: 'From hesitant observer to self-actualized catalyst',
+        voiceStyle: breakdown.tone || 'Grounded, urgent, and direct',
+        contradictions: 'Principled yet forced to make pragmatic compromises',
+        moralDilemma: `Forced to decide whether to protect personal safety or expose dangerous systemic reality.`,
+        backstory: `Formative training and background in ${breakdown.setting}. Driven by unresolved personal stakes.`,
+        psychometrics: {
+          openness: 86,
+          conscientiousness: 90,
+          extraversion: 60,
+          agreeableness: 50,
+          neuroticism: 65
+        },
+        relationships: [],
+        scenesAppeared: [1],
+        tags: ['Protagonist', 'Canonical'],
+        candidateState: 'CANONICAL'
+      };
+
+      const canonFact1: CanonFact = {
+        id: 'cf-' + Date.now() + '-1',
+        statement: `Core Premise: ${breakdown.premise}`,
+        category: 'Plot Law',
+        entityIds: [charId],
+        source: 'Approved Project Intake',
+        dateEstablished: 'Today',
+        isLocked: true,
+        version: 'v0.2',
+        tags: ['Premise', 'Core Hook']
+      };
+
+      const canonFact2: CanonFact = {
+        id: 'cf-' + Date.now() + '-2',
+        statement: `Protagonist: ${protagonistName} (${protagonistChar.role}) operating in ${breakdown.setting}. Core Conflict: ${breakdown.conflict}`,
+        category: 'Character Truth',
+        entityIds: [charId],
+        source: 'Approved Intake Architecture',
+        dateEstablished: 'Today',
+        isLocked: true,
+        version: 'v0.2',
+        tags: ['Protagonist', 'Setting']
+      };
+
+      const canonFact3: CanonFact = {
+        id: 'cf-' + Date.now() + '-3',
+        statement: `Dramatic Stakes: Failure triggers ${breakdown.stakes}`,
+        category: 'World Rule',
+        entityIds: [charId],
+        source: 'Approved Dramatic Stakes',
+        dateEstablished: 'Today',
+        isLocked: true,
+        version: 'v0.2',
+        tags: ['Stakes']
+      };
+
+      const decision: CreativeDecision = {
+        id: 'dec-' + Date.now(),
+        date: new Date().toLocaleDateString(),
+        title: `Approved Core Premise & Initial Protagonist Architecture for "${prev.title}"`,
+        decision: `Approved Core Premise & Initial Protagonist Architecture for "${prev.title}"`,
+        rationale: `Locked foundational Story Brain parameters based on user input and structured intake analysis.`,
+        author: 'Story Development Lead',
+        role: 'Creative Lead',
+        status: 'Approved',
+        impactedAreas: ['Story Brain', 'Protagonist Architecture', 'Canon Matrix']
+      };
+
+      const entityNode = {
+        id: charId,
+        name: protagonistName,
+        type: 'character' as const,
+        significance: 'Primary Protagonist',
+        firstAppears: 'Scene 1',
+        status: 'Active' as const,
+        connectionCount: 1
+      };
+
+      return {
+        ...prev,
+        canonicalVersion: 'v0.2-canonical',
+        stage: 'Story Exploration & Character Development',
+        progressPercent: 20,
+        status: 'IN_REVIEW',
+        characters: [protagonistChar],
+        selectedCharacterId: charId,
+        storyBrain: {
+          ...prev.storyBrain,
+          lastUpdated: 'Just now',
+          activeEntitiesCount: 1,
+          canonFacts: [canonFact1, canonFact2, canonFact3],
+          creativeDecisions: [decision],
+          entityNodes: [entityNode],
+          decisionLog: [decision],
+          dependencies: []
+        },
+        intent: {
+          ...prev.intent,
+          premise: breakdown.premise,
+          protagonist: breakdown.protagonist,
+          setting: breakdown.setting,
+          conflict: breakdown.conflict,
+          stakes: breakdown.stakes,
+          themes: breakdown.themes,
+          tone: breakdown.tone,
+          status: 'APPROVED',
+          intakeAnalysisStatus: 'APPROVED',
+          storyBrainProposed: true
+        }
+      };
+    });
   };
 
   const duplicateProject = (projectId: string) => {
@@ -891,12 +1161,16 @@ Format: ${currentProject.format}
     try {
       const reply = await askCopilot(text, projectSummary, copilotMessages);
       setCopilotMessages(prev => [...prev, { sender: 'tattvaCo', text: reply, time: 'Just now' }]);
-    } catch (e) {
+    } catch (e: any) {
+      const errMsg = e?.message || 'AI Copilot inference error';
+      const isMissingKey = errMsg.includes('AI_CONFIGURATION_REQUIRED') || !getGroqApiKey();
       setCopilotMessages(prev => [
         ...prev,
         {
           sender: 'tattvaCo',
-          text: `[Story Brain Analysis]: For "${text}", checking against Canon Fact #CF-01 and #CF-04: The narrative engine requires Aanya's forensic discovery to occur before the Act II midpoint.`,
+          text: isMissingKey 
+            ? `[AI CONFIGURATION REQUIRED]: No API key detected. Please configure your Groq or Gemini API key in Settings to converse dynamically with Tattava Copilot.`
+            : `[AI SERVICE UNAVAILABLE]: Could not complete request: ${errMsg}. Please check network or API key status.`,
           time: 'Just now'
         }
       ]);
@@ -941,7 +1215,7 @@ Format: ${currentProject.format}
   };
 
   const swapDialogueSuggestion = (_sugId: string, text: string) => {
-    applyDialogueAlternative(text, 'AARANYA');
+    applyDialogueAlternative(text, currentProject.characters?.[0]?.name || 'PROTAGONIST');
   };
 
   const updateScene = (sceneId: string, updates: Partial<SceneItem>) => {
@@ -974,10 +1248,12 @@ Format: ${currentProject.format}
         nextStep,
         prevStep,
         openProject,
+        openDemoProject,
         createNewProject,
         duplicateProject,
         deleteProject,
         updateCurrentProject,
+        initializeStoryBrainFromIntake,
         updateCharacter,
         selectStoryDirection,
         combineDirections,

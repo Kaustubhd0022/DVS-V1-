@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Search, Plus, Bell, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Plus, Bell, ChevronDown, Sparkles, Bug } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { AiSettingsModal } from '../modals/AiSettingsModal';
+import { DebugInspectorModal } from '../modals/DebugInspectorModal';
 
 export const TopHeader: React.FC = () => {
   const { setActiveScreen, toggleCopilot, isCopilotOpen } = useProject();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showDebugModal, setShowDebugModal] = useState(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
@@ -44,6 +46,16 @@ export const TopHeader: React.FC = () => {
         >
           <Plus className="w-4 h-4 text-[#f25b2a]" />
           <span>New Project</span>
+        </button>
+
+        {/* Pilot Debugger Button (Section 25) */}
+        <button
+          onClick={() => setShowDebugModal(true)}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all shadow-sm"
+          title="Pilot Development & Context Inspector (Section 25)"
+        >
+          <Bug className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="hidden sm:inline font-mono text-[11px]">Pilot Trace</span>
         </button>
 
         {/* Gemini AI Engine Status Pill */}
@@ -119,6 +131,9 @@ export const TopHeader: React.FC = () => {
 
       {/* AI Settings Modal */}
       <AiSettingsModal isOpen={showAiModal} onClose={() => setShowAiModal(false)} />
+
+      {/* Pilot Debug Inspector Modal (Section 25) */}
+      <DebugInspectorModal isOpen={showDebugModal} onClose={() => setShowDebugModal(false)} />
     </header>
   );
 };

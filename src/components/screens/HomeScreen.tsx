@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Sparkles, 
   Plus, 
@@ -17,31 +17,27 @@ import {
   Award,
   BookOpen,
   ShieldAlert,
-  Package
+  Package,
+  Upload,
+  FileText
 } from 'lucide-react';
-import { useProject, PIPELINE_STEPS } from '../../context/ProjectContext';
+import { useProject } from '../../context/ProjectContext';
 
 export const HomeScreen: React.FC = () => {
   const { 
     projects, 
     openProject, 
+    openDemoProject,
     duplicateProject, 
-    setActiveScreen, 
-    setCopilotOpen, 
-    sendCopilotMessage,
-    openContextResolver
+    deleteProject,
+    setActiveScreen 
   } = useProject();
 
-  const [activeMenuId, setActiveMenuId] = React.useState<string | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
-  const copilotQuickPrompts = [
-    'Inspect active Story Brain facts',
-    'Evaluate narrative readiness',
-    'Check continuity contradictions',
-    'Synthesize story directions',
-    'Review research evidence',
-    'Assemble final story package'
-  ];
+  // Separate user projects from demo projects
+  const userProjects = projects.filter(p => !p.isDemo);
+  const demoProjects = projects.filter(p => p.isDemo);
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-fadeIn pb-16">
@@ -57,13 +53,13 @@ export const HomeScreen: React.FC = () => {
           <div className="max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 text-amber-400 text-xs font-bold uppercase tracking-wider border border-amber-500/30">
               <Brain className="w-3.5 h-3.5" />
-              <span>Tattava Copilot • V1 Pilot Release</span>
+              <span>Tattava Copilot • V1 Pilot</span>
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight font-display leading-tight">
               Turn ideas into <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">governed narrative intelligence.</span>
             </h1>
             <p className="text-[#a0aec0] text-sm md:text-base leading-relaxed">
-              An AI-native story development co-pilot for entertainment teams. Persistent Story Brain, traceable evidence, deep character psychometrics, real-time continuity verification, and rubric-based narrative evaluation.
+              An AI-native story development operating system for entertainment teams. Project intelligence is derived strictly from your input, research, and approved Story Brain canon.
             </p>
 
             {/* Feature badges */}
@@ -82,7 +78,7 @@ export const HomeScreen: React.FC = () => {
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 text-xs text-white/90 border border-white/10">
                 <Award className="w-3 h-3 text-emerald-400" />
-                AI Quality Evaluation
+                Narrative Evaluation
               </span>
             </div>
           </div>
@@ -96,299 +92,347 @@ export const HomeScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Grid: Projects & Side Dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Projects & Development Journey */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Active Pilot Workspaces</h2>
-              <p className="text-xs text-white/50">Story development projects governed by Story Brain</p>
-            </div>
-            <button 
-              onClick={() => setActiveScreen('create-project')}
-              className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
-            >
-              <span>+ New Project</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+      {/* SECTION 3: FIRST-TIME USER EXPERIENCE (When no user projects exist) */}
+      {projects.length === 0 && (
+        <div className="rounded-3xl bg-[#12141a]/95 border-2 border-amber-500/30 p-8 md:p-12 text-center space-y-6 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400 shadow-lg shadow-amber-500/10">
+            <Brain className="w-8 h-8" />
           </div>
 
-          {/* Project Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {projects.map((proj) => {
-              const factCount = proj.storyBrain?.canonFacts?.length || 8;
-              const evalScore = Math.round(proj.evaluation?.overallScore || 87);
+          <div className="max-w-xl mx-auto space-y-2">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-amber-400 font-bold">
+              GETTING STARTED
+            </span>
+            <h2 className="text-2xl md:text-3xl font-bold font-serif text-white tracking-tight">
+              Create Your First Project
+            </h2>
+            <p className="text-sm text-white/60 leading-relaxed">
+              No project intelligence exists yet. Tattava builds its understanding exclusively from your input, premise, and uploaded material.
+            </p>
+          </div>
 
-              return (
-                <div
-                  key={proj.id}
-                  className="group relative rounded-2xl bg-[#141822] border border-white/10 hover:border-amber-500/40 overflow-hidden flex flex-col shadow-lg transition-all duration-300"
-                >
-                  {/* Poster Banner */}
-                  <div 
-                    className="relative h-44 overflow-hidden bg-slate-900 cursor-pointer" 
-                    onClick={() => openProject(proj.id, 'story-brain')}
-                  >
-                    <img
-                      src={proj.posterUrl}
-                      alt={proj.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#141822] via-[#141822]/40 to-transparent" />
-
-                    {/* Stage Pill */}
-                    <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide border shadow-sm bg-amber-500/20 text-amber-300 border-amber-500/40">
-                      {proj.stage}
-                    </span>
-
-                    {/* Readiness Pill */}
-                    <span className="absolute top-3 right-10 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
-                      {evalScore}% Ready
-                    </span>
-
-                    {/* More Menu button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuId(activeMenuId === proj.id ? null : proj.id);
-                      }}
-                      className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 hover:bg-black/70 text-white/80 hover:text-white backdrop-blur-sm transition-colors"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-
-                    {/* Menu dropdown */}
-                    {activeMenuId === proj.id && (
-                      <div className="absolute top-11 right-3 w-40 bg-[#1a202d] border border-white/20 rounded-xl shadow-xl p-1.5 z-20 text-xs">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openProject(proj.id, 'story-brain');
-                            setActiveMenuId(null);
-                          }}
-                          className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg font-medium"
-                        >
-                          Open Story Brain
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openProject(proj.id, 'evaluation');
-                            setActiveMenuId(null);
-                          }}
-                          className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg"
-                        >
-                          Story Evaluation
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            duplicateProject(proj.id);
-                            setActiveMenuId(null);
-                          }}
-                          className="w-full text-left px-2.5 py-1.5 text-white/70 hover:bg-white/10 rounded-lg"
-                        >
-                          Duplicate
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="p-4 flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <h3 
-                          onClick={() => openProject(proj.id, 'story-brain')}
-                          className="text-base font-bold text-white group-hover:text-amber-400 cursor-pointer transition-colors"
-                        >
-                          {proj.title}
-                        </h3>
-                        <span className="text-[10px] font-mono text-white/40">{proj.canonicalVersion || 'v1.2'}</span>
-                      </div>
-
-                      <p className="text-[11px] text-white/50 mt-0.5">
-                        {proj.contentType} • {proj.language}
-                      </p>
-                      
-                      <p className="text-xs text-white/70 mt-2 line-clamp-2 leading-relaxed">
-                        {proj.intent.premise || proj.tagline}
-                      </p>
-                    </div>
-
-                    {/* Story Brain & Progress Footer */}
-                    <div className="mt-4 pt-3 border-t border-white/10 space-y-2.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-amber-300/80 font-medium flex items-center gap-1">
-                          <Brain className="w-3.5 h-3.5 text-amber-400" />
-                          {factCount} Canon Facts Locked
-                        </span>
-                        <span className="font-bold text-white">{proj.progressPercent}% Developed</span>
-                      </div>
-
-                      <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-500"
-                          style={{ width: `${proj.progressPercent}%` }}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1 text-[10px] text-white/40">
-                        <div className="flex -space-x-1.5">
-                          {proj.teamMembers.slice(0, 3).map((m) => (
-                            <div
-                              key={m.id}
-                              className="w-5 h-5 rounded-full bg-[#272e3d] border border-[#141822] flex items-center justify-center text-[9px] font-bold text-white"
-                              title={`${m.name} (${m.role})`}
-                            >
-                              {m.initials}
-                            </div>
-                          ))}
-                        </div>
-                        <button
-                          onClick={() => openProject(proj.id, 'story-brain')}
-                          className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
-                        >
-                          <span>Open Workspace</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Create New Project Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto pt-4 text-left">
+            {/* Option 1: Create New Project */}
             <div
               onClick={() => setActiveScreen('create-project')}
-              className="group cursor-pointer rounded-2xl border-2 border-dashed border-white/15 hover:border-amber-500 bg-[#12151d]/60 hover:bg-[#151924] p-6 flex flex-col items-center justify-center text-center transition-all duration-300 min-h-[280px]"
+              className="group cursor-pointer p-6 rounded-2xl bg-[#161922] hover:bg-[#1a1e2a] border border-white/10 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4 shadow-lg"
             >
-              <div className="w-12 h-12 rounded-2xl bg-[#1d2330] group-hover:bg-amber-500 border border-white/20 group-hover:border-amber-500 flex items-center justify-center text-white/60 group-hover:text-black shadow-sm transition-all group-hover:scale-110">
-                <Plus className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-white mt-4 group-hover:text-amber-400 transition-colors">
-                Start New Project
-              </h3>
-              <p className="text-xs text-white/50 mt-1 max-w-[200px]">
-                Initialize Story Brain from a logline, pitch brief, or reference book.
-              </p>
-            </div>
-          </div>
-
-          {/* V1 Golden Loop Workflow Map */}
-          <div className="rounded-2xl bg-[#131620] border border-white/10 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-white">V1 Pilot Golden Loop</h3>
-                <p className="text-xs text-white/50">The canonical path from accepted creative input to human-approved package</p>
-              </div>
-              <span className="text-[11px] font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                16 Connected Steps
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5 text-center">
-              {[
-                { stage: 'Intake', step: 2, icon: '💡' },
-                { stage: 'Story Brain', step: 3, icon: '🧠', highlight: true },
-                { stage: 'Research', step: 4, icon: '🔍' },
-                { stage: 'Story', step: 5, icon: '📖' },
-                { stage: 'Characters', step: 7, icon: '👥' },
-                { stage: 'Treatment', step: 10, icon: '✍️' },
-                { stage: 'Continuity', step: 14, icon: '🛡️' },
-                { stage: 'Package', step: 16, icon: '📦' },
-              ].map((item) => (
-                <div
-                  key={item.stage}
-                  onClick={() => openProject(projects[0].id, PIPELINE_STEPS.find(s => s.step === item.step)?.id || 'story-brain')}
-                  className={`cursor-pointer group p-3 rounded-xl border transition-all flex flex-col items-center justify-between ${
-                    item.highlight
-                      ? 'bg-amber-500/10 border-amber-500/40'
-                      : 'bg-[#171b25] hover:bg-[#202636] border-white/10 hover:border-amber-500/30'
-                  }`}
-                >
-                  <span className="text-lg mb-1 group-hover:scale-125 transition-transform">{item.icon}</span>
-                  <p className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">{item.stage}</p>
-                  <span className="text-[9px] text-white/40 mt-0.5">Step {item.step}</span>
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 group-hover:scale-110 transition-transform">
+                  <Plus className="w-5 h-5" />
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right 1 Col: AI Copilot & Pilot Instrumentation */}
-        <div className="space-y-6">
-          {/* Pilot Instrumentation Box */}
-          <div className="rounded-2xl bg-[#141822] border border-cyan-500/30 p-5 shadow-lg space-y-3.5">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-bold text-white">Pilot Telemetry</h3>
+                <h3 className="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
+                  Create New Project
+                </h3>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  Start with a logline, premise, or rough idea. Tattava will deconstruct your input.
+                </p>
               </div>
-              <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30">
-                Live
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
+                <span>Start Fresh</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </div>
 
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2 rounded-lg bg-black/30">
-                <span className="text-white/60">Research Verification Rate</span>
-                <span className="font-bold text-emerald-400">{projects[0].pilotMetrics.verificationRate}%</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-black/30">
-                <span className="text-white/60">Continuity Catch Rate</span>
-                <span className="font-bold text-cyan-400">{projects[0].pilotMetrics.continuityCatchRate}%</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-black/30">
-                <span className="text-white/60">Candidate Acceptance</span>
-                <span className="font-bold text-amber-400">{projects[0].pilotMetrics.candidateAcceptanceRate}%</span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-black/30">
-                <span className="text-white/60">Average Latency</span>
-                <span className="font-mono text-white/90">~{projects[0].pilotMetrics.averageLatencyMs}ms</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => openContextResolver()}
-              className="w-full py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-bold border border-cyan-500/40 transition-colors flex items-center justify-center gap-1.5"
+            {/* Option 2: Import Existing Material */}
+            <div
+              onClick={() => setActiveScreen('create-project')}
+              className="group cursor-pointer p-6 rounded-2xl bg-[#161922] hover:bg-[#1a1e2a] border border-white/10 hover:border-cyan-500/50 transition-all flex flex-col justify-between space-y-4 shadow-lg"
             >
-              <span>Inspect Scoped Context Package</span>
-            </button>
-          </div>
-
-          {/* Quick Copilot Prompts */}
-          <div className="rounded-2xl bg-[#141822] border border-white/10 p-5 shadow-card">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                <Sparkles className="w-4 h-4" />
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20 group-hover:scale-110 transition-transform">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors">
+                  Import Existing Material
+                </h3>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  Upload a PDF, DOCX, or TXT pitch treatment. The system will extract structured entities.
+                </p>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Narrative Intelligence Copilot</h3>
-                <p className="text-[11px] text-white/50">Grounded in Story Brain memory</p>
-              </div>
+              <span className="text-xs font-bold text-cyan-400 flex items-center gap-1">
+                <span>Upload Document</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
             </div>
 
-            <div className="space-y-2 mt-4">
-              {copilotQuickPrompts.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setCopilotOpen(true);
-                    sendCopilotMessage(prompt);
-                  }}
-                  className="w-full text-left text-xs text-white/70 hover:text-white bg-[#1a1f2b] hover:bg-white/5 border border-white/5 hover:border-amber-500/30 px-3 py-2 rounded-xl flex items-center justify-between group transition-all"
-                >
-                  <span>{prompt}</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-white/30 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
-                </button>
-              ))}
+            {/* Option 3: Open Demo Project (Section 21) */}
+            <div
+              onClick={openDemoProject}
+              className="group cursor-pointer p-6 rounded-2xl bg-[#161922] hover:bg-[#1a1e2a] border border-white/10 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-4 shadow-lg relative overflow-hidden"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-base font-bold text-white group-hover:text-emerald-400 transition-colors">
+                    Open Demo Project
+                  </h3>
+                </div>
+                <span className="inline-block text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold uppercase">
+                  DEMO — SAMPLE DATA
+                </span>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  Inspect "The Last Monsoon" reference project with pre-populated Story Brain facts and canon.
+                </p>
+              </div>
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                <span>Explore Reference Demo</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Main Grid: Projects & Side Dashboard (When projects exist) */}
+      {projects.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left 2 Cols: Projects & Development Journey */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-tight">Active Workspaces ({projects.length})</h2>
+                <p className="text-xs text-white/50">Story projects governed by their respective Story Brain</p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={openDemoProject}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 text-xs font-medium flex items-center gap-1.5 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Open Demo Project</span>
+                </button>
+                <button 
+                  onClick={() => setActiveScreen('create-project')}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1 transition-all shadow-md shadow-amber-500/20"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Project</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Project Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {projects.map((proj) => {
+                const factCount = proj.storyBrain?.canonFacts?.length || 0;
+                const charCount = proj.characters?.length || 0;
+                const evalScore = proj.evaluation?.overallScore ? Math.round(proj.evaluation.overallScore) : null;
+
+                return (
+                  <div
+                    key={proj.id}
+                    className={`group relative rounded-2xl bg-[#141822] border overflow-hidden flex flex-col shadow-lg transition-all duration-300 ${
+                      proj.isDemo 
+                        ? 'border-amber-500/40 hover:border-amber-400' 
+                        : 'border-white/10 hover:border-cyan-500/40'
+                    }`}
+                  >
+                    {/* Poster Banner */}
+                    <div 
+                      className="relative h-40 overflow-hidden bg-slate-900 cursor-pointer" 
+                      onClick={() => openProject(proj.id, 'story-brain')}
+                    >
+                      <img
+                        src={proj.posterUrl}
+                        alt={proj.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#141822] via-[#141822]/40 to-transparent" />
+
+                      {/* Stage Pill */}
+                      <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm bg-black/60 text-white/90 border-white/20">
+                        {proj.stage}
+                      </span>
+
+                      {/* Demo or Evaluation Badge */}
+                      {proj.isDemo ? (
+                        <span className="absolute top-3 right-10 px-2.5 py-0.5 rounded-full text-[9px] font-bold font-mono tracking-wide border bg-amber-500/20 text-amber-300 border-amber-500/40 uppercase">
+                          DEMO / SAMPLE
+                        </span>
+                      ) : evalScore ? (
+                        <span className="absolute top-3 right-10 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+                          {evalScore}% Ready
+                        </span>
+                      ) : (
+                        <span className="absolute top-3 right-10 px-2 py-0.5 rounded-full text-[9px] font-mono text-white/50 bg-black/60 border border-white/10">
+                          {proj.canonicalVersion || 'v0.1'}
+                        </span>
+                      )}
+
+                      {/* More Menu button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenuId(activeMenuId === proj.id ? null : proj.id);
+                        }}
+                        className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/40 hover:bg-black/70 text-white/80 hover:text-white backdrop-blur-sm transition-colors"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+
+                      {/* Menu dropdown */}
+                      {activeMenuId === proj.id && (
+                        <div className="absolute top-11 right-3 w-40 bg-[#1a202d] border border-white/20 rounded-xl shadow-xl p-1.5 z-20 text-xs">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openProject(proj.id, 'story-brain');
+                              setActiveMenuId(null);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg font-medium"
+                          >
+                            Open Story Brain
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              duplicateProject(proj.id);
+                              setActiveMenuId(null);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 text-white/70 hover:bg-white/10 rounded-lg"
+                          >
+                            Duplicate
+                          </button>
+                          {!proj.isDemo && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteProject(proj.id);
+                                setActiveMenuId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                            >
+                              Delete Project
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="p-4 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <h3 
+                            onClick={() => openProject(proj.id, 'story-brain')}
+                            className="text-base font-bold text-white group-hover:text-amber-400 cursor-pointer transition-colors truncate"
+                          >
+                            {proj.title}
+                          </h3>
+                        </div>
+
+                        <p className="text-[11px] text-white/50 mt-0.5">
+                          {proj.contentType} • {proj.genre}
+                        </p>
+                        
+                        <p className="text-xs text-white/70 mt-2 line-clamp-2 leading-relaxed">
+                          {proj.intent?.premise || proj.tagline || 'Premise under development.'}
+                        </p>
+                      </div>
+
+                      {/* Story Brain & Progress Footer */}
+                      <div className="mt-4 pt-3 border-t border-white/10 space-y-2.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-amber-300/90 font-medium flex items-center gap-1 font-mono">
+                            <Brain className="w-3.5 h-3.5 text-amber-400" />
+                            {factCount} Canon Facts Locked
+                          </span>
+                          <span className="text-white/60 text-[10px]">
+                            {charCount} Characters
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 text-[10px] text-white/40">
+                          <span>{proj.lastUpdated}</span>
+                          <button
+                            onClick={() => openProject(proj.id, 'story-brain')}
+                            className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
+                          >
+                            <span>Open Workspace</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Create New Project Card */}
+              <div
+                onClick={() => setActiveScreen('create-project')}
+                className="group cursor-pointer rounded-2xl border-2 border-dashed border-white/15 hover:border-amber-500 bg-[#12151d]/60 hover:bg-[#151924] p-6 flex flex-col items-center justify-center text-center transition-all duration-300 min-h-[260px]"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-[#1d2330] group-hover:bg-amber-500 border border-white/20 group-hover:border-amber-500 flex items-center justify-center text-white/60 group-hover:text-black shadow-sm transition-all group-hover:scale-110">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-white mt-4 group-hover:text-amber-400 transition-colors">
+                  Start New Project
+                </h3>
+                <p className="text-xs text-white/50 mt-1 max-w-[200px]">
+                  Build Story Brain around your own original premise.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Golden Loop Overview */}
+          <div className="space-y-6">
+            <div className="rounded-2xl bg-[#131620] border border-white/10 p-6 space-y-4">
+              <h3 className="text-sm font-bold text-white">V1 Pilot Golden Workflow</h3>
+              <p className="text-xs text-white/60 leading-relaxed">
+                Tattava enforces human governance across every step of story development:
+              </p>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-400 font-mono font-bold flex items-center justify-center text-xs">1</span>
+                  <div>
+                    <strong className="block text-white">Input & Ambiguity Intake</strong>
+                    <span className="text-[11px] text-white/50">Analyze premise; distinguish known vs inferred.</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-lg bg-cyan-500/15 text-cyan-400 font-mono font-bold flex items-center justify-center text-xs">2</span>
+                  <div>
+                    <strong className="block text-white">Story Brain System of Record</strong>
+                    <span className="text-[11px] text-white/50">Lock approved canonical facts & decision log.</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-lg bg-blue-500/15 text-blue-400 font-mono font-bold flex items-center justify-center text-xs">3</span>
+                  <div>
+                    <strong className="block text-white">Character & Story Development</strong>
+                    <span className="text-[11px] text-white/50">Generate candidate arcs grounded in canon.</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-lg bg-rose-500/15 text-rose-400 font-mono font-bold flex items-center justify-center text-xs">4</span>
+                  <div>
+                    <strong className="block text-white">Canon & Continuity Engine</strong>
+                    <span className="text-[11px] text-white/50">Audit drafts against locked Story Brain truths.</span>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-400 font-mono font-bold flex items-center justify-center text-xs">5</span>
+                  <div>
+                    <strong className="block text-white">AI Evaluation & Story Package</strong>
+                    <span className="text-[11px] text-white/50">Rubric readiness audit & greenlight delivery.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

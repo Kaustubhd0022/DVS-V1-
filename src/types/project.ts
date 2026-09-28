@@ -29,6 +29,13 @@ export interface ProjectIntent {
   missingQuestions: string[];
   ambiguitiesIdentified?: string[];
   storyBrainProposed?: boolean;
+  rawConcept?: string;
+  uploadedMaterialName?: string;
+  uploadedMaterialContent?: string;
+  knownInformation?: string[];
+  unknownInformation?: string[];
+  suggestedResearchAreas?: string[];
+  intakeAnalysisStatus?: 'IDLE' | 'ANALYZING' | 'ANALYZED' | 'APPROVED';
 }
 
 export interface ResearchQuestion {
@@ -119,6 +126,16 @@ export interface Character {
   photoUrl: string;
   status: ApprovalStatus;
   candidateState?: CanonicalState;
+  archetype?: string;
+  backstory?: string;
+  moralDilemma?: string;
+  psychometrics?: {
+    openness?: number;
+    conscientiousness?: number;
+    extraversion?: number;
+    agreeableness?: number;
+    neuroticism?: number;
+  };
   // Deep Schema as required by Character Intelligence Agent
   want: string;
   need: string;
@@ -258,6 +275,7 @@ export interface DialogueSuggestion {
   label: string;
   text: string;
   tone: string;
+  subtext?: string;
   candidateState?: CanonicalState;
 }
 
@@ -268,7 +286,7 @@ export interface DialogueSuggestion {
 export interface CanonFact {
   id: string;
   statement: string;
-  category: 'World Rule' | 'Character Truth' | 'Timeline' | 'Institutional Reality' | 'Plot Law';
+  category: 'World Rule' | 'Character Truth' | 'Timeline' | 'Institutional Reality' | 'Plot Law' | 'Plot Anchor';
   entityIds: string[];
   source: string;
   dateEstablished: string;
@@ -280,11 +298,12 @@ export interface CanonFact {
 export interface CreativeDecision {
   id: string;
   title: string;
+  decision?: string;
   rationale: string;
   author: string;
   role: string;
   date: string;
-  status: 'Approved' | 'Proposed' | 'Reversed';
+  status: 'Approved' | 'Proposed' | 'Reversed' | 'ACCEPTED';
   impactedAreas: string[];
 }
 
@@ -303,6 +322,8 @@ export interface StoryDependency {
 export interface StoryBrain {
   canonFacts: CanonFact[];
   creativeDecisions: CreativeDecision[];
+  decisionLog?: CreativeDecision[];
+  entityNodes?: Array<{ id: string; name: string; type: string; significance?: string; firstAppears?: string; status?: string; connectionCount?: number }>;
   dependencies: StoryDependency[];
   activeEntitiesCount: number;
   lastUpdated: string;
@@ -529,6 +550,7 @@ export interface TattvaCoProject {
   teamMembers: TeamMember[];
   status: ApprovalStatus;
   canonicalVersion?: string;
+  isDemo?: boolean;
 
   // The Heart of Tattava: Story Brain System of Record
   storyBrain: StoryBrain;
@@ -537,7 +559,7 @@ export interface TattvaCoProject {
   pilotMetrics: PilotMetrics;
 
   // AI Story Evaluation Harness
-  evaluation: StoryEvaluation;
+  evaluation?: StoryEvaluation | null;
 
   // Context Resolver active cache
   activeContextPackage?: ContextResolverPackage;

@@ -1,27 +1,151 @@
 import React, { useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
-import { Character, CharacterRelationship } from '../../types/project';
-import { askCopilot } from '../../services/aiService';
+import { Character, CharacterRelationship, CanonFact, CreativeDecision } from '../../types/project';
+import { askCopilot, generateCharacterCandidate } from '../../services/aiService';
 import { 
   Users, Sparkles, AlertTriangle, ArrowRight, ShieldCheck, 
   Edit3, GitFork, MessageSquare, Network, Activity, 
-  ChevronRight, Heart, Zap, Lock, RefreshCw, CheckCircle2, UserCheck
+  ChevronRight, Heart, Zap, Lock, RefreshCw, CheckCircle2, UserCheck, Plus
 } from 'lucide-react';
 
 export const CharacterScreen: React.FC = () => {
-  const { currentProject, updateCharacter, triggerChangeImpact, nextStep } = useProject();
+  const { currentProject, updateCurrentProject, updateCharacter, triggerChangeImpact, nextStep } = useProject();
 
-  const [selectedCharId, setSelectedCharId] = useState<string>(currentProject.characters[0]?.id || 'char-aanya');
+  const [selectedCharId, setSelectedCharId] = useState<string>(currentProject.characters[0]?.id || '');
   const [activeTab, setActiveTab] = useState<'profile' | 'psychology' | 'relationships' | 'ai-tools'>('profile');
   const [isEditingAge, setIsEditingAge] = useState(false);
-  const [tempAge, setTempAge] = useState<number>(24);
+  const [tempAge, setTempAge] = useState<number>(30);
   const [aiGenerating, setAiGenerating] = useState<string | null>(null);
 
-  const selectedChar = currentProject.characters.find(c => c.id === selectedCharId) || currentProject.characters[0];
+  // Dynamic Candidate state
+  const [candidateChar, setCandidateChar] = useState<Character | null>(null);
+  const [isGeneratingCandidate, setIsGeneratingCandidate] = useState(false);
+  const [candidateError, setCandidateError] = useState<string | null>(null);
+
+  const characters = currentProject.characters || [];
+  const selectedChar = characters.find(c => c.id === selectedCharId) || characters[0] || null;
+
+  const handleSynthesizeCharacter = async (role: 'Protagonist' | 'Antagonist' | 'Key Supporting' = 'Protagonist') => {
+    setIsGeneratingCandidate(true);
+    setCandidateError(null);
+    try {
+      const res = await generateCharacterCandidate(currentProject, role);
+      const newChar: Character = {
+        id: 'char-' + Date.now(),
+        name: res.name || `${role} Figure`,
+        age: res.age || 32,
+        gender: 'Non-specified',
+        occupation: role === 'Protagonist' ? 'Specialist / Investigator' : 'Institution Chief',
+        location: currentProject.world?.title || 'Primary World Setting',
+        tags: [role, 'AI Candidate'],
+        quote: 'Every choice carries an inescapable consequence.',
+        photoUrl: role === 'Protagonist' 
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop'
+          : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop',
+        status: 'IN_REVIEW',
+        candidateState: 'AI_PROPOSAL',
+        role: (res.role as any) || (role as any) || 'Protagonist',
+        archetype: role === 'Protagonist' ? 'Seeker of Truth' : role === 'Antagonist' ? 'Systemic Gatekeeper' : 'Loyal Foil',
+        want: res.want || 'Overcome the central crisis',
+        need: 'Confront uncomfortable truths',
+        flaw: res.flaw || 'Moral rigidity under pressure',
+        fear: res.fear || 'Total failure and personal exposure',
+        strength: 'Tenacious commitment to objectives',
+        secret: res.secret || 'A concealed compromise that haunts their reputation.',
+        arc: 'From defensive isolation to necessary confrontation',
+        voiceStyle: res.linguisticCadence || 'Analytical, clipped cadence under high tension.',
+        contradictions: 'Principled yet pragmatic',
+        moralDilemma: res.moralDilemma || 'Compromise ethics vs suffer catastrophic ruin',
+        backstory: res.backstory || 'Formative trauma defined by early career crisis.',
+        psychometrics: {
+          openness: 85,
+          conscientiousness: 90,
+          extraversion: 60,
+          agreeableness: 50,
+          neuroticism: 65
+        },
+        relationships: (res.relationships || []).map((rel) => ({
+          targetCharacterId: 'char-counterpart',
+          targetCharacterName: rel.relatedCharName,
+          relationType: rel.relationType || 'Rival',
+          dynamic: rel.dynamic
+        })),
+        scenesAppeared: [1, 2, 4]
+      };
+      setCandidateChar(newChar);
+    } catch (err: any) {
+      setCandidateError(err?.message || 'Failed to synthesize character candidate.');
+    } finally {
+      setIsGeneratingCandidate(false);
+    }
+  };
+
+  const handleApproveCandidate = () => {
+    if (!candidateChar) return;
+    const approvedChar: Character = {
+      ...candidateChar,
+      candidateState: 'CANONICAL'
+    };
+
+    updateCurrentProject(prev => {
+      const updatedChars = [...prev.characters, approvedChar];
+      const newFact: CanonFact = {
+        id: 'cf-' + Date.now(),
+        statement: `Character Architecture (${approvedChar.role}): ${approvedChar.name}, Age ${approvedChar.age}. Core Want: "${approvedChar.want}". Fatal Flaw: "${approvedChar.flaw}".`,
+        category: 'Character Truth',
+        entityIds: [approvedChar.id],
+        source: 'Approved Character Architecture',
+        dateEstablished: 'Today',
+        isLocked: true,
+        version: 'v0.3',
+        tags: [approvedChar.role, 'Psychometrics']
+      };
+
+      const newDecision: CreativeDecision = {
+        id: 'dec-' + Date.now(),
+        date: new Date().toLocaleDateString(),
+        title: `Approved Character Architecture for ${approvedChar.name} (${approvedChar.role})`,
+        decision: `Approved Character Architecture for ${approvedChar.name} (${approvedChar.role})`,
+        rationale: `Locked core desire ("${approvedChar.want}") and flaw ("${approvedChar.flaw}") into Story Brain.`,
+        author: 'Story Development Lead',
+        role: 'Creative Lead',
+        impactedAreas: ['Character Psychology', 'Story Brain'],
+        status: 'Approved'
+      };
+
+      return {
+        ...prev,
+        characters: updatedChars,
+        selectedCharacterId: approvedChar.id,
+        canonicalVersion: 'v0.3-canonical',
+        storyBrain: {
+          ...prev.storyBrain,
+          activeEntitiesCount: prev.storyBrain.activeEntitiesCount + 1,
+          canonFacts: [...prev.storyBrain.canonFacts, newFact],
+          creativeDecisions: [...(prev.storyBrain.creativeDecisions || []), newDecision],
+          entityNodes: [
+            ...(prev.storyBrain.entityNodes || []),
+            {
+              id: approvedChar.id,
+              name: approvedChar.name,
+              type: 'character',
+              significance: approvedChar.role,
+              firstAppears: 'Scene 1',
+              status: 'Active',
+              connectionCount: 1
+            }
+          ]
+        }
+      };
+    });
+
+    setSelectedCharId(candidateChar.id);
+    setCandidateChar(null);
+  };
 
   const handleAgeChangeSubmit = () => {
+    if (!selectedChar) return;
     if (tempAge !== selectedChar.age) {
-      // If changing to 34 or any new age on Aanya, trigger impact analysis engine
       if (selectedChar.id === 'char-aanya' && tempAge === 34) {
         triggerChangeImpact('Protagonist Age Modification (24 → 34)');
       } else {
@@ -39,6 +163,7 @@ export const CharacterScreen: React.FC = () => {
   const [aiResult, setAiResult] = useState<{ tool: string; text: string } | null>(null);
 
   const runAiCharacterTool = async (toolName: string) => {
+    if (!selectedChar) return;
     setAiGenerating(toolName);
     setAiResult(null);
     try {
@@ -54,8 +179,8 @@ export const CharacterScreen: React.FC = () => {
       }
       const reply = await askCopilot(prompt, `Character: ${selectedChar.name}, Role: ${selectedChar.role}, Premise: ${currentProject.intent?.premise || currentProject.tagline}`);
       setAiResult({ tool: toolName, text: reply });
-    } catch (e) {
-      console.warn('Character AI error', e);
+    } catch (e: any) {
+      setAiResult({ tool: toolName, text: `[AI Alert]: ${e?.message || 'Inference error. Please check your API key in Settings.'}` });
     } finally {
       setAiGenerating(null);
     }
