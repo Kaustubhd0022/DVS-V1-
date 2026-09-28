@@ -330,6 +330,52 @@ export interface StoryBrain {
 }
 
 // -------------------------------------------------------------
+// CONVERSATIONAL DISCOVERY LOOP MODEL
+// Understand -> Explore -> Decide -> Remember -> Develop
+// -------------------------------------------------------------
+
+export interface DiscoveryCandidateOption {
+  id: string;
+  title: string;
+  source?: string;
+  sourceType?: 'Primary Source' | 'Academic' | 'Archaeological' | 'Historical Archive' | 'Literary Canon' | 'Screenplay Hypothesis';
+  evidence?: string;
+  finding?: string;
+  dramaticImplication?: string;
+  status: 'CANDIDATE' | 'ACCEPTED' | 'DISMISSED';
+  era?: string;
+  tags?: string[];
+}
+
+export interface DiscoveryTurn {
+  id: string;
+  timestamp: string;
+  role: 'user' | 'tattava';
+  userText?: string;
+  thought?: string;
+  conversationalReply: string;
+  actionType: 'CLARIFY' | 'RESEARCH_OPTIONS' | 'CANDIDATE_OPTIONS' | 'DECISION_CONFIRMED' | 'DEVELOP_PROPOSAL';
+  knownExtracted: string[];
+  unresolvedAmbiguities: string[];
+  nextQuestion: string;
+  quickReplies?: string[];
+  researchObjective?: string;
+  candidateOptions?: DiscoveryCandidateOption[];
+  appliedDecision?: {
+    summary: string;
+    rationale: string;
+    canonFactCreated?: string;
+  };
+}
+
+export interface DiscoverySession {
+  turns: DiscoveryTurn[];
+  ambiguityLevel: number; // 0 to 100
+  activeResearchObjective?: string;
+  lastUpdated: string;
+}
+
+// -------------------------------------------------------------
 // CONTEXT RESOLVER MODEL
 // -------------------------------------------------------------
 
@@ -563,6 +609,9 @@ export interface TattvaCoProject {
 
   // Context Resolver active cache
   activeContextPackage?: ContextResolverPackage;
+
+  // Conversational Discovery & Development Loop Session
+  discovery?: DiscoverySession;
 
   // Pipeline Modules
   intent: ProjectIntent;

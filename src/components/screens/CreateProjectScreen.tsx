@@ -17,7 +17,7 @@ import {
 import { useProject } from '../../context/ProjectContext';
 
 export const CreateProjectScreen: React.FC = () => {
-  const { createNewProject, setActiveScreen, openDemoProject } = useProject();
+  const { createNewProject, setActiveScreen, openDemoProject, sendDiscoveryMessage } = useProject();
 
   const [title, setTitle] = useState('');
   const [contentType, setContentType] = useState('Feature Film');
@@ -68,6 +68,7 @@ export const CreateProjectScreen: React.FC = () => {
     }
 
     const effectiveTitle = title.trim() || (premise ? premise.slice(0, 32).trim() + '...' : 'Untitled Project');
+    const effectivePremise = premise.trim() || (uploadedFile ? `Uploaded document: ${uploadedFile.name}` : `Project concept: ${effectiveTitle}`);
 
     createNewProject({
       title: effectiveTitle,
@@ -95,6 +96,10 @@ export const CreateProjectScreen: React.FC = () => {
         storyBrainProposed: false
       }
     });
+
+    setTimeout(() => {
+      sendDiscoveryMessage(effectivePremise, uploadedFile || undefined);
+    }, 60);
   };
 
   return (
@@ -274,7 +279,7 @@ export const CreateProjectScreen: React.FC = () => {
             onClick={handleCreateProject}
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/25 cursor-pointer"
           >
-            <span>Create Project & Analyze Intake</span>
+            <span>Launch Creative Discovery Studio</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

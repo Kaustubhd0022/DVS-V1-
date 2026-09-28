@@ -15,15 +15,20 @@ import {
   StoryDependency,
   ContextResolverPackage,
   ContinuityIssue,
-  StoryEvaluation
+  StoryEvaluation,
+  ResearchFinding,
+  DiscoveryTurn,
+  DiscoveryCandidateOption,
+  DiscoverySession
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
-import { evaluateProjectNarrative, getGroqApiKey } from '../services/aiService';
+import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult } from '../services/aiService';
 
 export type ScreenId = 
   | 'home' 
+  | 'discovery'
   | 'create-project' 
   | 'intake' 
   | 'story-brain'
@@ -53,12 +58,12 @@ export interface StepMeta {
 
 /**
  * The V1 Pilot Golden Loop (Section 6 & 23 of Unified AI-Native Product Specification)
- * IDEA -> STORY BRAIN -> RESEARCH -> STORY -> WRITING -> CONTINUITY -> EVALUATION -> APPROVAL -> PACKAGE
+ * UNDERSTAND -> EXPLORE -> DECIDE -> REMEMBER -> DEVELOP
  */
 export const PIPELINE_STEPS: StepMeta[] = [
-  { step: 1, id: 'create-project', label: 'Create Project', shortLabel: 'Project' },
-  { step: 2, id: 'intake', label: 'Intake & Ambiguity Detection', shortLabel: 'Intake' },
-  { step: 3, id: 'story-brain', label: 'Story Brain (System of Record)', shortLabel: 'Story Brain' },
+  { step: 1, id: 'discovery', label: 'Conversational Discovery & Studio', shortLabel: 'Discovery' },
+  { step: 2, id: 'story-brain', label: 'Story Brain (System of Record)', shortLabel: 'Story Brain' },
+  { step: 3, id: 'intake', label: 'Intake & Ambiguity Dossier', shortLabel: 'Intake' },
   { step: 4, id: 'research', label: 'Traceable Research & Evidence', shortLabel: 'Research' },
   { step: 5, id: 'story-exploration', label: 'Story Exploration & Directions', shortLabel: 'Story' },
   { step: 6, id: 'format-template', label: 'Format & Development Framework', shortLabel: 'Format' },
@@ -88,6 +93,12 @@ interface ProjectContextType {
   resolveContext: (taskType: ContextResolverPackage['taskType'], targetArtifact: string) => ContextResolverPackage;
   openContextResolver: (taskOrPkg?: ContextResolverPackage | ContextResolverPackage['taskType'], targetArtifact?: string) => void;
   closeContextResolver: () => void;
+
+  // Conversational Discovery & Development Loop
+  discoverySession: DiscoverySession;
+  sendDiscoveryMessage: (message: string, sourceAttachment?: { name: string; content: string }) => Promise<void>;
+  applyDiscoveryDecision: (turnId: string, optionId: string, customRationale?: string) => Promise<void>;
+  startProjectFromIdea: (idea: string, attachment?: { name: string; content: string }) => Promise<string>;
 
   // Navigation
   setActiveScreen: (screen: ScreenId) => void;
@@ -254,7 +265,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     template: rawProject.template || rawProject.templates?.find(t => t.isSelected)?.title || 'Three-Act Classical Thriller',
     screenplayLines: rawProject.screenplayLines || rawProject.screenplay || [],
     productionPlan: rawProject.productionPlan || rawProject.production,
-    packageData: rawProject.packageData || rawProject.package
+    packageData: rawProject.packageData || rawProject.package,
+    discovery: rawProject.discovery || {
+      turns: [],
+      ambiguityLevel: rawProject.intent?.premise ? 80 : 100,
+      lastUpdated: 'Initialized'
+    }
   };
 
   const currentStepIndex = (() => {
@@ -725,7 +741,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setProjects(prev => [finalized, ...prev]);
     setCurrentProjectId(newId);
-    setActiveScreen('intake');
+    setActiveScreen('discovery');
     return newId;
   };
 
@@ -736,6 +752,243 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     setCurrentProjectId(seedProject.id);
     setActiveScreen('story-brain');
+  };
+
+  // -------------------------------------------------------------
+  // CONVERSATIONAL DISCOVERY LOOP ENGINE
+  // Understand -> Explore -> Decide -> Remember -> Develop
+  // -------------------------------------------------------------
+  const sendDiscoveryMessage = async (
+    message: string,
+    sourceAttachment?: { name: string; content: string }
+  ) => {
+    if (!message.trim() && !sourceAttachment) return;
+
+    const userTurnId = 'turn-' + Date.now();
+    const userTurn: DiscoveryTurn = {
+      id: userTurnId,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      role: 'user',
+      userText: message.trim() || `Uploaded document: ${sourceAttachment?.name}`,
+      conversationalReply: '',
+      actionType: 'CLARIFY',
+      knownExtracted: [],
+      unresolvedAmbiguities: [],
+      nextQuestion: ''
+    };
+
+    // Optimistically record user turn
+    updateCurrentProject(prev => ({
+      ...prev,
+      discovery: {
+        turns: [...(prev.discovery?.turns || []), userTurn],
+        ambiguityLevel: prev.discovery?.ambiguityLevel ?? 80,
+        lastUpdated: 'Just now'
+      }
+    }));
+
+    try {
+      const result: DiscoveryTurnResult = await processDiscoveryTurn(currentProject, message, sourceAttachment);
+
+      const aiTurnId = 'turn-' + (Date.now() + 1);
+      const aiTurn: DiscoveryTurn = {
+        id: aiTurnId,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        role: 'tattava',
+        thought: result.thought,
+        conversationalReply: result.conversationalReply,
+        actionType: result.actionType,
+        knownExtracted: result.knownExtracted,
+        unresolvedAmbiguities: result.unresolvedAmbiguities,
+        nextQuestion: result.nextQuestion,
+        quickReplies: result.quickReplies,
+        researchObjective: result.researchObjective,
+        candidateOptions: result.candidateOptions,
+        appliedDecision: result.appliedDecision
+      };
+
+      updateCurrentProject(prev => {
+        const updatedCanon = [...(prev.storyBrain?.canonFacts || [])];
+        const updatedDecisions = [...(prev.storyBrain?.creativeDecisions || prev.storyBrain?.decisionLog || [])];
+        const updatedResearch = [...(prev.researchFindings || [])];
+
+        // If a decision was confirmed and canon created
+        if (result.appliedDecision) {
+          const decId = 'dec-' + Date.now();
+          const decisionItem: CreativeDecision = {
+            id: decId,
+            title: result.appliedDecision.summary,
+            decision: result.appliedDecision.summary,
+            rationale: result.appliedDecision.rationale,
+            author: 'Story Creator & Tattava',
+            role: 'Creative Partner',
+            date: new Date().toLocaleDateString(),
+            status: 'ACCEPTED',
+            impactedAreas: ['Story Brain', 'World Rules', 'Premise']
+          };
+          updatedDecisions.push(decisionItem);
+
+          if (result.appliedDecision.canonFactCreated) {
+            const factItem: CanonFact = {
+              id: 'cf-' + Date.now(),
+              statement: result.appliedDecision.canonFactCreated,
+              category: 'World Rule',
+              entityIds: [],
+              source: 'USER_DECISION',
+              dateEstablished: new Date().toLocaleDateString(),
+              isLocked: true,
+              version: 'v1.0',
+              tags: ['Discovery', 'Canon']
+            };
+            updatedCanon.push(factItem);
+          }
+        }
+
+        const newAmbiguity = result.projectUpdates?.ambiguityLevel ?? Math.max(15, (prev.discovery?.ambiguityLevel ?? 80) - 15);
+
+        return {
+          ...prev,
+          title: (result.projectUpdates?.title && prev.title === 'Untitled Project') ? result.projectUpdates.title : prev.title,
+          contentType: result.projectUpdates?.contentType || prev.contentType,
+          genre: result.projectUpdates?.genre || prev.genre,
+          intent: {
+            ...prev.intent,
+            premise: result.projectUpdates?.premise || prev.intent?.premise || '',
+            knownInformation: [
+              ...Array.from(new Set([...(prev.intent?.knownInformation || []), ...result.knownExtracted]))
+            ],
+            unknownInformation: result.unresolvedAmbiguities.length ? result.unresolvedAmbiguities : prev.intent?.unknownInformation,
+            missingQuestions: [result.nextQuestion]
+          },
+          storyBrain: {
+            ...prev.storyBrain,
+            canonFacts: updatedCanon,
+            creativeDecisions: updatedDecisions,
+            decisionLog: updatedDecisions,
+            lastUpdated: 'Just now'
+          },
+          researchFindings: updatedResearch,
+          discovery: {
+            turns: [...(prev.discovery?.turns || []), aiTurn],
+            ambiguityLevel: newAmbiguity,
+            activeResearchObjective: result.researchObjective || prev.discovery?.activeResearchObjective,
+            lastUpdated: 'Just now'
+          },
+          pilotMetrics: {
+            ...prev.pilotMetrics,
+            totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1,
+            canonicalFactsCount: updatedCanon.length
+          }
+        };
+      });
+    } catch (err: any) {
+      console.error('Error in sendDiscoveryMessage:', err);
+    }
+  };
+
+  const applyDiscoveryDecision = async (turnId: string, optionId: string, customRationale?: string) => {
+    const turn = currentProject.discovery?.turns.find(t => t.id === turnId);
+    if (!turn || !turn.candidateOptions) return;
+
+    const chosenOption = turn.candidateOptions.find(o => o.id === optionId);
+    if (!chosenOption) return;
+
+    const decSummary = chosenOption.title;
+    const decRationale = customRationale || chosenOption.dramaticImplication || chosenOption.finding || 'Adopted as active narrative baseline.';
+    const canonFactText = `${currentProject.title} is set in ${chosenOption.title}. ${chosenOption.finding || chosenOption.evidence || ''}`.trim();
+
+    // Mark candidate as accepted and siblings as dismissed
+    const updatedTurns = (currentProject.discovery?.turns || []).map(t => {
+      if (t.id !== turnId) return t;
+      return {
+        ...t,
+        candidateOptions: t.candidateOptions?.map(opt => ({
+          ...opt,
+          status: opt.id === optionId ? ('ACCEPTED' as const) : ('DISMISSED' as const)
+        }))
+      };
+    });
+
+    const newCanonFact: CanonFact = {
+      id: 'cf-' + Date.now(),
+      statement: canonFactText,
+      category: 'World Rule',
+      entityIds: [],
+      source: chosenOption.source || 'USER_DECISION (Research-backed)',
+      dateEstablished: new Date().toLocaleDateString(),
+      isLocked: true,
+      version: 'v1.0',
+      tags: ['Decision', 'Research', ...(chosenOption.tags || [])]
+    };
+
+    const newDecision: CreativeDecision = {
+      id: 'dec-' + Date.now(),
+      title: `Setting Established: ${chosenOption.title}`,
+      decision: decSummary,
+      rationale: decRationale,
+      author: 'Creator & Tattava',
+      role: 'Creative Partner',
+      date: new Date().toLocaleDateString(),
+      status: 'ACCEPTED',
+      impactedAreas: ['World', 'Story Brain', 'Setting']
+    };
+
+    const newResearchFinding: ResearchFinding = {
+      id: 'rf-' + Date.now(),
+      topic: chosenOption.title,
+      claim: chosenOption.finding || chosenOption.title,
+      evidence: chosenOption.evidence || 'Historical and archaeological record',
+      source: chosenOption.source || 'Historical Epigraphy',
+      sourceType: (chosenOption.sourceType as any) || 'Archaeological',
+      date: new Date().toLocaleDateString(),
+      confidence: 95,
+      status: 'Verified',
+      usedIn: ['Story Setting', 'World Canon']
+    };
+
+    updateCurrentProject(prev => ({
+      ...prev,
+      storyBrain: {
+        ...prev.storyBrain,
+        canonFacts: [...(prev.storyBrain?.canonFacts || []), newCanonFact],
+        creativeDecisions: [...(prev.storyBrain?.creativeDecisions || []), newDecision],
+        decisionLog: [...(prev.storyBrain?.decisionLog || []), newDecision],
+        lastUpdated: 'Just now'
+      },
+      researchFindings: [...(prev.researchFindings || []), newResearchFinding],
+      discovery: {
+        turns: updatedTurns,
+        ambiguityLevel: Math.max(10, (prev.discovery?.ambiguityLevel ?? 50) - 20),
+        lastUpdated: 'Just now'
+      }
+    }));
+
+    // Naturally advance conversation with the user's decision
+    await sendDiscoveryMessage(`I have decided on: ${chosenOption.title}. What is the next unresolved creative question?`);
+  };
+
+  const startProjectFromIdea = async (idea: string, attachment?: { name: string; content: string }): Promise<string> => {
+    const detectedTitle = idea.match(/called\s+([A-Za-z0-9_'\s]+)/i)?.[1]?.trim().replace(/[."]$/, '') || (idea.length < 30 ? idea : 'Untitled Project');
+    const isSeries = idea.toLowerCase().includes('series') || idea.toLowerCase().includes('show') || idea.toLowerCase().includes('ott');
+    const contentType = isSeries ? 'Series / OTT' : 'Feature Film';
+
+    const newProjId = 'proj-' + Date.now();
+    const newProj = createEmptyProject(newProjId, detectedTitle, idea, {
+      contentType,
+      uploadedMaterialName: attachment?.name,
+      uploadedMaterialContent: attachment?.content
+    });
+
+    setProjects(prev => [newProj, ...prev]);
+    setCurrentProjectId(newProjId);
+    setActiveScreen('discovery');
+
+    // Immediately trigger the first discovery turn
+    setTimeout(() => {
+      sendDiscoveryMessage(idea, attachment);
+    }, 60);
+
+    return newProjId;
   };
 
   const initializeStoryBrainFromIntake = (breakdown: {
@@ -1243,6 +1496,10 @@ Format: ${currentProject.format}
         resolveContext,
         openContextResolver,
         closeContextResolver,
+        discoverySession: currentProject.discovery || { turns: [], ambiguityLevel: 80, lastUpdated: 'Initialized' },
+        sendDiscoveryMessage,
+        applyDiscoveryDecision,
+        startProjectFromIdea,
         setActiveScreen,
         goToStep,
         nextStep,

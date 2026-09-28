@@ -9,6 +9,7 @@ import { ContextResolverModal } from './components/modals/ContextResolverModal';
 
 // All V1 Pipeline Screens
 import { HomeScreen } from './components/screens/HomeScreen';
+import { DiscoveryStudioScreen } from './components/screens/DiscoveryStudioScreen';
 import { CreateProjectScreen } from './components/screens/CreateProjectScreen';
 import { IntakeScreen } from './components/screens/IntakeScreen';
 import { StoryBrainScreen } from './components/screens/StoryBrainScreen';
@@ -41,6 +42,7 @@ export const App: React.FC = () => {
   const getDesignPageForScreen = (screen: ScreenId): number => {
     switch (screen) {
       case 'home': return 1;
+      case 'discovery': return 2;
       case 'create-project': return 2;
       case 'intake': return 3;
       case 'story-brain': return 3; // Story Brain
@@ -68,6 +70,8 @@ export const App: React.FC = () => {
     switch (activeScreen) {
       case 'home':
         return <HomeScreen />;
+      case 'discovery':
+        return <DiscoveryStudioScreen />;
       case 'create-project':
         return <CreateProjectScreen />;
       case 'intake':

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Sparkles, 
   Plus, 
@@ -19,7 +19,10 @@ import {
   ShieldAlert,
   Package,
   Upload,
-  FileText
+  FileText,
+  Paperclip,
+  Send,
+  X
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 
@@ -30,10 +33,43 @@ export const HomeScreen: React.FC = () => {
     openDemoProject,
     duplicateProject, 
     deleteProject,
-    setActiveScreen 
+    setActiveScreen,
+    startProjectFromIdea
   } = useProject();
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [ideaInput, setIdeaInput] = useState('');
+  const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleStartIdea = async (customIdea?: string) => {
+    const text = customIdea || ideaInput;
+    if (!text.trim() && !attachedFile) return;
+
+    setIsStarting(true);
+    try {
+      await startProjectFromIdea(text, attachedFile || undefined);
+    } catch (e) {
+      console.error(e);
+      setIsStarting(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      setAttachedFile({
+        name: file.name,
+        content: text || `[Uploaded file: ${file.name}]`
+      });
+    };
+    reader.readAsText(file);
+  };
 
   // Separate user projects from demo projects
   const userProjects = projects.filter(p => !p.isDemo);
@@ -89,6 +125,114 @@ export const HomeScreen: React.FC = () => {
             </p>
             <p className="text-[11px] text-white/40 mt-2 font-mono">Don Vanzara Showbiz LLP</p>
           </div>
+        </div>
+      </div>
+
+      {/* Flagship: Conversational Idea Launcher Studio Bar (Tasks 3, 4, 5) */}
+      <div className="rounded-3xl bg-gradient-to-r from-[#141824] via-[#1a1f2e] to-[#161a26] border-2 border-amber-500/40 p-6 md:p-8 space-y-4 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-amber-400 font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI-Native Creative Discovery</span>
+            </span>
+            <h2 className="text-xl md:text-2xl font-bold font-serif text-white tracking-tight">
+              Begin with an Idea or Source Material
+            </h2>
+            <p className="text-xs text-white/60">
+              No mandatory forms. Tattava parses your creative impulse, identifies what is unresolved, and naturally asks the next useful question.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openDemoProject}
+              className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-all self-start sm:self-auto"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Open Reference Demo</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Input Bar */}
+        <div className="space-y-2 pt-2">
+          {attachedFile && (
+            <div className="flex items-center justify-between bg-black/40 border border-cyan-500/40 rounded-xl px-3 py-1.5 text-xs text-cyan-300">
+              <div className="flex items-center gap-2 truncate">
+                <Paperclip className="w-3.5 h-3.5" />
+                <span className="truncate">Attached Material: {attachedFile.name}</span>
+              </div>
+              <button onClick={() => setAttachedFile(null)} className="p-1 hover:text-white">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <input 
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+              accept=".txt,.pdf,.docx,.doc,.md,.json"
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-3.5 rounded-2xl bg-black/40 hover:bg-black/60 text-white/70 hover:text-white border border-white/10 hover:border-amber-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition-all shrink-0"
+              title="Upload Pitch Brief, Script Treatment, or Source Notes"
+            >
+              <Paperclip className="w-4 h-4 text-amber-400" />
+              <span>{attachedFile ? 'Replace Document' : 'Attach Material (Optional)'}</span>
+            </button>
+
+            <input 
+              type="text"
+              value={ideaInput}
+              onChange={(e) => setIdeaInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleStartIdea();
+              }}
+              placeholder='e.g. "I want to create a historical series called Rajyam."'
+              disabled={isStarting}
+              className="flex-1 bg-black/60 border border-white/15 focus:border-amber-500 rounded-2xl px-5 py-3.5 text-sm text-white placeholder-white/35 focus:outline-none transition-all shadow-inner"
+            />
+
+            <button
+              type="button"
+              onClick={() => handleStartIdea()}
+              disabled={isStarting || (!ideaInput.trim() && !attachedFile)}
+              className="px-6 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 text-black font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/25 cursor-pointer shrink-0"
+            >
+              <span>{isStarting ? 'Starting Studio...' : 'Start Developing'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Suggestion Prompts */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <span className="text-[11px] text-white/40 uppercase font-mono tracking-wider">Try an idea:</span>
+          <button
+            onClick={() => handleStartIdea("I want to create a historical series called Rajyam.")}
+            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-amber-500/20 hover:border-amber-500/40 border border-white/10 text-white/80 hover:text-amber-300 text-[11px] font-semibold transition-all text-left"
+          >
+            "I want to create a historical series called Rajyam."
+          </button>
+          <button
+            onClick={() => handleStartIdea("A high-stakes political thriller set in 2035 New Delhi exploring artificial intelligence in nuclear defense.")}
+            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-cyan-500/20 hover:border-cyan-500/40 border border-white/10 text-white/80 hover:text-cyan-300 text-[11px] font-semibold transition-all text-left"
+          >
+            "AI nuclear defense thriller in New Delhi 2035"
+          </button>
+          <button
+            onClick={() => handleStartIdea("An intimate family courtroom drama set in Kerala following the disputed inheritance of a centuries-old spice plantation.")}
+            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-emerald-500/20 hover:border-emerald-500/40 border border-white/10 text-white/80 hover:text-emerald-300 text-[11px] font-semibold transition-all text-left"
+          >
+            "Spice plantation inheritance drama in Kerala"
+          </button>
         </div>
       </div>
 

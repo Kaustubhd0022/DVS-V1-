@@ -98,8 +98,17 @@ export const ProjectSubheader: React.FC = () => {
 
         {/* Action buttons & Pilot Telemetry on the right */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Discovery Loop Status */}
+          <div className="hidden md:flex items-center gap-2 bg-black/40 border border-amber-500/25 rounded-xl px-3 py-1 text-[11px] text-white/80">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-semibold text-amber-300">Discovery Loop:</span>
+            <span className="text-white/60">Understand → Explore → Decide → Remember → Develop</span>
+            <span className="text-white/30">•</span>
+            <span className="font-mono text-cyan-300">Ambiguity: {currentProject.discovery?.ambiguityLevel ?? 80}%</span>
+          </div>
+
           {/* Pilot Telemetry Quick Tag */}
-          <div className="hidden lg:flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1 text-[11px] text-white/70">
+          <div className="hidden xl:flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1 text-[11px] text-white/70">
             <span className="text-amber-400 font-bold">Pilot Score: {Math.round(currentProject.evaluation?.overallScore || 87)}%</span>
             <span className="text-white/30">•</span>
             <span className="text-cyan-300">Verified: {currentProject.pilotMetrics.verificationRate}%</span>

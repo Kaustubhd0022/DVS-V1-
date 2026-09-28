@@ -23,6 +23,7 @@ export const Sidebar: React.FC = () => {
 
   const primaryNavItems: { id: ScreenId | 'copilot' | 'resolver'; label: string; icon: React.ReactNode; isAction?: boolean; badge?: string }[] = [
     { id: 'home', label: 'Home Dashboard', icon: <Home className="w-4 h-4" /> },
+    { id: 'discovery', label: 'Discovery Studio', icon: <Sparkles className="w-4 h-4 text-amber-400" />, badge: 'Studio' },
     { id: 'story-brain', label: 'Story Brain', icon: <Brain className="w-4 h-4 text-amber-400" />, badge: 'Core' },
     { id: 'intake', label: 'Project Intake', icon: <Layers className="w-4 h-4" /> },
     { id: 'research', label: 'Traceable Research', icon: <BookOpen className="w-4 h-4" /> },

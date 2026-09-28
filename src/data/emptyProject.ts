@@ -72,6 +72,13 @@ export const createEmptyProject = (
     // Evaluation — Null until user triggers live evaluation
     evaluation: null,
 
+    // Conversational Discovery Loop Session
+    discovery: {
+      turns: [],
+      ambiguityLevel: cleanPremise ? 80 : 100,
+      lastUpdated: 'Initialized'
+    },
+
     // Project Intent — Derived solely from user input and uploaded material
     intent: {
       premise: cleanPremise,
