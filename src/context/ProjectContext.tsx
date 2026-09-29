@@ -853,6 +853,17 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           title: (result.projectUpdates?.title && prev.title === 'Untitled Project') ? result.projectUpdates.title : prev.title,
           contentType: result.projectUpdates?.contentType || prev.contentType,
           genre: result.projectUpdates?.genre || prev.genre,
+          projectConfig: prev.projectConfig ? {
+            ...prev.projectConfig,
+            mediaFormat: (result.projectUpdates?.contentType as any) || prev.projectConfig.mediaFormat,
+            contentMode: (result.projectUpdates?.contentMode as any) || prev.projectConfig.contentMode,
+            primaryDomain: result.projectUpdates?.primaryDomain || prev.projectConfig.primaryDomain,
+            secondaryDomains: result.projectUpdates?.secondaryDomains || prev.projectConfig.secondaryDomains,
+            subject: result.projectUpdates?.subject || prev.projectConfig.subject,
+            geographicScope: result.projectUpdates?.geographicScope || prev.projectConfig.geographicScope,
+            temporalScope: result.projectUpdates?.temporalScope || prev.projectConfig.temporalScope,
+            creativeIntent: result.projectUpdates?.creativeIntent || prev.projectConfig.creativeIntent
+          } : prev.projectConfig,
           intent: {
             ...prev.intent,
             premise: result.projectUpdates?.premise || prev.intent?.premise || '',
