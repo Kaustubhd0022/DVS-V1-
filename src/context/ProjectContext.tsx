@@ -25,7 +25,7 @@ import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
-import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
+import { evaluateProjectNarrative, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 
 export type ScreenId = 
   | 'home' 
@@ -888,7 +888,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
 
     try {
-      const result: DiscoveryTurnResult = await processDiscoveryTurn(currentProject, message, sourceAttachment);
+      const orchestration = await orchestrateCreatorTurn(currentProject, message, sourceAttachment);
+      const result: DiscoveryTurnResult = orchestration.result;
 
       const aiTurnId = 'turn-' + (Date.now() + 1);
       const aiTurn: DiscoveryTurn = {
