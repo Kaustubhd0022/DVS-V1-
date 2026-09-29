@@ -1702,7 +1702,8 @@ Return ONLY a valid JSON object matching this schema:
 export const generateWorldLocations = async (
   project: TattavaProject
 ): Promise<WorldLocation[]> => {
-  const context = buildProjectContext(project, 'Synthesize 4 primary dramatic world locations');
+  const resolved = resolveCanonicalGenerationContext(project, 'Structure Generation', 'Primary World Locations', project.projectIntelligence?.development?.nextUnresolvedQuestion || project.intent?.premise);
+  const context = resolved.contextText;
   const prompt = `${context}
 
 TASK:
