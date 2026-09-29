@@ -2017,14 +2017,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const resolvedRepairPlan = prev.evaluationRepairPlan
         ? {
             ...prev.evaluationRepairPlan,
-            status: prev.evaluationRepairPlan.items.every(item =>
-              item.status === 'RESOLVED' ||
-              (item.targetArtifact === proposal.artifactType && item.id)
-            ) ? 'RESOLVED' as const : 'PARTIAL' as const,
+            status: 'PARTIAL' as const,
             items: prev.evaluationRepairPlan.items.map(item =>
               item.targetArtifact === proposal.artifactType &&
-              item.status !== 'RESOLVED'
-                ? { ...item, status: 'RESOLVED' as const }
+              item.status === 'OPEN'
+                ? { ...item, status: 'IN_PROGRESS' as const }
                 : item
             )
           }
