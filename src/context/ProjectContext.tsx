@@ -756,7 +756,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ...prev,
         artifactVersions: [...nextVersions, version],
         artifactApprovals: [...(prev.artifactApprovals || []), approval],
-        regenerationPlans: [plan, ...(prev.regenerationPlans || [])],
         storyBrain: {
           ...prev.storyBrain,
           creativeDecisions: [...(prev.storyBrain?.creativeDecisions || []), approvalDecision],
