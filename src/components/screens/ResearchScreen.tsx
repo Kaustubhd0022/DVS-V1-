@@ -37,6 +37,7 @@ export const ResearchScreen: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isMappingUniverse, setIsMappingUniverse] = useState(false);
+  const [verificationUrl, setVerificationUrl] = useState<Record<string, string>>({});
 
   const questions = currentProject.researchQuestions || [];
   const findings = currentProject.researchFindings || [];
@@ -124,6 +125,25 @@ export const ResearchScreen: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleVerifyFinding = (finding: ResearchFinding) => {
+    const url = verificationUrl[finding.id]?.trim();
+    if (!url) return;
+    updateCurrentProject(prev => ({
+      ...prev,
+      researchFindings: (prev.researchFindings || []).map(item =>
+        item.id === finding.id
+          ? { ...item, sourceUrl: url, status: 'Verified', date: new Date().toLocaleDateString() }
+          : item
+      ),
+      pilotMetrics: {
+        ...prev.pilotMetrics,
+        verificationRate: prev.researchFindings?.length
+          ? Math.round((((prev.researchFindings || []).filter(f => f.status === 'Verified').length + 1) / prev.researchFindings.length) * 100)
+          : 100
+      }
+    }));
   };
 
   const handlePromoteToCanon = (finding: ResearchFinding) => {
@@ -502,6 +522,24 @@ export const ResearchScreen: React.FC = () => {
                           </a>
                         )}
                       </div>
+
+                      {finding.status === 'Needs Review' && (
+                        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                          <input
+                            value={verificationUrl[finding.id] || ''}
+                            onChange={(e) => setVerificationUrl(prev => ({ ...prev, [finding.id]: e.target.value }))}
+                            placeholder="Paste source URL after human verification"
+                            className="w-64 max-w-full bg-black/30 border border-amber-500/20 rounded-lg px-2.5 py-1.5 text-[10px] text-white placeholder-white/30 focus:outline-none focus:border-amber-500/50"
+                          />
+                          <button
+                            onClick={() => handleVerifyFinding(finding)}
+                            disabled={!verificationUrl[finding.id]?.trim()}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-40"
+                          >
+                            Verify Source
+                          </button>
+                        </div>
+                      )}
 
                       {finding.status === 'Verified' && (
                         <button
