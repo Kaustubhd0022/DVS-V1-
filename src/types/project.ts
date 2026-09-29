@@ -513,6 +513,35 @@ export interface ImpactAnalysisState {
   items: ImpactChangeItem[];
 }
 
+export type RegenerationAction = 'REVIEW' | 'REGENERATE' | 'REBUILD_CONTEXT' | 'REVERIFY_RESEARCH';
+
+export interface RegenerationPlanItem {
+  id: string;
+  artifactType: ArtifactVersionRecord['artifactType'];
+  artifactId: string;
+  artifactName: string;
+  sourceDependencyId?: string;
+  reason: string;
+  action: RegenerationAction;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  stale: boolean;
+  blockedByApproval: boolean;
+}
+
+export interface RegenerationPlan {
+  id: string;
+  sourceTrigger: string;
+  generatedAt: string;
+  status: 'READY' | 'PARTIAL' | 'BLOCKED' | 'COMPLETED';
+  items: RegenerationPlanItem[];
+  summary: {
+    review: number;
+    regenerate: number;
+    rebuildContext: number;
+    reverifyResearch: number;
+  };
+}
+
 // -------------------------------------------------------------
 // VISUAL DEV & PRODUCTION (LEGACY / DEFERRED)
 // -------------------------------------------------------------
@@ -659,6 +688,7 @@ export interface TattvaCoProject {
   activeContextPackage?: ContextResolverPackage;
   artifactVersions?: ArtifactVersionRecord[];
   artifactApprovals?: ArtifactApprovalRecord[];
+  regenerationPlans?: RegenerationPlan[];
 
   // Conversational Discovery & Development Loop Session
   discovery?: DiscoverySession;
