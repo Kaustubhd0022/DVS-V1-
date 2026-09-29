@@ -888,7 +888,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
 
     try {
-      const result: DiscoveryTurnResult = await processDiscoveryTurn(currentProject, message, sourceAttachment);
+      const orchestration = await orchestrateCreatorTurn(currentProject, message, sourceAttachment);
+      const result: DiscoveryTurnResult = orchestration.result;
 
       const aiTurnId = 'turn-' + (Date.now() + 1);
       const aiTurn: DiscoveryTurn = {
