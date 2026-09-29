@@ -383,7 +383,7 @@ export interface DiscoverySession {
 
 export interface ContextResolverPackage {
   taskId: string;
-  taskType: 'Story Direction' | 'Treatment Beat' | 'Scene Drafting' | 'Dialogue Voice' | 'Continuity Check' | 'Evaluation';
+  taskType: 'Story Direction' | 'Character Generation' | 'Treatment Beat' | 'Treatment Generation' | 'Structure Generation' | 'Scene Drafting' | 'Dialogue Voice' | 'Continuity Check' | 'Evaluation';
   targetArtifact: string;
   projectConfiguration?: ProjectConfiguration;
   currentIntent?: {
