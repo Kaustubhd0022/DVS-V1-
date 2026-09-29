@@ -1985,7 +1985,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         createdBy: approvedBy,
         changeSummary: rationale || 'Human-approved regeneration proposal.',
         supersedesVersionId: previous?.id,
-        approvalId
+        approvalId,
+        parentVersionIds: previous?.id ? [previous.id] : proposal.parentVersionIds
       };
       const approval: ArtifactApprovalRecord = {
         id: approvalId,
@@ -2027,8 +2028,26 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }
         : prev.evaluationRepairPlan;
 
+      const updatedRegenerationPlans = (prev.regenerationPlans || []).map(plan => {
+        const hasProposal = plan.items.some(item => item.proposalVersionId === proposal.id);
+        if (!hasProposal) return plan;
+        const items = plan.items.map(item =>
+          item.proposalVersionId === proposal.id
+            ? { ...item, executionStatus: 'APPROVED' as const, stale: false }
+            : item
+        );
+        const actionable = items.filter(item => item.action === 'REGENERATE');
+        const allApproved = actionable.length > 0 && actionable.every(item => item.executionStatus === 'APPROVED');
+        return {
+          ...plan,
+          items,
+          status: allApproved ? 'COMPLETED' as const : 'PARTIAL' as const
+        };
+      });
+
       let next: TattavaProject = {
         ...prev,
+        regenerationPlans: updatedRegenerationPlans,
         artifactVersions: [...versions, canonical],
         evaluationRepairPlan: resolvedRepairPlan,
         artifactApprovals: [...(prev.artifactApprovals || []), approval],
@@ -2073,6 +2092,17 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateCurrentProject(prev => {
           const now = new Date().toISOString();
           const proposalId = 'regen-proposal-' + Date.now() + '-' + result.artifactId;
+          const sourceItem = plan.items.find(item =>
+            item.artifactType === result.artifactType && item.artifactId === result.artifactId
+          );
+          const parentCanonical = (prev.artifactVersions || [])
+            .filter(v =>
+              v.artifactType === result.artifactType &&
+              v.artifactId === result.artifactId &&
+              v.state === 'CANONICAL'
+            )
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+
           const proposal: ArtifactVersionRecord = {
             id: proposalId,
             artifactType: result.artifactType,
@@ -2082,7 +2112,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             content: result.artifact,
             createdAt: now,
             createdBy: 'Tattava AI',
-            changeSummary: 'AI regeneration proposal: ' + result.message
+            changeSummary: 'AI regeneration proposal: ' + result.message,
+            sourcePlanId: planId,
+            sourcePlanItemId: sourceItem?.id,
+            parentVersionIds: parentCanonical?.id ? [parentCanonical.id] : [],
+            repairCycleId: planId
           };
           if (result.artifactType === 'character') {
             return { ...prev, characters: prev.characters.map(c => c.id === result.artifactId ? result.artifact : c), artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
@@ -2102,7 +2136,25 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ...prev,
       regenerationPlans: (prev.regenerationPlans || []).map(p => p.id === planId ? {
         ...p,
-        status: results.some(r => !r.ok) ? 'PARTIAL' : 'COMPLETED'
+        status: results.some(r => !r.ok)
+          ? 'PARTIAL'
+          : results.some(r => r.ok)
+            ? 'AWAITING_APPROVAL'
+            : 'COMPLETED',
+        items: p.items.map(item => {
+          const matching = results.find(result =>
+            result.ok &&
+            result.artifactType === item.artifactType &&
+            result.artifactId === item.artifactId
+          );
+          return matching
+            ? { ...item, executionStatus: 'PROPOSED' as const, proposalVersionId: (prev.artifactVersions || []).find(v =>
+                v.sourcePlanId === planId &&
+                v.sourcePlanItemId === item.id &&
+                v.state === 'AI_PROPOSAL'
+              )?.id }
+            : item;
+        })
       } : p),
       lastUpdated: new Date().toISOString()
     }));

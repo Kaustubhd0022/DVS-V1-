@@ -58,7 +58,8 @@ export const buildRegenerationPlan = (
       action,
       priority: priorityFor(item.severity),
       stale: true,
-      blockedByApproval: !item.approved
+      blockedByApproval: !item.approved,
+      executionStatus: !item.approved ? 'BLOCKED' : 'PENDING'
     };
   });
 
