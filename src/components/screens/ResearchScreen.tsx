@@ -27,7 +27,7 @@ import { ResearchFinding } from '../../types/project';
 import { generateResearchTopics } from '../../services/aiService';
 
 export const ResearchScreen: React.FC = () => {
-  const { currentProject, addCanonFact, nextStep, openContextResolver, updateCurrentProject } = useProject();
+  const { currentProject, addCanonFact, nextStep, openContextResolver, updateCurrentProject, buildResearchUniverse } = useProject();
 
   const [activeTab, setActiveTab] = useState<'Findings' | 'Questions' | 'Sources'>('Findings');
   const [filterType, setFilterType] = useState<'All' | 'Verified' | 'Conflicting' | 'Insufficient Evidence'>('All');
@@ -36,6 +36,8 @@ export const ResearchScreen: React.FC = () => {
   const [promotedFindingIds, setPromotedFindingIds] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [isMappingUniverse, setIsMappingUniverse] = useState(false);
+  const [verificationUrl, setVerificationUrl] = useState<Record<string, string>>({});
 
   const questions = currentProject.researchQuestions || [];
   const findings = currentProject.researchFindings || [];
@@ -66,10 +68,25 @@ export const ResearchScreen: React.FC = () => {
     setShowAddQuestion(false);
   };
 
+  const handleBuildResearchUniverse = async () => {
+    setIsMappingUniverse(true);
+    setGenerationError(null);
+    try {
+      await buildResearchUniverse();
+    } catch (err: any) {
+      setGenerationError(err.message || 'AI service error mapping the research universe.');
+    } finally {
+      setIsMappingUniverse(false);
+    }
+  };
+
   const handleGenerateResearch = async () => {
     setIsGenerating(true);
     setGenerationError(null);
     try {
+      if (!currentProject.projectIntelligence?.researchUniverse?.dimensions?.length) {
+        await buildResearchUniverse();
+      }
       const res = await generateResearchTopics(currentProject);
       updateCurrentProject(prev => {
         const newFindings: ResearchFinding[] = (res.topics || []).map((t, idx) => ({
@@ -79,8 +96,8 @@ export const ResearchScreen: React.FC = () => {
           evidence: t.evidence || '',
           source: t.source || 'Domain Literature',
           sourceType: (t.sourceType as any) || 'Established Publication',
-          status: 'Verified',
-          confidence: t.confidence || 88,
+          status: 'Needs Review',
+          confidence: t.confidence || 0,
           implicationForPlot: t.implicationForPlot || '',
           date: new Date().toLocaleDateString(),
           usedIn: ['Story Context', 'World Grounding']
@@ -108,6 +125,25 @@ export const ResearchScreen: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleVerifyFinding = (finding: ResearchFinding) => {
+    const url = verificationUrl[finding.id]?.trim();
+    if (!url) return;
+    updateCurrentProject(prev => ({
+      ...prev,
+      researchFindings: (prev.researchFindings || []).map(item =>
+        item.id === finding.id
+          ? { ...item, sourceUrl: url, status: 'Verified', date: new Date().toLocaleDateString() }
+          : item
+      ),
+      pilotMetrics: {
+        ...prev.pilotMetrics,
+        verificationRate: prev.researchFindings?.length
+          ? Math.round((((prev.researchFindings || []).filter(f => f.status === 'Verified').length + 1) / prev.researchFindings.length) * 100)
+          : 100
+      }
+    }));
   };
 
   const handlePromoteToCanon = (finding: ResearchFinding) => {
@@ -175,6 +211,81 @@ export const ResearchScreen: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Research Universe — knowledge map before claims */}
+      <section className="bg-[#111722] border border-cyan-500/20 rounded-2xl p-5 space-y-4 shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Globe2 className="w-4 h-4 text-cyan-400" />
+              <h2 className="text-sm font-bold text-white">Research Universe</h2>
+              <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                Knowledge Map
+              </span>
+            </div>
+            <p className="text-[11px] text-white/50 mt-1 max-w-2xl">
+              Map what must be understood before Tattava turns research into factual findings. Dimensions are research territories, not verified claims.
+            </p>
+          </div>
+          <button
+            onClick={handleBuildResearchUniverse}
+            disabled={isMappingUniverse}
+            className="px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center gap-2 disabled:opacity-50"
+          >
+            <Cpu className={`w-3.5 h-3.5 ${isMappingUniverse ? 'animate-spin' : ''}`} />
+            {isMappingUniverse ? 'Mapping Knowledge Space...' : 'Map Research Universe'}
+          </button>
+        </div>
+
+        {currentProject.projectIntelligence?.researchUniverse?.dimensions?.length ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-xl bg-black/20 border border-white/5 p-3">
+                <p className="text-[9px] uppercase tracking-wider text-white/35">Root Subject</p>
+                <p className="text-xs text-white/85 mt-1">{currentProject.projectIntelligence.researchUniverse.rootSubject}</p>
+              </div>
+              <div className="rounded-xl bg-black/20 border border-white/5 p-3">
+                <p className="text-[9px] uppercase tracking-wider text-white/35">Research Dimensions</p>
+                <p className="text-xl font-bold text-cyan-300 mt-1">{currentProject.projectIntelligence.researchUniverse.dimensions.length}</p>
+              </div>
+              <div className="rounded-xl bg-black/20 border border-white/5 p-3">
+                <p className="text-[9px] uppercase tracking-wider text-white/35">Evidence Coverage</p>
+                <p className="text-xl font-bold text-white mt-1">{currentProject.projectIntelligence.researchUniverse.coveragePercent}%</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {currentProject.projectIntelligence.researchUniverse.dimensions.map((dimension) => (
+                <div key={dimension.id} className="rounded-xl bg-black/20 border border-white/5 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-white">{dimension.label}</span>
+                    <span className="text-[9px] uppercase text-white/35">{dimension.status}</span>
+                  </div>
+                  <p className="text-[10px] text-white/50 leading-relaxed mt-1">{dimension.description}</p>
+                </div>
+              ))}
+            </div>
+
+            {currentProject.projectIntelligence.researchUniverse.unresolvedQuestions.length > 0 && (
+              <div className="pt-3 border-t border-white/5">
+                <p className="text-[9px] uppercase tracking-wider font-bold text-amber-400 mb-2">Unresolved Research Questions</p>
+                <div className="space-y-1.5">
+                  {currentProject.projectIntelligence.researchUniverse.unresolvedQuestions.map((q, i) => (
+                    <div key={i} className="text-[11px] text-white/70 flex gap-2">
+                      <span className="text-amber-400">•</span><span>{q}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="rounded-xl border border-dashed border-white/10 p-5 text-center">
+            <p className="text-xs text-white/55">No research universe mapped yet.</p>
+            <p className="text-[10px] text-white/35 mt-1">Start here before generating evidence findings.</p>
+          </div>
+        )}
+      </section>
 
       {/* Error alert banner */}
       {generationError && (
@@ -411,6 +522,24 @@ export const ResearchScreen: React.FC = () => {
                           </a>
                         )}
                       </div>
+
+                      {finding.status === 'Needs Review' && (
+                        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                          <input
+                            value={verificationUrl[finding.id] || ''}
+                            onChange={(e) => setVerificationUrl(prev => ({ ...prev, [finding.id]: e.target.value }))}
+                            placeholder="Paste source URL after human verification"
+                            className="w-64 max-w-full bg-black/30 border border-amber-500/20 rounded-lg px-2.5 py-1.5 text-[10px] text-white placeholder-white/30 focus:outline-none focus:border-amber-500/50"
+                          />
+                          <button
+                            onClick={() => handleVerifyFinding(finding)}
+                            disabled={!verificationUrl[finding.id]?.trim()}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-40"
+                          >
+                            Verify Source
+                          </button>
+                        </div>
+                      )}
 
                       {finding.status === 'Verified' && (
                         <button
