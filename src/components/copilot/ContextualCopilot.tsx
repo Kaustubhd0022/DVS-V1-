@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { 
   X, 
   Sparkles, 
@@ -129,7 +130,15 @@ export const ContextualCopilot: React.FC = () => {
   const chips = getContextChips();
 
   return (
-    <aside className="fixed right-0 top-0 bottom-0 w-96 bg-[#10131a] border-l border-[#242b3a] shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-200">
+    <AnimatePresence>
+      {isCopilotOpen && (
+        <motion.aside
+          initial={{ x: '100%', opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: '100%', opacity: 0 }}
+          transition={{ duration: 0.26, ease: 'easeOut' }}
+          className="fixed right-0 top-0 bottom-0 w-96 bg-[#10131a] border-l border-[#242b3a] shadow-2xl z-40 flex flex-col"
+        >
       {/* Header */}
       <div className="p-4 border-b border-[#222836] flex items-center justify-between bg-[#121620]">
         <div className="flex items-center gap-2.5">
@@ -210,8 +219,13 @@ export const ContextualCopilot: React.FC = () => {
 
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+        <AnimatePresence initial={false}>
         {copilotMessages.map((msg, index) => (
-          <div
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.18 }}
+
             key={index}
             className={`flex gap-2.5 text-xs ${
               msg.sender === 'user' ? 'justify-end' : 'justify-start'
@@ -243,11 +257,18 @@ export const ContextualCopilot: React.FC = () => {
                 <User className="w-3.5 h-3.5" />
               </div>
             )}
-          </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
 
+        <AnimatePresence>
         {isThinking && (
-          <div className="flex gap-2.5 text-xs items-center text-[#8b96a8]">
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="flex gap-2.5 text-xs items-center text-[#8b96a8]"
+          >
             <div className="w-6 h-6 rounded-full bg-[#f25b2a]/20 border border-[#f25b2a]/40 flex items-center justify-center text-[#f25b2a]">
               <RefreshCw className="w-3 h-3 animate-spin" />
             </div>
@@ -301,6 +322,8 @@ export const ContextualCopilot: React.FC = () => {
           </button>
         </form>
       </div>
-    </aside>
+        </motion.aside>
+      )}
+    </AnimatePresence>
   );
 };
