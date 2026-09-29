@@ -564,13 +564,15 @@ export interface RegenerationPlanItem {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   stale: boolean;
   blockedByApproval: boolean;
+  executionStatus?: 'PENDING' | 'PROPOSED' | 'APPROVED' | 'REJECTED' | 'BLOCKED';
+  proposalVersionId?: string;
 }
 
 export interface RegenerationPlan {
   id: string;
   sourceTrigger: string;
   generatedAt: string;
-  status: 'READY' | 'PARTIAL' | 'BLOCKED' | 'COMPLETED';
+  status: 'READY' | 'PARTIAL' | 'BLOCKED' | 'AWAITING_APPROVAL' | 'COMPLETED';
   items: RegenerationPlanItem[];
   summary: {
     review: number;
@@ -661,6 +663,10 @@ export interface ArtifactVersionRecord {
   changeSummary: string;
   supersedesVersionId?: string;
   approvalId?: string;
+  sourcePlanId?: string;
+  sourcePlanItemId?: string;
+  parentVersionIds?: string[];
+  repairCycleId?: string;
 }
 
 export interface ProjectBranch {
