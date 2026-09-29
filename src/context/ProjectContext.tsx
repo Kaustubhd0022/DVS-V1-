@@ -1029,11 +1029,15 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         if (content === undefined) return;
 
-        if (resolution !== 'KEEP_CANONICAL') {
-          next = applyContent(next, diff, content);
-          changedArtifactIds.push(diff.artifactId);
+        // KEEP_CANONICAL records the human decision but does not create a
+        // duplicate canonical version or mutate the artifact.
+        if (resolution === 'KEEP_CANONICAL') {
+          branchSourceIds.add(branchVersion.id);
+          return;
         }
 
+        next = applyContent(next, diff, content);
+        changedArtifactIds.push(diff.artifactId);
         branchSourceIds.add(branchVersion.id);
         const previous = canonicalVersions
           .filter(v => v.artifactType === diff.artifactType && v.artifactId === diff.artifactId && v.state === 'CANONICAL')
