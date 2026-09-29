@@ -667,6 +667,8 @@ export interface BranchMergeConflict {
   canonicalContent?: unknown;
   reason: string;
   resolution?: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT';
+  /** Required when MANUAL_EDIT is selected; merge is blocked until supplied. */
+  manualContent?: unknown;
 }
 
 export interface BranchMergeDiff {
