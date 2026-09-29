@@ -174,6 +174,7 @@ interface ProjectContextType {
   approveProjectBranchMerge: (branchId: string, mergedBy: string, rationale: string) => void;
   rejectProjectBranchMerge: (branchId: string, reviewedBy: string, rationale?: string) => void;
   resolveBranchMergeConflict: (branchId: string, conflictId: string, resolution: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT') => void;
+  setBranchMergeManualContent: (branchId: string, conflictId: string, content: unknown) => void;
   mergeProjectBranch: (branchId: string, mergedBy: string, rationale: string) => void;
   abandonProjectBranch: (branchId: string) => void;
 
@@ -1183,6 +1184,29 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           ...preview,
           conflicts,
           status: unresolved.length ? 'CONFLICTS' : 'READY'
+        }
+      };
+    });
+  };
+
+  const setBranchMergeManualContent = (branchId: string, conflictId: string, content: unknown) => {
+    updateCurrentProject(prev => {
+      const preview = prev.branchMergePreview;
+      if (!preview || preview.branchId !== branchId) return prev;
+      return {
+        ...prev,
+        branchMergePreview: {
+          ...preview,
+          conflicts: preview.conflicts.map(conflict =>
+            conflict.id === conflictId
+              ? { ...conflict, resolution: 'MANUAL_EDIT', manualContent: content }
+              : conflict
+          ),
+          status: preview.conflicts
+            .filter(conflict => conflict.id !== conflictId)
+            .every(conflict => conflict.resolution || conflict.id === conflictId)
+            ? 'READY'
+            : 'CONFLICTS'
         }
       };
     });
