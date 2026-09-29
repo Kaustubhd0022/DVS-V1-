@@ -1126,6 +1126,13 @@ export interface DiscoveryTurnResult {
   projectUpdates?: {
     title?: string;
     contentType?: string;
+    contentMode?: string;
+    primaryDomain?: string;
+    secondaryDomains?: string[];
+    subject?: string;
+    geographicScope?: string;
+    temporalScope?: string;
+    creativeIntent?: string;
     genre?: string;
     premise?: string;
     ambiguityLevel?: number;
@@ -1144,8 +1151,16 @@ export function buildScopedDiscoveryContext(
 
   parts.push(`=== ACTIVE PROJECT SLICE ===`);
   parts.push(`Title: ${project.title || 'Untitled'}`);
-  parts.push(`Format: ${project.contentType || 'Series / OTT'}`);
-  parts.push(`Genre: ${project.genre || 'Drama'}`);
+  parts.push(`Vertical: ${project.projectConfig?.vertical || 'TATTVACO_PROJECT'}`);
+  parts.push(`Format: ${project.projectConfig?.mediaFormat || project.contentType || 'OTHER'}`);
+  parts.push(`Content Mode: ${project.projectConfig?.contentMode || 'HYBRID'}`);
+  parts.push(`Primary Domain: ${project.projectConfig?.primaryDomain || 'Not yet confirmed'}`);
+  if (project.projectConfig?.secondaryDomains?.length) parts.push(`Secondary Domains: ${project.projectConfig.secondaryDomains.join('; ')}`);
+  parts.push(`Subject: ${project.projectConfig?.subject || project.intent?.premise || ''}`);
+  if (project.projectConfig?.geographicScope) parts.push(`Geographic Scope: ${project.projectConfig.geographicScope}`);
+  if (project.projectConfig?.temporalScope) parts.push(`Temporal Scope: ${project.projectConfig.temporalScope}`);
+  if (project.projectConfig?.creativeIntent) parts.push(`Creative Intent: ${project.projectConfig.creativeIntent}`);
+  parts.push(`Genre: ${project.genre || 'Not yet confirmed'}`);
   if (project.intent?.premise) {
     parts.push(`Premise: ${project.intent.premise}`);
   }
