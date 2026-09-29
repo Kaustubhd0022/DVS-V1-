@@ -24,7 +24,10 @@ import {
   DiscoverySession,
   RegenerationPlan,
   ProjectBranch,
-  BranchMergeRecord
+  BranchMergeRecord,
+  BranchMergePreview,
+  BranchMergeConflict,
+  BranchMergeDiff
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
@@ -167,6 +170,9 @@ interface ProjectContextType {
   // Branch / Canon Evolution
   createProjectBranch: (name: string, purpose: string, createdBy: string) => string;
   addArtifactToBranch: (branchId: string, versionId: string) => void;
+  prepareProjectBranchMerge: (branchId: string) => BranchMergePreview | null;
+  approveProjectBranchMerge: (branchId: string, mergedBy: string, rationale: string) => void;
+  rejectProjectBranchMerge: (branchId: string, reviewedBy: string, rationale?: string) => void;
   mergeProjectBranch: (branchId: string, mergedBy: string, rationale: string) => void;
   abandonProjectBranch: (branchId: string) => void;
 
@@ -846,10 +852,112 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
   };
 
-  const mergeProjectBranch = (branchId: string, mergedBy: string, rationale: string) => {
+  const prepareProjectBranchMerge = (branchId: string): BranchMergePreview | null => {
+    let preview: BranchMergePreview | null = null;
+
     updateCurrentProject(prev => {
       const branch = (prev.projectBranches || []).find(b => b.id === branchId);
       if (!branch || branch.status !== 'ACTIVE') return prev;
+
+      const branchVersions = branch.artifactVersionIds
+        .map(id => (prev.artifactVersions || []).find(v => v.id === id))
+        .filter((v): v is ArtifactVersionRecord => Boolean(v && v.state === 'CANONICAL'));
+
+      const canonicalVersions = (prev.artifactVersions || []).filter(v => v.state === 'CANONICAL');
+      const diffs: BranchMergeDiff[] = [];
+      const conflicts: BranchMergeConflict[] = [];
+
+      const stableSerialize = (value: unknown) => {
+        try { return JSON.stringify(value, Object.keys((value || {}) as object).sort()); }
+        catch { return JSON.stringify(value); }
+      };
+
+      const changedFields = (left: unknown, right: unknown): string[] => {
+        if (!left || !right || typeof left !== 'object' || typeof right !== 'object') {
+          return stableSerialize(left) === stableSerialize(right) ? [] : ['content'];
+        }
+        const keys = Array.from(new Set([
+          ...Object.keys(left as Record<string, unknown>),
+          ...Object.keys(right as Record<string, unknown>)
+        ]));
+        return keys.filter(key =>
+          stableSerialize((left as Record<string, unknown>)[key]) !==
+          stableSerialize((right as Record<string, unknown>)[key])
+        );
+      };
+
+      branchVersions.forEach(branchVersion => {
+        const canonical = canonicalVersions
+          .filter(v => v.artifactType === branchVersion.artifactType && v.artifactId === branchVersion.artifactId)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+
+        if (!canonical) {
+          diffs.push({
+            artifactType: branchVersion.artifactType,
+            artifactId: branchVersion.artifactId,
+            branchVersionId: branchVersion.id,
+            changeType: 'ADDED',
+            changedFields: ['content'],
+            summary: 'Branch introduces an artifact with no current canonical counterpart.'
+          });
+          return;
+        }
+
+        const fields = changedFields(branchVersion.content, canonical.content);
+        const changeType = fields.length ? 'MODIFIED' : 'UNCHANGED';
+        diffs.push({
+          artifactType: branchVersion.artifactType,
+          artifactId: branchVersion.artifactId,
+          branchVersionId: branchVersion.id,
+          canonicalVersionId: canonical.id,
+          changeType,
+          changedFields: fields,
+          summary: fields.length
+            ? 'Branch version differs from the current canonical artifact.'
+            : 'Branch version matches the current canonical artifact.'
+        });
+
+        if (fields.length && branch.baseCanonicalVersion !== (prev.canonicalVersion || 'v0.1')) {
+          conflicts.push({
+            id: 'branch-conflict-' + branchVersion.id,
+            artifactType: branchVersion.artifactType,
+            artifactId: branchVersion.artifactId,
+            branchVersionId: branchVersion.id,
+            canonicalVersionId: canonical.id,
+            branchContent: branchVersion.content,
+            canonicalContent: canonical.content,
+            reason: 'The project advanced after this branch was created and the same artifact changed on both paths.'
+          });
+        }
+      });
+
+      const now = new Date().toISOString();
+      preview = {
+        id: 'branch-preview-' + Date.now(),
+        branchId,
+        baseCanonicalVersion: branch.baseCanonicalVersion,
+        targetCanonicalVersion: prev.canonicalVersion || 'v0.1',
+        createdAt: now,
+        diffs,
+        conflicts,
+        status: conflicts.length ? 'CONFLICTS' : 'READY'
+      };
+
+      return {
+        ...prev,
+        branchMergePreview: preview
+      };
+    });
+
+    return preview;
+  };
+
+  const approveProjectBranchMerge = (branchId: string, mergedBy: string, rationale: string) => {
+    updateCurrentProject(prev => {
+      const branch = (prev.projectBranches || []).find(b => b.id === branchId);
+      const preview = prev.branchMergePreview;
+      if (!branch || branch.status !== 'ACTIVE' || !preview || preview.branchId !== branchId) return prev;
+      if (preview.status !== 'READY') return prev;
 
       const versionIds = branch.artifactVersionIds.filter(id =>
         (prev.artifactVersions || []).some(v => v.id === id && v.state === 'CANONICAL')
@@ -857,7 +965,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!versionIds.length) return prev;
 
       const now = new Date().toISOString();
-      const targetVersion = 'v' + ((Number((prev.canonicalVersion || 'v0').replace('v', '')) || 0) + 1);
+      const currentNumber = Number((prev.canonicalVersion || 'v0').replace(/[^0-9.]/g, '')) || 0;
+      const targetVersion = 'v' + (Math.floor(currentNumber) + 1);
       const mergeId = 'merge-' + Date.now();
       const decisionId = 'branch-merge-decision-' + Date.now();
 
@@ -865,13 +974,14 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id: decisionId,
         title: 'Merged creative branch: ' + branch.name,
         decision: 'Merged approved branch ' + branch.name + ' into canonical project version ' + targetVersion,
-        rationale: rationale || 'Human-approved branch merge.',
+        rationale: rationale || 'Human-approved branch merge after review.',
         author: mergedBy,
         role: 'Creative Lead',
         date: now,
         status: 'Approved',
-        impactedAreas: ['Canon', 'Branch']
+        impactedAreas: ['Canon', 'Branch', 'Version']
       };
+
       const merge: BranchMergeRecord = {
         id: mergeId,
         branchId,
@@ -880,13 +990,17 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         mergedAt: now,
         mergedBy,
         rationale,
-        status: 'APPROVED'
+        status: 'APPROVED',
+        previewId: preview.id
       };
 
       return {
         ...prev,
         canonicalVersion: targetVersion,
-        projectBranches: (prev.projectBranches || []).map(b => b.id === branchId ? { ...b, status: 'MERGED', mergeDecisionId: decisionId } : b),
+        branchMergePreview: { ...preview, status: 'APPROVED', reviewedBy: mergedBy, reviewedAt: now, rationale },
+        projectBranches: (prev.projectBranches || []).map(b =>
+          b.id === branchId ? { ...b, status: 'MERGED', mergeDecisionId: decisionId } : b
+        ),
         branchMerges: [merge, ...(prev.branchMerges || [])],
         storyBrain: {
           ...prev.storyBrain,
@@ -896,6 +1010,29 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       };
     });
+  };
+
+  const rejectProjectBranchMerge = (branchId: string, reviewedBy: string, rationale?: string) => {
+    updateCurrentProject(prev => {
+      const preview = prev.branchMergePreview;
+      if (!preview || preview.branchId !== branchId) return prev;
+      return {
+        ...prev,
+        branchMergePreview: {
+          ...preview,
+          status: 'REJECTED',
+          reviewedBy,
+          reviewedAt: new Date().toISOString(),
+          rationale
+        }
+      };
+    });
+  };
+
+  // Backward-compatible entry point: never merges silently. It now prepares a
+  // reviewable preview; callers must explicitly invoke approveProjectBranchMerge.
+  const mergeProjectBranch = (branchId: string, mergedBy: string, rationale: string) => {
+    prepareProjectBranchMerge(branchId);
   };
 
   const abandonProjectBranch = (branchId: string) => {
