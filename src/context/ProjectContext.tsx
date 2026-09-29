@@ -960,10 +960,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!branch || branch.status !== 'ACTIVE' || !preview || preview.branchId !== branchId) return prev;
       if (preview.status !== 'READY') return prev;
 
-      const versionIds = branch.artifactVersionIds.filter(id =>
-        (prev.artifactVersions || []).some(v => v.id === id && v.state === 'CANONICAL')
-      );
-      if (!versionIds.length) return prev;
+      const branchVersions = branch.artifactVersionIds
+        .map(id => (prev.artifactVersions || []).find(v => v.id === id))
+        .filter((v): v is ArtifactVersionRecord => Boolean(v && v.state === 'CANONICAL'));
+
+      const changedDiffs = preview.diffs.filter(d => d.changeType !== 'UNCHANGED');
+      if (!changedDiffs.length) return prev;
 
       const now = new Date().toISOString();
       const currentNumber = Number((prev.canonicalVersion || 'v0').replace(/[^0-9.]/g, '')) || 0;
@@ -971,45 +973,195 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const mergeId = 'merge-' + Date.now();
       const decisionId = 'branch-merge-decision-' + Date.now();
 
-      const decision: CreativeDecision = {
-        id: decisionId,
-        title: 'Merged creative branch: ' + branch.name,
-        decision: 'Merged approved branch ' + branch.name + ' into canonical project version ' + targetVersion,
-        rationale: rationale || 'Human-approved branch merge after review.',
-        author: mergedBy,
-        role: 'Creative Lead',
-        date: now,
-        status: 'Approved',
-        impactedAreas: ['Canon', 'Branch', 'Version']
+      const resolutionFor = (diff: BranchMergeDiff): BranchMergeConflict['resolution'] => {
+        const conflict = preview.conflicts.find(c => c.id === 'branch-conflict-' + diff.branchVersionId);
+        return conflict?.resolution || 'USE_BRANCH';
       };
 
-      const merge: BranchMergeRecord = {
-        id: mergeId,
-        branchId,
-        sourceVersionIds: versionIds,
-        targetProjectVersion: targetVersion,
-        mergedAt: now,
-        mergedBy,
-        rationale,
-        status: 'APPROVED',
-        previewId: preview.id
+      // MANUAL_EDIT is only valid when the edited content has actually been supplied.
+      const unresolvedManualEdit = preview.conflicts.some(conflict =>
+        conflict.resolution === 'MANUAL_EDIT' && conflict.manualContent === undefined
+      );
+      if (unresolvedManualEdit) return prev;
+
+      const canonicalVersions = [...(prev.artifactVersions || [])];
+      const approvals = [...(prev.artifactApprovals || [])];
+      const decisions = [...(prev.storyBrain?.creativeDecisions || [])];
+      const branchSourceIds = new Set<string>();
+      const changedArtifactIds: string[] = [];
+      let next = { ...prev };
+
+      const applyContent = (project: TattavaProject, diff: BranchMergeDiff, content: unknown): TattavaProject => {
+        const canonicalContent = { ...(content as Record<string, unknown>), candidateState: 'CANONICAL' as CanonicalState };
+        if (diff.artifactType === 'direction') {
+          return {
+            ...project,
+            storyDirections: project.storyDirections.map(a => a.id === diff.artifactId ? canonicalContent as StoryDirection : a),
+            selectedDirectionId: diff.artifactId
+          };
+        }
+        if (diff.artifactType === 'character') {
+          return { ...project, characters: project.characters.map(a => a.id === diff.artifactId ? canonicalContent as Character : a) };
+        }
+        if (diff.artifactType === 'treatment') {
+          return { ...project, treatment: canonicalContent as TreatmentData };
+        }
+        if (diff.artifactType === 'scene') {
+          return { ...project, scenes: project.scenes.map(a => a.id === diff.artifactId ? canonicalContent as SceneItem : a) };
+        }
+        return {
+          ...project,
+          dialogueSuggestions: project.dialogueSuggestions.map(a => a.id === diff.artifactId ? canonicalContent as any : a)
+        };
       };
 
-      return {
-        ...prev,
+      changedDiffs.forEach(diff => {
+        const branchVersion = branchVersions.find(v => v.id === diff.branchVersionId);
+        if (!branchVersion) return;
+
+        const conflict = preview.conflicts.find(c => c.id === 'branch-conflict-' + diff.branchVersionId);
+        const resolution = resolutionFor(diff);
+        const content = resolution === 'KEEP_CANONICAL'
+          ? (conflict?.canonicalContent ?? branchVersion.content)
+          : resolution === 'MANUAL_EDIT'
+            ? conflict?.manualContent
+            : branchVersion.content;
+
+        if (content === undefined) return;
+
+        if (resolution !== 'KEEP_CANONICAL') {
+          next = applyContent(next, diff, content);
+          changedArtifactIds.push(diff.artifactId);
+        }
+
+        branchSourceIds.add(branchVersion.id);
+        const previous = canonicalVersions
+          .filter(v => v.artifactType === diff.artifactType && v.artifactId === diff.artifactId && v.state === 'CANONICAL')
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+
+        const versionId = 'artifact-version-' + Date.now() + '-' + diff.artifactId;
+        const approvalId = 'artifact-approval-' + Date.now() + '-' + diff.artifactId;
+        const versionNumber = canonicalVersions.filter(v => v.artifactType === diff.artifactType && v.artifactId === diff.artifactId).length + 1;
+        const version: ArtifactVersionRecord = {
+          id: versionId,
+          artifactType: diff.artifactType,
+          artifactId: diff.artifactId,
+          version: 'v' + versionNumber,
+          state: 'CANONICAL',
+          content,
+          createdAt: now,
+          createdBy: mergedBy,
+          changeSummary: 'Canonical artifact created from approved branch merge: ' + branch.name,
+          supersedesVersionId: previous?.id,
+          approvalId
+        };
+        const approval: ArtifactApprovalRecord = {
+          id: approvalId,
+          artifactType: diff.artifactType,
+          artifactId: diff.artifactId,
+          versionId,
+          status: 'APPROVED',
+          approvedBy: mergedBy,
+          role: 'Creative Lead',
+          timestamp: now,
+          rationale: rationale || 'Human-approved branch merge.'
+        };
+
+        if (previous) {
+          const idx = canonicalVersions.findIndex(v => v.id === previous.id);
+          if (idx >= 0) canonicalVersions[idx] = { ...canonicalVersions[idx], state: 'SUPERSEDED' };
+        }
+        canonicalVersions.push(version);
+        approvals.push(approval);
+
+        decisions.push({
+          id: 'decision-' + Date.now() + '-' + diff.artifactId,
+          title: 'Merged ' + diff.artifactType + ' from branch',
+          decision: 'Approved ' + diff.artifactType + ' ' + diff.artifactId + ' from branch "' + branch.name + '" into ' + version.version,
+          rationale: rationale || 'Human approval recorded for downstream grounding.',
+          author: mergedBy,
+          role: 'Creative Lead',
+          date: now,
+          status: 'Approved',
+          impactedAreas: [diff.artifactType, 'Canon', 'Branch']
+        });
+      });
+
+      // Branch source versions become historical records; the new canonical versions
+      // are the authoritative project state.
+      const nextVersions = canonicalVersions.map(v =>
+        branchSourceIds.has(v.id) ? { ...v, state: 'SUPERSEDED' as CanonicalState } : v
+      );
+
+      const staleReason = 'Upstream canonical artifact changed through approved branch merge ' + targetVersion;
+      const nextDependencies = (next.storyBrain?.dependencies || []).map(dep =>
+        changedArtifactIds.includes(dep.sourceEntityId)
+          ? { ...dep, isStale: true, staleReason }
+          : dep
+      );
+
+      next = {
+        ...next,
         canonicalVersion: targetVersion,
+        artifactVersions: nextVersions,
+        artifactApprovals: approvals,
+        storyBrain: {
+          ...next.storyBrain,
+          creativeDecisions: decisions,
+          decisionLog: decisions,
+          dependencies: nextDependencies,
+          lastUpdated: now
+        },
         branchMergePreview: { ...preview, status: 'APPROVED', reviewedBy: mergedBy, reviewedAt: now, rationale },
-        projectBranches: (prev.projectBranches || []).map(b =>
+        projectBranches: (next.projectBranches || []).map(b =>
           b.id === branchId ? { ...b, status: 'MERGED', mergeDecisionId: decisionId } : b
         ),
-        branchMerges: [merge, ...(prev.branchMerges || [])],
-        storyBrain: {
-          ...prev.storyBrain,
-          creativeDecisions: [decision, ...(prev.storyBrain.creativeDecisions || [])],
-          decisionLog: [decision, ...(prev.storyBrain.decisionLog || [])],
-          lastUpdated: now
-        }
+        branchMerges: [{
+          id: mergeId,
+          branchId,
+          sourceVersionIds: branchSourceIds.size ? [...branchSourceIds] : branch.artifactVersionIds,
+          targetProjectVersion: targetVersion,
+          mergedAt: now,
+          mergedBy,
+          rationale,
+          status: 'APPROVED',
+          previewId: preview.id
+        }, ...(next.branchMerges || [])]
       };
+
+      // Automatically prepare the downstream impact set. No regeneration is
+      // executed here; affected artifacts remain human-reviewable/stale.
+      const impactItems = changedArtifactIds.flatMap(id =>
+        resolveDependencyImpact(next, {
+          sourceEntityId: id,
+          sourceDescription: 'Approved branch merge changed artifact ' + id
+        }).items
+      );
+      if (impactItems.length) {
+        const deduped = Array.from(new Map(impactItems.map(item => [item.id, item])).values());
+        const summary = {
+          characters: deduped.filter(i => i.category === 'Characters').length,
+          story: deduped.filter(i => i.category === 'Story').length,
+          scenes: deduped.filter(i => i.category === 'Scenes').length,
+          dialogue: deduped.filter(i => i.category === 'Dialogue').length,
+          visuals: deduped.filter(i => i.category === 'Visuals').length,
+          production: deduped.filter(i => i.category === 'Production').length
+        };
+        const impact: ImpactAnalysisState = {
+          isOpen: true,
+          sourceTrigger: 'Approved branch merge: ' + branch.name,
+          totalAffected: deduped.length,
+          summary,
+          items: deduped
+        };
+        const plan = buildRegenerationPlan(next, impact);
+        next = {
+          ...next,
+          regenerationPlans: [plan, ...(next.regenerationPlans || [])]
+        };
+      }
+
+      return next;
     });
   };
 
