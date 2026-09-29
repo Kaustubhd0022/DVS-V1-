@@ -2506,6 +2506,7 @@ Format: ${currentProject.format}
         resolveQAIssue,
         resolveQAInconsistency,
         runStoryEvaluation,
+        reevaluateAfterRepair,
         signOffEvaluation,
         setArtifactCandidateState,
         approveArtifact,
