@@ -1,4 +1,5 @@
 import { TattvaCoProject } from '../types/project';
+import { createEmptyProjectIntelligence, DEFAULT_PROJECT_CONFIGURATION, inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
 
 /**
  * Creates a clean, unpopulated Tattava project derived strictly from user input.
@@ -45,6 +46,15 @@ export const createEmptyProject = (
     status: 'DRAFT',
     canonicalVersion: 'v0.1-draft',
     isDemo: false,
+
+    projectConfig: {
+      ...DEFAULT_PROJECT_CONFIGURATION,
+      mediaFormat: inferMediaFormat(options.contentType || ''),
+      contentMode: inferContentMode(options.contentType || cleanPremise),
+      subject: cleanPremise,
+      configurationStatus: 'PROPOSED'
+    },
+    projectIntelligence: createEmptyProjectIntelligence(),
 
     // STORY BRAIN — Starts completely EMPTY for new user projects
     storyBrain: {
