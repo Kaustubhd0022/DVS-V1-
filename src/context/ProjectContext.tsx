@@ -26,7 +26,6 @@ import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
 import { evaluateProjectNarrative, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
-import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
 
 export type ScreenId = 
   | 'home' 
