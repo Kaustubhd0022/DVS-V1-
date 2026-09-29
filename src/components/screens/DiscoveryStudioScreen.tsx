@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { DiscoveryCandidateOption, DiscoveryTurn } from '../../types/project';
+import { ProjectIntelligenceSummary } from '../project/ProjectIntelligenceSummary';
 
 export const DiscoveryStudioScreen: React.FC = () => {
   const { 
@@ -196,6 +197,8 @@ export const DiscoveryStudioScreen: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <ProjectIntelligenceSummary />
 
       {/* Main Studio Grid: Left Conversational Feed (8 cols) vs Right Project Intelligence Drawer (4 cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
