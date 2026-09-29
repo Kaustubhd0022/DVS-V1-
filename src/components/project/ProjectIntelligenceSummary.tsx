@@ -3,7 +3,8 @@ import { Compass, Database, Film, Sparkles } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 
 export const ProjectIntelligenceSummary: React.FC = () => {
-  const { currentProject } = useProject();
+  const { currentProject, generateProjectInsights, generateProjectDirections, setProjectInsightStatus } = useProject();
+  const [working, setWorking] = React.useState<'insights' | 'directions' | null>(null);
   const config = currentProject.projectConfig;
 
   if (!config) return null;
@@ -92,6 +93,41 @@ export const ProjectIntelligenceSummary: React.FC = () => {
           <p className="text-lg font-bold text-white">{currentProject.projectIntelligence?.directions.length || 0}</p>
           <p className="text-[9px] uppercase tracking-wider text-white/35">Directions</p>
         </div>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-white/5">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mb-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-white/40">Knowledge → Insight → Direction</p>
+            <p className="text-[11px] text-white/45 mt-1">AI proposes; the creator decides what becomes accepted project intelligence.</p>
+          </div>
+          <div className="flex gap-2">
+            <button disabled={working !== null} onClick={async () => { setWorking('insights'); try { await generateProjectInsights(); } finally { setWorking(null); } }} className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[10px] font-semibold disabled:opacity-50">
+              {working === 'insights' ? 'Synthesizing…' : 'Synthesize Insights'}
+            </button>
+            <button disabled={working !== null || !(currentProject.projectIntelligence?.insights || []).some(i => i.status === 'ACCEPTED')} onClick={async () => { setWorking('directions'); try { await generateProjectDirections(); } finally { setWorking(null); } }} className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-semibold disabled:opacity-40">
+              {working === 'directions' ? 'Generating…' : 'Generate Directions'}
+            </button>
+          </div>
+        </div>
+        {(currentProject.projectIntelligence?.insights || []).slice(0, 4).map(insight => (
+          <div key={insight.id} className="rounded-xl bg-black/20 border border-white/5 p-3 mb-2">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] uppercase tracking-wider text-cyan-300/70">{insight.type.replace('_', ' ')}</span>
+                  <span className="text-[9px] text-white/30">{insight.status}</span>
+                </div>
+                <p className="text-xs font-semibold text-white mt-1">{insight.title}</p>
+                <p className="text-[11px] text-white/60 mt-1 leading-relaxed">{insight.statement}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => setProjectInsightStatus(insight.id, 'ACCEPTED')} className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-300 text-[9px]">Accept</button>
+                <button onClick={() => setProjectInsightStatus(insight.id, 'DISMISSED')} className="px-2 py-1 rounded bg-red-500/10 text-red-300 text-[9px]">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
