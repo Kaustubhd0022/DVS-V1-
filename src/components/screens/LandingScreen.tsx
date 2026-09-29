@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useScroll, useSpring, useTransform } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import {
   ArrowDown,
   ArrowRight,
@@ -106,12 +107,12 @@ function track(event: string, properties: Record<string, string> = {}) {
   }
 }
 
-const reveal = {
+const reveal: Variants = {
   hidden: { opacity: 0, y: 28 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
 };
 
-const stagger = {
+const stagger: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.08 } },
 };
