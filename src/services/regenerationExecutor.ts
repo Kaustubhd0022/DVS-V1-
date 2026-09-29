@@ -25,7 +25,7 @@ export const executeRegenerationItem = async (
 
     const candidate = await generateCharacterCandidate(
       project,
-      existing.role,
+      (existing.role === 'Protagonist' || existing.role === 'Antagonist') ? existing.role : 'Key Supporting',
       'Regenerate existing character "' + existing.name + '" while preserving approved identity and resolving the current dependency impact: ' + item.reason
     );
 
