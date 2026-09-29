@@ -579,7 +579,7 @@ Return ONLY valid JSON matching:
  */
 export interface StoryDirectionCandidate {
   title: string;
-  badgeLetter: 'A' | 'B' | 'C' | 'D';
+  badgeLetter: string;
   logline: string;
   narrativeEngine: string;
   protagonistArc: string;
