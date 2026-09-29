@@ -18,13 +18,17 @@ import {
   ArtifactApprovalRecord,
   ContinuityIssue,
   StoryEvaluation,
+  EvaluationComparison,
   ResearchFinding,
   DiscoveryTurn,
   DiscoveryCandidateOption,
   DiscoverySession,
   RegenerationPlan,
   ProjectBranch,
-  BranchMergeRecord
+  BranchMergeRecord,
+  BranchMergePreview,
+  BranchMergeConflict,
+  BranchMergeDiff
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
@@ -162,11 +166,17 @@ interface ProjectContextType {
 
   // AI Story Evaluation Harness
   runStoryEvaluation: () => void;
+  reevaluateAfterRepair: () => Promise<void>;
   signOffEvaluation: (approverName: string, role: string, comments: string) => void;
 
   // Branch / Canon Evolution
   createProjectBranch: (name: string, purpose: string, createdBy: string) => string;
   addArtifactToBranch: (branchId: string, versionId: string) => void;
+  prepareProjectBranchMerge: (branchId: string) => BranchMergePreview | null;
+  approveProjectBranchMerge: (branchId: string, mergedBy: string, rationale: string) => void;
+  rejectProjectBranchMerge: (branchId: string, reviewedBy: string, rationale?: string) => void;
+  resolveBranchMergeConflict: (branchId: string, conflictId: string, resolution: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT') => void;
+  setBranchMergeManualContent: (branchId: string, conflictId: string, content: unknown) => void;
   mergeProjectBranch: (branchId: string, mergedBy: string, rationale: string) => void;
   abandonProjectBranch: (branchId: string) => void;
 
@@ -180,6 +190,7 @@ interface ProjectContextType {
   approveAndPropagateImpact: () => void;
   buildRegenerationPlan: () => void;
   executeRegenerationPlan: (planId: string) => Promise<RegenerationResult[]>;
+  approveRegenerationProposal: (versionId: string, approvedBy: string, role: string, rationale?: string) => void;
   
   // Specific Screen Helper Methods
   setProjectFormat: (format: string) => void;
@@ -620,9 +631,37 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           actionItems: evalRes.actionItems || ['Review second act transitions and maintain thematic pressure']
         };
 
+        const previousEvaluation = prev.evaluation;
+        const comparison: EvaluationComparison | null = previousEvaluation ? {
+          id: 'evaluation-comparison-' + Date.now(),
+          beforeEvaluationAt: previousEvaluation.evaluatedAt,
+          afterEvaluationAt: updatedEval.evaluatedAt,
+          overallScoreDelta: updatedEval.overallScore - previousEvaluation.overallScore,
+          readinessChanged: updatedEval.readinessStatus !== previousEvaluation.readinessStatus,
+          dimensionChanges: updatedEval.dimensions.map(after => {
+            const before = previousEvaluation.dimensions.find(d => d.name === after.name);
+            const beforeScore = before?.score ?? after.score;
+            const delta = after.score - beforeScore;
+            return {
+              dimension: after.name,
+              beforeScore,
+              afterScore: after.score,
+              delta,
+              interpretation: delta > 0 ? 'IMPROVED' : delta < 0 ? 'REGRESSED' : 'UNCHANGED'
+            };
+          }),
+          resolvedRisks: (previousEvaluation.criticalRisks || []).filter(risk => !(updatedEval.criticalRisks || []).includes(risk)),
+          remainingRisks: updatedEval.criticalRisks || [],
+          generatedAt: new Date().toISOString()
+        } : null;
+
         return {
           ...prev,
           evaluation: updatedEval,
+          evaluationHistory: [...(prev.evaluationHistory || []), updatedEval],
+          evaluationComparisons: comparison
+            ? [comparison, ...(prev.evaluationComparisons || [])]
+            : (prev.evaluationComparisons || []),
           evaluationRepairPlan: repairPlan,
           pilotMetrics: {
             ...prev.pilotMetrics,
@@ -634,6 +673,10 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error('Failed to run dynamic story evaluation:', err);
       throw err;
     }
+  };
+
+  const reevaluateAfterRepair = async () => {
+    await runStoryEvaluation();
   };
 
   const signOffEvaluation = (approverName: string, role: string, comments: string) => {
@@ -846,56 +889,387 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
   };
 
-  const mergeProjectBranch = (branchId: string, mergedBy: string, rationale: string) => {
+  const prepareProjectBranchMerge = (branchId: string): BranchMergePreview | null => {
+    let preview: BranchMergePreview | null = null;
+
     updateCurrentProject(prev => {
       const branch = (prev.projectBranches || []).find(b => b.id === branchId);
       if (!branch || branch.status !== 'ACTIVE') return prev;
 
-      const versionIds = branch.artifactVersionIds.filter(id =>
-        (prev.artifactVersions || []).some(v => v.id === id && v.state === 'CANONICAL')
-      );
-      if (!versionIds.length) return prev;
+      const branchVersions = branch.artifactVersionIds
+        .map(id => (prev.artifactVersions || []).find(v => v.id === id))
+        .filter((v): v is ArtifactVersionRecord => Boolean(v && v.state === 'CANONICAL'));
+
+      const canonicalVersions = (prev.artifactVersions || []).filter(v => v.state === 'CANONICAL');
+      const diffs: BranchMergeDiff[] = [];
+      const conflicts: BranchMergeConflict[] = [];
+
+      const stableSerialize = (value: unknown) => {
+        try { return JSON.stringify(value, Object.keys((value || {}) as object).sort()); }
+        catch { return JSON.stringify(value); }
+      };
+
+      const changedFields = (left: unknown, right: unknown): string[] => {
+        if (!left || !right || typeof left !== 'object' || typeof right !== 'object') {
+          return stableSerialize(left) === stableSerialize(right) ? [] : ['content'];
+        }
+        const keys = Array.from(new Set([
+          ...Object.keys(left as Record<string, unknown>),
+          ...Object.keys(right as Record<string, unknown>)
+        ]));
+        return keys.filter(key =>
+          stableSerialize((left as Record<string, unknown>)[key]) !==
+          stableSerialize((right as Record<string, unknown>)[key])
+        );
+      };
+
+      branchVersions.forEach(branchVersion => {
+        const canonical = canonicalVersions
+          .filter(v => v.artifactType === branchVersion.artifactType && v.artifactId === branchVersion.artifactId)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+
+        if (!canonical) {
+          diffs.push({
+            artifactType: branchVersion.artifactType,
+            artifactId: branchVersion.artifactId,
+            branchVersionId: branchVersion.id,
+            changeType: 'ADDED',
+            changedFields: ['content'],
+            summary: 'Branch introduces an artifact with no current canonical counterpart.'
+          });
+          return;
+        }
+
+        const fields = changedFields(branchVersion.content, canonical.content);
+        const changeType = fields.length ? 'MODIFIED' : 'UNCHANGED';
+        diffs.push({
+          artifactType: branchVersion.artifactType,
+          artifactId: branchVersion.artifactId,
+          branchVersionId: branchVersion.id,
+          canonicalVersionId: canonical.id,
+          changeType,
+          changedFields: fields,
+          summary: fields.length
+            ? 'Branch version differs from the current canonical artifact.'
+            : 'Branch version matches the current canonical artifact.'
+        });
+
+        if (fields.length && branch.baseCanonicalVersion !== (prev.canonicalVersion || 'v0.1')) {
+          conflicts.push({
+            id: 'branch-conflict-' + branchVersion.id,
+            artifactType: branchVersion.artifactType,
+            artifactId: branchVersion.artifactId,
+            branchVersionId: branchVersion.id,
+            canonicalVersionId: canonical.id,
+            branchContent: branchVersion.content,
+            canonicalContent: canonical.content,
+            reason: 'The project advanced after this branch was created and the same artifact changed on both paths.'
+          });
+        }
+      });
 
       const now = new Date().toISOString();
-      const targetVersion = 'v' + ((Number((prev.canonicalVersion || 'v0').replace('v', '')) || 0) + 1);
-      const mergeId = 'merge-' + Date.now();
-      const decisionId = 'branch-merge-decision-' + Date.now();
-
-      const decision: CreativeDecision = {
-        id: decisionId,
-        title: 'Merged creative branch: ' + branch.name,
-        decision: 'Merged approved branch ' + branch.name + ' into canonical project version ' + targetVersion,
-        rationale: rationale || 'Human-approved branch merge.',
-        author: mergedBy,
-        role: 'Creative Lead',
-        date: now,
-        status: 'Approved',
-        impactedAreas: ['Canon', 'Branch']
-      };
-      const merge: BranchMergeRecord = {
-        id: mergeId,
+      preview = {
+        id: 'branch-preview-' + Date.now(),
         branchId,
-        sourceVersionIds: versionIds,
-        targetProjectVersion: targetVersion,
-        mergedAt: now,
-        mergedBy,
-        rationale,
-        status: 'APPROVED'
+        baseCanonicalVersion: branch.baseCanonicalVersion,
+        targetCanonicalVersion: prev.canonicalVersion || 'v0.1',
+        createdAt: now,
+        diffs,
+        conflicts,
+        status: conflicts.length ? 'CONFLICTS' : 'READY'
       };
 
       return {
         ...prev,
+        branchMergePreview: preview
+      };
+    });
+
+    return preview;
+  };
+
+  const approveProjectBranchMerge = (branchId: string, mergedBy: string, rationale: string) => {
+    updateCurrentProject(prev => {
+      const branch = (prev.projectBranches || []).find(b => b.id === branchId);
+      const preview = prev.branchMergePreview;
+      if (!branch || branch.status !== 'ACTIVE' || !preview || preview.branchId !== branchId) return prev;
+      if (preview.status !== 'READY') return prev;
+
+      const branchVersions = branch.artifactVersionIds
+        .map(id => (prev.artifactVersions || []).find(v => v.id === id))
+        .filter((v): v is ArtifactVersionRecord => Boolean(v && v.state === 'CANONICAL'));
+
+      const changedDiffs = preview.diffs.filter(d => d.changeType !== 'UNCHANGED');
+      if (!changedDiffs.length) return prev;
+
+      const now = new Date().toISOString();
+      const currentNumber = Number((prev.canonicalVersion || 'v0').replace(/[^0-9.]/g, '')) || 0;
+      const targetVersion = 'v' + (Math.floor(currentNumber) + 1);
+      const mergeId = 'merge-' + Date.now();
+      const decisionId = 'branch-merge-decision-' + Date.now();
+
+      const resolutionFor = (diff: BranchMergeDiff): BranchMergeConflict['resolution'] => {
+        const conflict = preview.conflicts.find(c => c.id === 'branch-conflict-' + diff.branchVersionId);
+        return conflict?.resolution || 'USE_BRANCH';
+      };
+
+      // MANUAL_EDIT is only valid when the edited content has actually been supplied.
+      const unresolvedManualEdit = preview.conflicts.some(conflict =>
+        conflict.resolution === 'MANUAL_EDIT' && conflict.manualContent === undefined
+      );
+      if (unresolvedManualEdit) return prev;
+
+      const canonicalVersions = [...(prev.artifactVersions || [])];
+      const approvals = [...(prev.artifactApprovals || [])];
+      const decisions = [...(prev.storyBrain?.creativeDecisions || [])];
+      const branchSourceIds = new Set<string>();
+      const changedArtifactIds: string[] = [];
+      let next = { ...prev };
+
+      const applyContent = (project: TattavaProject, diff: BranchMergeDiff, content: unknown): TattavaProject => {
+        const canonicalContent = { ...(content as Record<string, unknown>), candidateState: 'CANONICAL' as CanonicalState };
+        if (diff.artifactType === 'direction') {
+          return {
+            ...project,
+            storyDirections: project.storyDirections.map(a => a.id === diff.artifactId ? canonicalContent as StoryDirection : a),
+            selectedDirectionId: diff.artifactId
+          };
+        }
+        if (diff.artifactType === 'character') {
+          return { ...project, characters: project.characters.map(a => a.id === diff.artifactId ? canonicalContent as Character : a) };
+        }
+        if (diff.artifactType === 'treatment') {
+          return { ...project, treatment: canonicalContent as TreatmentData };
+        }
+        if (diff.artifactType === 'scene') {
+          return { ...project, scenes: project.scenes.map(a => a.id === diff.artifactId ? canonicalContent as SceneItem : a) };
+        }
+        return {
+          ...project,
+          dialogueSuggestions: project.dialogueSuggestions.map(a => a.id === diff.artifactId ? canonicalContent as any : a)
+        };
+      };
+
+      changedDiffs.forEach(diff => {
+        const branchVersion = branchVersions.find(v => v.id === diff.branchVersionId);
+        if (!branchVersion) return;
+
+        const conflict = preview.conflicts.find(c => c.id === 'branch-conflict-' + diff.branchVersionId);
+        const resolution = resolutionFor(diff);
+        const content = resolution === 'KEEP_CANONICAL'
+          ? (conflict?.canonicalContent ?? branchVersion.content)
+          : resolution === 'MANUAL_EDIT'
+            ? conflict?.manualContent
+            : branchVersion.content;
+
+        if (content === undefined) return;
+
+        // KEEP_CANONICAL records the human decision but does not create a
+        // duplicate canonical version or mutate the artifact.
+        if (resolution === 'KEEP_CANONICAL') {
+          branchSourceIds.add(branchVersion.id);
+          return;
+        }
+
+        next = applyContent(next, diff, content);
+        changedArtifactIds.push(diff.artifactId);
+        branchSourceIds.add(branchVersion.id);
+        const previous = canonicalVersions
+          .filter(v => v.artifactType === diff.artifactType && v.artifactId === diff.artifactId && v.state === 'CANONICAL')
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+
+        const versionId = 'artifact-version-' + Date.now() + '-' + diff.artifactId;
+        const approvalId = 'artifact-approval-' + Date.now() + '-' + diff.artifactId;
+        const versionNumber = canonicalVersions.filter(v => v.artifactType === diff.artifactType && v.artifactId === diff.artifactId).length + 1;
+        const version: ArtifactVersionRecord = {
+          id: versionId,
+          artifactType: diff.artifactType,
+          artifactId: diff.artifactId,
+          version: 'v' + versionNumber,
+          state: 'CANONICAL',
+          content,
+          createdAt: now,
+          createdBy: mergedBy,
+          changeSummary: 'Canonical artifact created from approved branch merge: ' + branch.name,
+          supersedesVersionId: previous?.id,
+          approvalId
+        };
+        const approval: ArtifactApprovalRecord = {
+          id: approvalId,
+          artifactType: diff.artifactType,
+          artifactId: diff.artifactId,
+          versionId,
+          status: 'APPROVED',
+          approvedBy: mergedBy,
+          role: 'Creative Lead',
+          timestamp: now,
+          rationale: rationale || 'Human-approved branch merge.'
+        };
+
+        if (previous) {
+          const idx = canonicalVersions.findIndex(v => v.id === previous.id);
+          if (idx >= 0) canonicalVersions[idx] = { ...canonicalVersions[idx], state: 'SUPERSEDED' };
+        }
+        canonicalVersions.push(version);
+        approvals.push(approval);
+
+        decisions.push({
+          id: 'decision-' + Date.now() + '-' + diff.artifactId,
+          title: 'Merged ' + diff.artifactType + ' from branch',
+          decision: 'Approved ' + diff.artifactType + ' ' + diff.artifactId + ' from branch "' + branch.name + '" into ' + version.version,
+          rationale: rationale || 'Human approval recorded for downstream grounding.',
+          author: mergedBy,
+          role: 'Creative Lead',
+          date: now,
+          status: 'Approved',
+          impactedAreas: [diff.artifactType, 'Canon', 'Branch']
+        });
+      });
+
+      // Branch source versions become historical records; the new canonical versions
+      // are the authoritative project state.
+      const nextVersions = canonicalVersions.map(v =>
+        branchSourceIds.has(v.id) ? { ...v, state: 'SUPERSEDED' as CanonicalState } : v
+      );
+
+      const staleReason = 'Upstream canonical artifact changed through approved branch merge ' + targetVersion;
+      const nextDependencies = (next.storyBrain?.dependencies || []).map(dep =>
+        changedArtifactIds.includes(dep.sourceEntityId)
+          ? { ...dep, isStale: true, staleReason }
+          : dep
+      );
+
+      next = {
+        ...next,
         canonicalVersion: targetVersion,
-        projectBranches: (prev.projectBranches || []).map(b => b.id === branchId ? { ...b, status: 'MERGED', mergeDecisionId: decisionId } : b),
-        branchMerges: [merge, ...(prev.branchMerges || [])],
+        artifactVersions: nextVersions,
+        artifactApprovals: approvals,
         storyBrain: {
-          ...prev.storyBrain,
-          creativeDecisions: [decision, ...(prev.storyBrain.creativeDecisions || [])],
-          decisionLog: [decision, ...(prev.storyBrain.decisionLog || [])],
+          ...next.storyBrain,
+          creativeDecisions: decisions,
+          decisionLog: decisions,
+          dependencies: nextDependencies,
           lastUpdated: now
+        },
+        branchMergePreview: { ...preview, status: 'APPROVED', reviewedBy: mergedBy, reviewedAt: now, rationale },
+        projectBranches: (next.projectBranches || []).map(b =>
+          b.id === branchId ? { ...b, status: 'MERGED', mergeDecisionId: decisionId } : b
+        ),
+        branchMerges: [{
+          id: mergeId,
+          branchId,
+          sourceVersionIds: branchSourceIds.size ? [...branchSourceIds] : branch.artifactVersionIds,
+          targetProjectVersion: targetVersion,
+          mergedAt: now,
+          mergedBy,
+          rationale,
+          status: 'APPROVED',
+          previewId: preview.id
+        }, ...(next.branchMerges || [])]
+      };
+
+      // Automatically prepare the downstream impact set. No regeneration is
+      // executed here; affected artifacts remain human-reviewable/stale.
+      const impactItems = changedArtifactIds.flatMap(id =>
+        resolveDependencyImpact(next, {
+          sourceEntityId: id,
+          sourceDescription: 'Approved branch merge changed artifact ' + id
+        }).items
+      );
+      if (impactItems.length) {
+        const deduped = Array.from(new Map(impactItems.map(item => [item.id, item])).values());
+        const summary = {
+          characters: deduped.filter(i => i.category === 'Characters').length,
+          story: deduped.filter(i => i.category === 'Story').length,
+          scenes: deduped.filter(i => i.category === 'Scenes').length,
+          dialogue: deduped.filter(i => i.category === 'Dialogue').length,
+          visuals: deduped.filter(i => i.category === 'Visuals').length,
+          production: deduped.filter(i => i.category === 'Production').length
+        };
+        const impact: ImpactAnalysisState = {
+          isOpen: true,
+          sourceTrigger: 'Approved branch merge: ' + branch.name,
+          totalAffected: deduped.length,
+          summary,
+          items: deduped
+        };
+        const plan = buildRegenerationPlan(next, impact);
+        next = {
+          ...next,
+          regenerationPlans: [plan, ...(next.regenerationPlans || [])]
+        };
+      }
+
+      return next;
+    });
+  };
+
+  const resolveBranchMergeConflict = (branchId: string, conflictId: string, resolution: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT') => {
+    updateCurrentProject(prev => {
+      const preview = prev.branchMergePreview;
+      if (!preview || preview.branchId !== branchId) return prev;
+      const conflicts = preview.conflicts.map(conflict =>
+        conflict.id === conflictId ? { ...conflict, resolution } : conflict
+      );
+      const unresolved = conflicts.filter(conflict => !conflict.resolution);
+      return {
+        ...prev,
+        branchMergePreview: {
+          ...preview,
+          conflicts,
+          status: unresolved.length ? 'CONFLICTS' : 'READY'
         }
       };
     });
+  };
+
+  const setBranchMergeManualContent = (branchId: string, conflictId: string, content: unknown) => {
+    updateCurrentProject(prev => {
+      const preview = prev.branchMergePreview;
+      if (!preview || preview.branchId !== branchId) return prev;
+      const conflicts = preview.conflicts.map(conflict =>
+        conflict.id === conflictId
+          ? { ...conflict, resolution: 'MANUAL_EDIT' as const, manualContent: content }
+          : conflict
+      );
+      const allResolved = conflicts.every(conflict =>
+        Boolean(conflict.resolution) && (
+          conflict.resolution !== 'MANUAL_EDIT' || conflict.manualContent !== undefined
+        )
+      );
+      return {
+        ...prev,
+        branchMergePreview: {
+          ...preview,
+          conflicts,
+          status: allResolved ? 'READY' : 'CONFLICTS'
+        }
+      };
+    });
+  };
+
+  const rejectProjectBranchMerge = (branchId: string, reviewedBy: string, rationale?: string) => {
+    updateCurrentProject(prev => {
+      const preview = prev.branchMergePreview;
+      if (!preview || preview.branchId !== branchId) return prev;
+      return {
+        ...prev,
+        branchMergePreview: {
+          ...preview,
+          status: 'REJECTED',
+          reviewedBy,
+          reviewedAt: new Date().toISOString(),
+          rationale
+        }
+      };
+    });
+  };
+
+  // Backward-compatible entry point: never merges silently. It now prepares a
+  // reviewable preview; callers must explicitly invoke approveProjectBranchMerge.
+  const mergeProjectBranch = (branchId: string, mergedBy: string, rationale: string) => {
+    prepareProjectBranchMerge(branchId);
   };
 
   const abandonProjectBranch = (branchId: string) => {
@@ -1588,6 +1962,104 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setImpactState(prev => ({ ...prev, isOpen: false }));
   };
 
+  const approveRegenerationProposal = (versionId: string, approvedBy: string, role: string, rationale?: string) => {
+    updateCurrentProject(prev => {
+      const proposal = (prev.artifactVersions || []).find(v => v.id === versionId && v.state === 'AI_PROPOSAL');
+      if (!proposal) return prev;
+
+      const now = new Date().toISOString();
+      const previous = (prev.artifactVersions || [])
+        .filter(v => v.artifactType === proposal.artifactType && v.artifactId === proposal.artifactId && v.state === 'CANONICAL')
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      const approvalId = 'artifact-approval-' + Date.now();
+      const canonicalId = 'artifact-version-' + Date.now();
+      const versionNumber = (prev.artifactVersions || [])
+        .filter(v => v.artifactType === proposal.artifactType && v.artifactId === proposal.artifactId).length + 1;
+
+      const canonical: ArtifactVersionRecord = {
+        ...proposal,
+        id: canonicalId,
+        version: 'v' + versionNumber,
+        state: 'CANONICAL',
+        createdAt: now,
+        createdBy: approvedBy,
+        changeSummary: rationale || 'Human-approved regeneration proposal.',
+        supersedesVersionId: previous?.id,
+        approvalId
+      };
+      const approval: ArtifactApprovalRecord = {
+        id: approvalId,
+        artifactType: proposal.artifactType,
+        artifactId: proposal.artifactId,
+        versionId: canonicalId,
+        status: 'APPROVED',
+        approvedBy,
+        role,
+        timestamp: now,
+        rationale
+      };
+      const versions = (prev.artifactVersions || []).map(v =>
+        v.id === previous?.id ? { ...v, state: 'SUPERSEDED' as CanonicalState } :
+        v.id === proposal.id ? { ...v, state: 'SUPERSEDED' as CanonicalState } : v
+      );
+      const decision: CreativeDecision = {
+        id: 'decision-' + Date.now(),
+        title: 'Approved regenerated ' + proposal.artifactType,
+        decision: 'Approved regenerated ' + proposal.artifactType + ' ' + proposal.artifactId + ' as ' + canonical.version,
+        rationale: rationale || 'Human approval recorded for downstream grounding.',
+        author: approvedBy,
+        role,
+        date: now,
+        status: 'Approved',
+        impactedAreas: [proposal.artifactType, 'Regeneration']
+      };
+
+      const resolvedRepairPlan = prev.evaluationRepairPlan
+        ? {
+            ...prev.evaluationRepairPlan,
+            status: 'PARTIAL' as const,
+            items: prev.evaluationRepairPlan.items.map(item =>
+              item.targetArtifact === proposal.artifactType &&
+              item.status === 'OPEN'
+                ? { ...item, status: 'IN_PROGRESS' as const }
+                : item
+            )
+          }
+        : prev.evaluationRepairPlan;
+
+      let next: TattavaProject = {
+        ...prev,
+        artifactVersions: [...versions, canonical],
+        evaluationRepairPlan: resolvedRepairPlan,
+        artifactApprovals: [...(prev.artifactApprovals || []), approval],
+        storyBrain: {
+          ...prev.storyBrain,
+          creativeDecisions: [decision, ...(prev.storyBrain?.creativeDecisions || [])],
+          decisionLog: [decision, ...(prev.storyBrain?.decisionLog || [])],
+          dependencies: (prev.storyBrain?.dependencies || []).map(dep =>
+            dep.targetEntityId === proposal.artifactId
+              ? { ...dep, isStale: false, staleReason: undefined }
+              : dep
+          ),
+          lastUpdated: now
+        }
+      };
+
+      if (proposal.artifactType === 'character') {
+        next = { ...next, characters: next.characters.map(a => a.id === proposal.artifactId ? { ...(proposal.content as Character), candidateState: 'CANONICAL' } : a) };
+      } else if (proposal.artifactType === 'treatment') {
+        next = { ...next, treatment: { ...(proposal.content as TreatmentData), candidateState: 'CANONICAL' } };
+      } else if (proposal.artifactType === 'scene') {
+        next = { ...next, scenes: next.scenes.map(a => a.id === proposal.artifactId ? { ...(proposal.content as SceneItem), candidateState: 'CANONICAL' } : a) };
+      } else if (proposal.artifactType === 'direction') {
+        next = { ...next, storyDirections: next.storyDirections.map(a => a.id === proposal.artifactId ? { ...(proposal.content as StoryDirection), candidateState: 'CANONICAL' } : a), selectedDirectionId: proposal.artifactId };
+      } else {
+        next = { ...next, dialogueSuggestions: next.dialogueSuggestions.map(a => a.id === proposal.artifactId ? { ...(proposal.content as any), candidateState: 'CANONICAL' } : a) };
+      }
+      return next;
+    });
+  };
+
   const executeRegenerationPlan = async (planId: string): Promise<RegenerationResult[]> => {
     const plan = (currentProject.regenerationPlans || []).find(p => p.id === planId);
     if (!plan) return [];
@@ -1599,16 +2071,29 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (result.ok) {
         updateCurrentProject(prev => {
+          const now = new Date().toISOString();
+          const proposalId = 'regen-proposal-' + Date.now() + '-' + result.artifactId;
+          const proposal: ArtifactVersionRecord = {
+            id: proposalId,
+            artifactType: result.artifactType,
+            artifactId: result.artifactId,
+            version: 'proposal-' + ((prev.artifactVersions || []).length + 1),
+            state: 'AI_PROPOSAL',
+            content: result.artifact,
+            createdAt: now,
+            createdBy: 'Tattava AI',
+            changeSummary: 'AI regeneration proposal: ' + result.message
+          };
           if (result.artifactType === 'character') {
-            return { ...prev, characters: prev.characters.map(c => c.id === result.artifactId ? result.artifact : c) };
+            return { ...prev, characters: prev.characters.map(c => c.id === result.artifactId ? result.artifact : c), artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
           if (result.artifactType === 'treatment') {
-            return { ...prev, treatment: result.artifact };
+            return { ...prev, treatment: result.artifact, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
           if (result.artifactType === 'scene') {
-            return { ...prev, scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s) };
+            return { ...prev, scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s), artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
-          return prev;
+          return { ...prev, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
         });
       }
     }
@@ -2021,11 +2506,17 @@ Format: ${currentProject.format}
         resolveQAIssue,
         resolveQAInconsistency,
         runStoryEvaluation,
+        reevaluateAfterRepair,
         signOffEvaluation,
         setArtifactCandidateState,
         approveArtifact,
         createProjectBranch,
         addArtifactToBranch,
+        prepareProjectBranchMerge,
+        approveProjectBranchMerge,
+        rejectProjectBranchMerge,
+        resolveBranchMergeConflict,
+        setBranchMergeManualContent,
         mergeProjectBranch,
         abandonProjectBranch,
         triggerChangeImpact,
@@ -2033,6 +2524,7 @@ Format: ${currentProject.format}
         approveAndPropagateImpact,
         buildRegenerationPlan: createRegenerationPlan,
         executeRegenerationPlan,
+        approveRegenerationProposal,
         setProjectFormat,
         setProjectTemplate,
         updateTreatment,

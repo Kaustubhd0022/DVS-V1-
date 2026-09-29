@@ -487,6 +487,24 @@ export interface EvaluationRepairPlan {
   items: EvaluationRepairItem[];
 }
 
+export interface EvaluationComparison {
+  id: string;
+  beforeEvaluationAt: string;
+  afterEvaluationAt: string;
+  overallScoreDelta: number;
+  readinessChanged: boolean;
+  dimensionChanges: Array<{
+    dimension: string;
+    beforeScore: number;
+    afterScore: number;
+    delta: number;
+    interpretation: 'IMPROVED' | 'UNCHANGED' | 'REGRESSED';
+  }>;
+  resolvedRisks: string[];
+  remainingRisks: string[];
+  generatedAt: string;
+}
+
 // -------------------------------------------------------------
 // PILOT INSTRUMENTATION & TELEMETRY MODEL
 // -------------------------------------------------------------
@@ -657,6 +675,44 @@ export interface ProjectBranch {
   mergeDecisionId?: string;
 }
 
+export interface BranchMergeConflict {
+  id: string;
+  artifactType: ArtifactVersionRecord['artifactType'];
+  artifactId: string;
+  branchVersionId: string;
+  canonicalVersionId?: string;
+  branchContent: unknown;
+  canonicalContent?: unknown;
+  reason: string;
+  resolution?: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT';
+  /** Required when MANUAL_EDIT is selected; merge is blocked until supplied. */
+  manualContent?: unknown;
+}
+
+export interface BranchMergeDiff {
+  artifactType: ArtifactVersionRecord['artifactType'];
+  artifactId: string;
+  branchVersionId: string;
+  canonicalVersionId?: string;
+  changeType: 'ADDED' | 'MODIFIED' | 'UNCHANGED';
+  changedFields: string[];
+  summary: string;
+}
+
+export interface BranchMergePreview {
+  id: string;
+  branchId: string;
+  baseCanonicalVersion: string;
+  targetCanonicalVersion: string;
+  createdAt: string;
+  diffs: BranchMergeDiff[];
+  conflicts: BranchMergeConflict[];
+  status: 'READY' | 'CONFLICTS' | 'APPROVED' | 'REJECTED';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rationale?: string;
+}
+
 export interface BranchMergeRecord {
   id: string;
   branchId: string;
@@ -666,6 +722,7 @@ export interface BranchMergeRecord {
   mergedBy: string;
   rationale: string;
   status: 'PROPOSED' | 'APPROVED' | 'REJECTED';
+  previewId?: string;
 }
 
 export interface ArtifactApprovalRecord {
@@ -726,7 +783,9 @@ export interface TattvaCoProject {
 
   // AI Story Evaluation Harness
   evaluation?: StoryEvaluation | null;
+  evaluationHistory?: StoryEvaluation[];
   evaluationRepairPlan?: EvaluationRepairPlan | null;
+  evaluationComparisons?: EvaluationComparison[];
 
   // Context Resolver active cache
   activeContextPackage?: ContextResolverPackage;
@@ -734,6 +793,7 @@ export interface TattvaCoProject {
   artifactApprovals?: ArtifactApprovalRecord[];
   projectBranches?: ProjectBranch[];
   branchMerges?: BranchMergeRecord[];
+  branchMergePreview?: BranchMergePreview | null;
   regenerationPlans?: RegenerationPlan[];
 
   // Conversational Discovery & Development Loop Session

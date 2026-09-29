@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export const EvaluationScreen: React.FC = () => {
-  const { currentProject, runStoryEvaluation, signOffEvaluation, repairSceneWithCanon, setActiveScreen } = useProject();
+  const { currentProject, runStoryEvaluation, reevaluateAfterRepair, signOffEvaluation, repairSceneWithCanon, setActiveScreen } = useProject();
   const evaluation = currentProject.evaluation;
 
   const [isRunning, setIsRunning] = useState(false);
@@ -36,6 +36,18 @@ export const EvaluationScreen: React.FC = () => {
       await runStoryEvaluation();
     } catch (err: any) {
       setEvalError(err.message || 'AI service error running narrative evaluation.');
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleReevaluateAfterRepair = async () => {
+    setIsRunning(true);
+    setEvalError(null);
+    try {
+      await reevaluateAfterRepair();
+    } catch (err: any) {
+      setEvalError(err.message || 'AI service error during post-repair re-evaluation.');
     } finally {
       setIsRunning(false);
     }
@@ -319,6 +331,84 @@ export const EvaluationScreen: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Repair -> Re-evaluation Loop */}
+          {currentProject.evaluationRepairPlan && currentProject.evaluationRepairPlan.items.length > 0 && (
+            <div className="bg-[#141724] border border-cyan-500/30 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-cyan-400" />
+                    Evaluation → Repair → Re-evaluation
+                  </h3>
+                  <p className="text-xs text-white/60 mt-1">
+                    Approved repairs remain non-canonical until re-evaluation confirms whether the underlying risk improved.
+                  </p>
+                </div>
+                <button
+                  onClick={handleReevaluateAfterRepair}
+                  disabled={isRunning}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold flex items-center gap-2 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
+                  {isRunning ? 'Re-evaluating...' : 'Re-evaluate After Repair'}
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
+                  <span className="text-[10px] uppercase tracking-wider text-white/40">Repair Plan</span>
+                  <div className="text-xs font-bold text-white mt-1">{currentProject.evaluationRepairPlan.status}</div>
+                </div>
+                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
+                  <span className="text-[10px] uppercase tracking-wider text-white/40">Items</span>
+                  <div className="text-xs font-bold text-white mt-1">{currentProject.evaluationRepairPlan.items.length}</div>
+                </div>
+                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
+                  <span className="text-[10px] uppercase tracking-wider text-white/40">Comparison History</span>
+                  <div className="text-xs font-bold text-white mt-1">{currentProject.evaluationComparisons?.length || 0} run(s)</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentProject.evaluationComparisons && currentProject.evaluationComparisons.length > 0 && (
+            <div className="bg-[#141724] border border-white/10 rounded-2xl p-5 space-y-3">
+              <h3 className="text-sm font-bold text-white">Before vs After Evaluation</h3>
+              {currentProject.evaluationComparisons.slice(0, 3).map(comparison => (
+                <div key={comparison.id} className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-xs text-white/60">Overall score delta</span>
+                    <span className={`text-sm font-black ${comparison.overallScoreDelta > 0 ? 'text-emerald-400' : comparison.overallScoreDelta < 0 ? 'text-rose-400' : 'text-white'}`}>
+                      {comparison.overallScoreDelta > 0 ? '+' : ''}{comparison.overallScoreDelta.toFixed(1)}
+                    </span>
+                    <span className="text-[10px] text-white/40">
+                      {comparison.readinessChanged ? 'Readiness status changed' : 'Readiness status unchanged'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {comparison.dimensionChanges.map(change => (
+                      <div key={change.dimension} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03]">
+                        <span className="text-[11px] text-white/70">{change.dimension}</span>
+                        <span className={`text-[11px] font-bold ${change.delta > 0 ? 'text-emerald-400' : change.delta < 0 ? 'text-rose-400' : 'text-white/50'}`}>
+                          {change.delta > 0 ? '+' : ''}{change.delta.toFixed(1)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {comparison.remainingRisks.length > 0 && (
+                    <div className="text-xs text-amber-200/80">
+                      Remaining risks: {comparison.remainingRisks.join(' • ')}
+                    </div>
+                  )}
+                  {comparison.resolvedRisks.length > 0 && (
+                    <div className="text-xs text-emerald-300/80">
+                      Risks no longer present: {comparison.resolvedRisks.join(' • ')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Human Producer Review & Evaluation Sign-Off */}
           <div className="bg-[#141724] border border-amber-500/30 rounded-2xl p-6 space-y-4">
