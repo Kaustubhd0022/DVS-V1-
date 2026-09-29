@@ -25,7 +25,7 @@ import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
-import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections } from '../services/aiService';
+import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 
 export type ScreenId = 
   | 'home' 
@@ -821,7 +821,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const generateProjectDirections = async () => {
-    const result = await generateProjectDirections(currentProject);
+    const result = await synthesizeProjectDirections(currentProject);
     updateCurrentProject(prev => {
       const intelligence = prev.projectIntelligence!;
       const directions = result.directions.map((item, index) => ({
