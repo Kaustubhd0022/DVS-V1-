@@ -2046,3 +2046,72 @@ Output purely JSON matching this schema:
 };
 
 
+
+
+/** PROJECT INTELLIGENCE: EVIDENCE -> INSIGHT */
+export interface ProjectInsightSynthesisResult {
+  insights: Array<{
+    title: string; statement: string; basedOnFindingIds: string[];
+    type: 'INTERPRETATION' | 'PATTERN' | 'CREATIVE_OPPORTUNITY' | 'HYPOTHESIS';
+    rationale: string;
+  }>;
+}
+
+export const synthesizeProjectInsights = async (project: TattavaProject): Promise<ProjectInsightSynthesisResult> => {
+  const verifiedFindings = (project.researchFindings || []).filter((f: any) => f.status === 'Verified');
+  if (!verifiedFindings.length) return { insights: [] };
+  const universe = project.projectIntelligence?.researchUniverse;
+  const context = buildProjectContext(project, 'Synthesize evidence-backed project insights without changing canon.', { includeResearch: true, includeDecisions: true });
+  const evidenceBlock = verifiedFindings.map((f: any) => ({ id: f.id, topic: f.topic, claim: f.claim, evidence: f.evidence, source: f.source, sourceUrl: f.sourceUrl, implicationForPlot: f.implicationForPlot }));
+  const prompt = context + '\\n\\nVERIFIED EVIDENCE:\\n' + JSON.stringify(evidenceBlock) +
+    '\\n\\nRESEARCH UNIVERSE:\\n' + JSON.stringify(universe || null) + '\\n\\n' +
+    'TASK:\\nTurn verified evidence into 3-6 useful project insights. An insight is an interpretation, pattern, creative opportunity, or explicitly labelled hypothesis derived from supplied evidence.\\n' +
+    'Do not invent facts, sources, quotes, or findings. Do not convert a creative implication into factual truth. Do not create or modify canon, characters, story directions, or decisions. Every evidence-backed insight MUST reference one or more supplied finding IDs.\\n\\n' +
+    'Return ONLY valid JSON: {"insights":[{"title":"Short insight title","statement":"Precise insight","basedOnFindingIds":["finding-id"],"type":"INTERPRETATION","rationale":"Why this follows from evidence"}]}\\n' +
+    'TYPE RULES: INTERPRETATION=project meaning; PATTERN=recurring relationship; CREATIVE_OPPORTUNITY=grounded creative opportunity, not fact; HYPOTHESIS=plausible but unproven interpretation.';
+  const raw = await callGroq([
+    { role: 'system', content: 'You are Tattava Project Intelligence. Separate evidence from interpretation and never fabricate support. Return JSON only.' },
+    { role: 'user', content: prompt }
+  ], { temperature: 0.3, max_tokens: 3200, jsonMode: true, taskName: 'Project Insight Synthesis', contextSnapshot: context });
+  const parsed = extractJsonFromResponse(raw);
+  return {
+    insights: Array.isArray(parsed?.insights) ? parsed.insights.filter((x: any) => x && typeof x.statement === 'string').map((x: any) => ({
+      title: x.title || 'Untitled Insight', statement: x.statement,
+      basedOnFindingIds: Array.isArray(x.basedOnFindingIds) ? x.basedOnFindingIds.filter((id: string) => verifiedFindings.some((f: any) => f.id === id)) : [],
+      type: (['INTERPRETATION','PATTERN','CREATIVE_OPPORTUNITY','HYPOTHESIS'] as const).includes(x.type) ? x.type : 'HYPOTHESIS',
+      rationale: x.rationale || 'Derived from verified project evidence.'
+    })) : []
+  };
+};
+
+/** PROJECT INTELLIGENCE: INSIGHT -> DIRECTION */
+export interface ProjectDirectionSynthesisResult {
+  directions: Array<{
+    title: string; statement: string; basedOnInsightIds: string[];
+    strengths: string[]; risks: string[]; openQuestions: string[];
+  }>;
+}
+
+export const generateProjectDirections = async (project: TattavaProject): Promise<ProjectDirectionSynthesisResult> => {
+  const acceptedInsights = (project.projectIntelligence?.insights || []).filter(i => i.status === 'ACCEPTED');
+  if (!acceptedInsights.length) return { directions: [] };
+  const context = buildProjectContext(project, 'Generate grounded candidate project directions from accepted insights.', { includeResearch: true, includeDecisions: true });
+  const prompt = context + '\\n\\nACCEPTED INSIGHTS:\\n' + JSON.stringify(acceptedInsights) +
+    '\\n\\nTASK:\\nGenerate 2-4 meaningfully different candidate directions. Directions may shape narrative angle, documentary thesis, investigation path, episode premise, or another format-appropriate development path.\\n' +
+    'Do not present a direction as established fact. Do not invent evidence. Every direction must cite accepted insight IDs. Include trade-offs and unresolved questions.\\n' +
+    'Return ONLY valid JSON: {"directions":[{"title":"Direction title","statement":"What this direction would pursue","basedOnInsightIds":["insight-id"],"strengths":["Grounded strength"],"risks":["Creative or evidence risk"],"openQuestions":["Question still requiring answer"]}]}';
+  const raw = await callGroq([
+    { role: 'system', content: 'You are a senior creative development strategist. Generate alternatives without selecting or canonizing one. Return JSON only.' },
+    { role: 'user', content: prompt }
+  ], { temperature: 0.55, max_tokens: 3200, jsonMode: true, taskName: 'Project Direction Synthesis', contextSnapshot: context });
+  const parsed = extractJsonFromResponse(raw);
+  return {
+    directions: Array.isArray(parsed?.directions) ? parsed.directions.map((x: any) => ({
+      title: x.title || 'Untitled Direction', statement: x.statement || '',
+      basedOnInsightIds: Array.isArray(x.basedOnInsightIds) ? x.basedOnInsightIds.filter((id: string) => acceptedInsights.some(i => i.id === id)) : [],
+      strengths: Array.isArray(x.strengths) ? x.strengths : [],
+      risks: Array.isArray(x.risks) ? x.risks : [],
+      openQuestions: Array.isArray(x.openQuestions) ? x.openQuestions : []
+    })) : []
+  };
+};
