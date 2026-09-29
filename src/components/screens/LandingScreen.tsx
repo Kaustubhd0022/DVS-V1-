@@ -218,12 +218,15 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
 
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.07] bg-[#050608]/65 backdrop-blur-2xl">
         <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-5 lg:px-10">
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="group flex items-center gap-3">
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200/20 bg-amber-200/[0.06]">
-              <Sparkles className="h-4 w-4 text-amber-100" />
-              <span className="absolute inset-0 rounded-xl bg-amber-200/10 blur-md opacity-0 transition group-hover:opacity-100" />
-            </div>
-            <span className="text-[13px] font-semibold tracking-[0.32em]">TATTAVA</span>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="group flex items-center">
+            <img
+              src="/tattvaCo-logo.png"
+              alt="TattvaCo"
+              className="h-10 w-auto max-w-[170px] object-contain transition duration-300 group-hover:opacity-90"
+              onError={(event) => {
+                event.currentTarget.src = "https://raw.githubusercontent.com/Kaustubhd0022/DVS-V1-/main/tattvaCo-logo.png";
+              }}
+            />
           </button>
 
           <nav className="hidden items-center gap-8 text-[12px] uppercase tracking-[0.13em] text-white/45 lg:flex">
