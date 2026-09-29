@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
+import { inferContentMode, inferMediaFormat } from '../../domain/tattvacoProject';
 
 export const CreateProjectScreen: React.FC = () => {
   const { createNewProject, setActiveScreen, openDemoProject, sendDiscoveryMessage } = useProject();
@@ -22,17 +23,23 @@ export const CreateProjectScreen: React.FC = () => {
   const [title, setTitle] = useState('');
   const [contentType, setContentType] = useState('Feature Film');
   const [premise, setPremise] = useState('');
-  const [genre, setGenre] = useState('Thriller / Drama');
+  const [genre, setGenre] = useState('');
+  const [contentMode, setContentMode] = useState('Infotainment');
+  const [primaryDomain, setPrimaryDomain] = useState('');
   const [language, setLanguage] = useState('Hindi / English');
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string; content: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const contentTypes = [
+    { label: 'Movie', icon: <Film className="w-4 h-4" /> },
     { label: 'Feature Film', icon: <Film className="w-4 h-4" /> },
     { label: 'Series / OTT', icon: <Tv className="w-4 h-4" /> },
     { label: 'Mini-Series', icon: <Video className="w-4 h-4" /> },
     { label: 'Short Film', icon: <Film className="w-4 h-4" /> },
     { label: 'Documentary', icon: <Compass className="w-4 h-4" /> },
+    { label: 'Podcast', icon: <FileText className="w-4 h-4" /> },
+    { label: 'Exploration', icon: <Compass className="w-4 h-4" /> },
+    { label: 'Informant', icon: <Info className="w-4 h-4" /> },
     { label: 'Other', icon: <Sparkles className="w-4 h-4" /> }
   ];
 
@@ -232,6 +239,38 @@ export const CreateProjectScreen: React.FC = () => {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* V1 Content Configuration */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+              Content Mode
+            </label>
+            <select
+              value={contentMode}
+              onChange={(e) => setContentMode(e.target.value)}
+              className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
+            >
+              {['Informational','Educational','Documentary','Infotainment','Narrative','Exploratory','Hybrid'].map(mode => (
+                <option key={mode} value={mode}>{mode}</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-white/35 mt-1">Format and mode are separate so hybrid projects are first-class.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+              Primary Knowledge Domain
+            </label>
+            <input
+              type="text"
+              value={primaryDomain}
+              onChange={(e) => setPrimaryDomain(e.target.value)}
+              placeholder="e.g. History, Food, Mythology, Culture & Traditions"
+              className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none"
+            />
+            <p className="text-[10px] text-white/35 mt-1">Tattava can expand this into connected domains during Discovery.</p>
           </div>
         </div>
 
