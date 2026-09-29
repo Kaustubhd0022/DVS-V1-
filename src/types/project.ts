@@ -1,4 +1,4 @@
-import { ProjectConfiguration, ProjectIntelligence } from '../domain/tattvacoProject';
+import { ProjectConfiguration, ProjectIntelligence, ProjectInsight, ProjectDirection } from '../domain/tattvacoProject';
 
 export type ApprovalStatus = 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'LOCKED';
 
