@@ -2367,6 +2367,7 @@ Format: ${currentProject.format}
         approveProjectBranchMerge,
         rejectProjectBranchMerge,
         resolveBranchMergeConflict,
+        setBranchMergeManualContent,
         mergeProjectBranch,
         abandonProjectBranch,
         triggerChangeImpact,
