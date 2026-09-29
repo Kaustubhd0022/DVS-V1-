@@ -23,6 +23,7 @@ import {
   SceneItem,
   PlotBeatItem
 } from '../types/project';
+import { resolveProjectContext } from './contextResolver';
 
 const DEFAULT_GROQ_KEY = '';
 const ENV_KEY = (import.meta as any).env?.VITE_GROQ_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
