@@ -18,6 +18,7 @@ import {
   ArtifactApprovalRecord,
   ContinuityIssue,
   StoryEvaluation,
+  EvaluationComparison,
   ResearchFinding,
   DiscoveryTurn,
   DiscoveryCandidateOption,
@@ -165,6 +166,7 @@ interface ProjectContextType {
 
   // AI Story Evaluation Harness
   runStoryEvaluation: () => void;
+  reevaluateAfterRepair: () => Promise<void>;
   signOffEvaluation: (approverName: string, role: string, comments: string) => void;
 
   // Branch / Canon Evolution
@@ -629,9 +631,37 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           actionItems: evalRes.actionItems || ['Review second act transitions and maintain thematic pressure']
         };
 
+        const previousEvaluation = prev.evaluation;
+        const comparison: EvaluationComparison | null = previousEvaluation ? {
+          id: 'evaluation-comparison-' + Date.now(),
+          beforeEvaluationAt: previousEvaluation.evaluatedAt,
+          afterEvaluationAt: updatedEval.evaluatedAt,
+          overallScoreDelta: updatedEval.overallScore - previousEvaluation.overallScore,
+          readinessChanged: updatedEval.readinessStatus !== previousEvaluation.readinessStatus,
+          dimensionChanges: updatedEval.dimensions.map(after => {
+            const before = previousEvaluation.dimensions.find(d => d.name === after.name);
+            const beforeScore = before?.score ?? after.score;
+            const delta = after.score - beforeScore;
+            return {
+              dimension: after.name,
+              beforeScore,
+              afterScore: after.score,
+              delta,
+              interpretation: delta > 0 ? 'IMPROVED' : delta < 0 ? 'REGRESSED' : 'UNCHANGED'
+            };
+          }),
+          resolvedRisks: (previousEvaluation.criticalRisks || []).filter(risk => !(updatedEval.criticalRisks || []).includes(risk)),
+          remainingRisks: updatedEval.criticalRisks || [],
+          generatedAt: new Date().toISOString()
+        } : null;
+
         return {
           ...prev,
           evaluation: updatedEval,
+          evaluationHistory: [...(prev.evaluationHistory || []), updatedEval],
+          evaluationComparisons: comparison
+            ? [comparison, ...(prev.evaluationComparisons || [])]
+            : (prev.evaluationComparisons || []),
           evaluationRepairPlan: repairPlan,
           pilotMetrics: {
             ...prev.pilotMetrics,
@@ -643,6 +673,10 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error('Failed to run dynamic story evaluation:', err);
       throw err;
     }
+  };
+
+  const reevaluateAfterRepair = async () => {
+    await runStoryEvaluation();
   };
 
   const signOffEvaluation = (approverName: string, role: string, comments: string) => {
@@ -1980,9 +2014,26 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         impactedAreas: [proposal.artifactType, 'Regeneration']
       };
 
+      const resolvedRepairPlan = prev.evaluationRepairPlan
+        ? {
+            ...prev.evaluationRepairPlan,
+            status: prev.evaluationRepairPlan.items.every(item =>
+              item.status === 'RESOLVED' ||
+              (item.targetArtifact === proposal.artifactType && item.id)
+            ) ? 'RESOLVED' as const : 'PARTIAL' as const,
+            items: prev.evaluationRepairPlan.items.map(item =>
+              item.targetArtifact === proposal.artifactType &&
+              item.status !== 'RESOLVED'
+                ? { ...item, status: 'RESOLVED' as const }
+                : item
+            )
+          }
+        : prev.evaluationRepairPlan;
+
       let next: TattavaProject = {
         ...prev,
         artifactVersions: [...versions, canonical],
+        evaluationRepairPlan: resolvedRepairPlan,
         artifactApprovals: [...(prev.artifactApprovals || []), approval],
         storyBrain: {
           ...prev.storyBrain,
