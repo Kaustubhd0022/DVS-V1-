@@ -22,7 +22,9 @@ import {
   DiscoveryTurn,
   DiscoveryCandidateOption,
   DiscoverySession,
-  RegenerationPlan
+  RegenerationPlan,
+  ProjectBranch,
+  BranchMergeRecord
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
@@ -161,6 +163,12 @@ interface ProjectContextType {
   // AI Story Evaluation Harness
   runStoryEvaluation: () => void;
   signOffEvaluation: (approverName: string, role: string, comments: string) => void;
+
+  // Branch / Canon Evolution
+  createProjectBranch: (name: string, purpose: string, createdBy: string) => string;
+  addArtifactToBranch: (branchId: string, versionId: string) => void;
+  mergeProjectBranch: (branchId: string, mergedBy: string, rationale: string) => void;
+  abandonProjectBranch: (branchId: string) => void;
 
   // Canonical State Lifecycle
   setArtifactCandidateState: (artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue', id: string, state: CanonicalState) => void;
@@ -803,6 +811,100 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       return next;
     });
+  };
+
+  // -------------------------------------------------------------
+  // BRANCH / CANON EVOLUTION
+  // -------------------------------------------------------------
+  const createProjectBranch = (name: string, purpose: string, createdBy: string): string => {
+    const id = 'branch-' + Date.now();
+    const branch: ProjectBranch = {
+      id,
+      name: name.trim() || 'Creative Exploration',
+      purpose: purpose.trim(),
+      baseCanonicalVersion: currentProject.canonicalVersion || 'v0.1',
+      createdAt: new Date().toISOString(),
+      createdBy,
+      status: 'ACTIVE',
+      artifactVersionIds: []
+    };
+    updateCurrentProject(prev => ({
+      ...prev,
+      projectBranches: [branch, ...(prev.projectBranches || [])]
+    }));
+    return id;
+  };
+
+  const addArtifactToBranch = (branchId: string, versionId: string) => {
+    updateCurrentProject(prev => ({
+      ...prev,
+      projectBranches: (prev.projectBranches || []).map(branch =>
+        branch.id === branchId && branch.status === 'ACTIVE'
+          ? { ...branch, artifactVersionIds: branch.artifactVersionIds.includes(versionId) ? branch.artifactVersionIds : [...branch.artifactVersionIds, versionId] }
+          : branch
+      )
+    }));
+  };
+
+  const mergeProjectBranch = (branchId: string, mergedBy: string, rationale: string) => {
+    updateCurrentProject(prev => {
+      const branch = (prev.projectBranches || []).find(b => b.id === branchId);
+      if (!branch || branch.status !== 'ACTIVE') return prev;
+
+      const versionIds = branch.artifactVersionIds.filter(id =>
+        (prev.artifactVersions || []).some(v => v.id === id && v.state === 'CANONICAL')
+      );
+      if (!versionIds.length) return prev;
+
+      const now = new Date().toISOString();
+      const targetVersion = 'v' + ((Number((prev.canonicalVersion || 'v0').replace('v', '')) || 0) + 1);
+      const mergeId = 'merge-' + Date.now();
+      const decisionId = 'branch-merge-decision-' + Date.now();
+
+      const decision: CreativeDecision = {
+        id: decisionId,
+        title: 'Merged creative branch: ' + branch.name,
+        decision: 'Merged approved branch ' + branch.name + ' into canonical project version ' + targetVersion,
+        rationale: rationale || 'Human-approved branch merge.',
+        author: mergedBy,
+        role: 'Creative Lead',
+        date: now,
+        status: 'Approved',
+        impactedAreas: ['Canon', 'Branch']
+      };
+      const merge: BranchMergeRecord = {
+        id: mergeId,
+        branchId,
+        sourceVersionIds: versionIds,
+        targetProjectVersion: targetVersion,
+        mergedAt: now,
+        mergedBy,
+        rationale,
+        status: 'APPROVED'
+      };
+
+      return {
+        ...prev,
+        canonicalVersion: targetVersion,
+        projectBranches: (prev.projectBranches || []).map(b => b.id === branchId ? { ...b, status: 'MERGED', mergeDecisionId: decisionId } : b),
+        branchMerges: [merge, ...(prev.branchMerges || [])],
+        storyBrain: {
+          ...prev.storyBrain,
+          creativeDecisions: [decision, ...(prev.storyBrain.creativeDecisions || [])],
+          decisionLog: [decision, ...(prev.storyBrain.decisionLog || [])],
+          lastUpdated: now
+        }
+      };
+    });
+  };
+
+  const abandonProjectBranch = (branchId: string) => {
+    updateCurrentProject(prev => ({
+      ...prev,
+      projectBranches: (prev.projectBranches || []).map(branch =>
+        branch.id === branchId ? { ...branch, status: 'ABANDONED' } : branch
+      )
+    }));
   };
 
   // -------------------------------------------------------------
