@@ -30,6 +30,7 @@ import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
 import { evaluateProjectNarrative, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
 import { resolveProjectContext } from '../services/contextResolver';
+import { resolveDependencyImpact } from '../services/dependencyImpactService';
 
 export type ScreenId = 
   | 'home' 
@@ -1456,77 +1457,22 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // CHANGE IMPACT ENGINE
   // -------------------------------------------------------------
   const triggerChangeImpact = (
-    charIdOrDesc: string = 'char-aanya',
-    field: string = 'age',
-    oldVal: any = 24,
-    newVal: any = 34
+    charIdOrDescription?: string,
+    field?: string,
+    oldVal?: any,
+    newVal?: any
   ) => {
-    const isCustomText = charIdOrDesc.includes('(') || charIdOrDesc.includes('→') || charIdOrDesc.includes(':');
-    const sourceTrigger = isCustomText
-      ? charIdOrDesc
-      : `Changed Aanya's ${field}: ${oldVal} → ${newVal}`;
+    const sourceEntityId = charIdOrDescription && !charIdOrDescription.includes('(') && !charIdOrDescription.includes('→') && !charIdOrDescription.includes(':')
+      ? charIdOrDescription
+      : undefined;
 
-    const items: ImpactChangeItem[] = [
-      {
-        id: 'imp-1',
-        category: 'Characters',
-        objectName: 'Aanya Deshmukh',
-        field: 'Age & Life Stage',
-        oldValue: `${oldVal || 24} years old (Fresh graduate)`,
-        newValue: `${newVal || 34} years old (Final attempt crisis)`,
-        reason: 'Shifts character from wide-eyed student to battle-tested veteran facing age ceiling.',
-        severity: 'High',
-        approved: true
-      },
-      {
-        id: 'imp-2',
-        category: 'Story',
-        objectName: 'Core Narrative Stakes',
-        field: 'Attempt Limit & Ticking Clock',
-        oldValue: 'College ambition vs parental expectations',
-        newValue: 'Final attempt eligibility limit & existential career termination',
-        reason: 'At 34, civil service regulations make this her absolute final attempt.',
-        severity: 'High',
-        approved: true
-      },
-      {
-        id: 'imp-3',
-        category: 'Scenes',
-        objectName: 'Scene 1: INT. AARANYA ROOM',
-        field: 'Set Dressing & Props',
-        oldValue: 'Fresh UPSC textbooks and college notes',
-        newValue: 'Dog-eared books from 2018-2024, cold chai, countdown calendar',
-        reason: 'Visual environment conveys a decade of emotional and intellectual sacrifice.',
-        severity: 'High',
-        approved: true
-      },
-      {
-        id: 'imp-4',
-        category: 'Dialogue',
-        objectName: 'Scene 1 Voiceover',
-        field: 'Opening Monologue',
-        oldValue: '"Is there a bigger purpose for me?"',
-        newValue: '"Ten years ago I thought time was on my side. Now every rain feels like a countdown."',
-        reason: 'Voiceover needs gravitas and awareness of mortgaged years.',
-        severity: 'High',
-        approved: true
-      }
-    ];
-
-    setImpactState({
-      isOpen: true,
-      sourceTrigger,
-      totalAffected: 12,
-      summary: {
-        characters: 1,
-        story: 2,
-        scenes: 8,
-        dialogue: 3,
-        visuals: 4,
-        production: 2
-      },
-      items
-    });
+    setImpactState(resolveDependencyImpact(currentProject, {
+      sourceEntityId,
+      sourceDescription: charIdOrDescription,
+      field,
+      oldValue: oldVal,
+      newValue: newVal
+    }));
   };
 
   const closeImpactModal = () => {
@@ -1535,34 +1481,43 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const approveAndPropagateImpact = () => {
     updateCurrentProject(prev => {
-      const updatedChars = prev.characters.map(c => {
-        if (c.name.includes('Aanya') || c.id === 'char-aanya') {
-          return {
-            ...c,
-            age: 34,
-            tags: ['Resilient', 'Strategic', 'Battle-Tested', 'Hyper-Analytical'],
-            arc: 'Cynical survivalism → Reluctant investigation → Existential sacrifice for communal justice.',
-            quote: 'Ten years of waiting ends tonight.'
-          };
-        }
-        return c;
-      });
+      const now = new Date().toISOString();
+      const decision: CreativeDecision = {
+        id: 'impact-decision-' + Date.now(),
+        title: 'Approved change-impact analysis',
+        decision: `Approved impact propagation for: ${impactState.sourceTrigger}`,
+        rationale: 'Human approved the identified downstream impact set. Affected dependencies remain stale until downstream artifacts are reviewed or regenerated.',
+        author: 'Story Development Lead',
+        role: 'Creative Lead',
+        date: now,
+        status: 'Approved',
+        impactedAreas: [...new Set(impactState.items.map(item => item.category))]
+      };
 
       return {
         ...prev,
-        characters: updatedChars,
-        lastUpdated: 'Updated just now (Impact Propagated into Story Brain)'
+        storyBrain: {
+          ...prev.storyBrain,
+          creativeDecisions: [decision, ...(prev.storyBrain.creativeDecisions || [])],
+          decisionLog: [decision, ...(prev.storyBrain.decisionLog || [])],
+          lastUpdated: now
+        }
       };
     });
 
-    setImpactState(prev => ({ ...prev, isOpen: false }));
+    setImpactState(prev => ({
+      ...prev,
+      items: prev.items.map(item => ({ ...item, approved: true })),
+      isOpen: false
+    }));
   };
+
 
   const updateCharacter = (charId: string, updates: Partial<Character>) => {
     const char = currentProject.characters.find(c => c.id === charId);
     if (!char) return;
 
-    if (char.name.includes('Aanya') && updates.age !== undefined && updates.age !== char.age) {
+    if (updates.age !== undefined && updates.age !== char.age) {
       triggerChangeImpact(charId, 'age', char.age, updates.age);
       return;
     }
