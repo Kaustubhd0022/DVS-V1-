@@ -31,6 +31,7 @@ import { evaluateProjectNarrative, getGroqApiKey, DiscoveryTurnResult, generateR
 import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
 import { resolveProjectContext } from '../services/contextResolver';
 import { resolveDependencyImpact } from '../services/dependencyImpactService';
+import { buildRegenerationPlan } from '../services/regenerationPlanner';
 
 export type ScreenId = 
   | 'home' 
@@ -167,6 +168,7 @@ interface ProjectContextType {
   triggerChangeImpact: (charIdOrDescription?: string, field?: string, oldVal?: any, newVal?: any) => void;
   closeImpactModal: () => void;
   approveAndPropagateImpact: () => void;
+  buildRegenerationPlan: () => void;
   
   // Specific Screen Helper Methods
   setProjectFormat: (format: string) => void;
@@ -754,6 +756,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ...prev,
         artifactVersions: [...nextVersions, version],
         artifactApprovals: [...(prev.artifactApprovals || []), approval],
+        regenerationPlans: [plan, ...(prev.regenerationPlans || [])],
         storyBrain: {
           ...prev.storyBrain,
           creativeDecisions: [...(prev.storyBrain?.creativeDecisions || []), approvalDecision],
@@ -1479,7 +1482,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setImpactState(prev => ({ ...prev, isOpen: false }));
   };
 
+  const createRegenerationPlan = () => {
+    const plan = buildRegenerationPlan(currentProject, impactState);
+    updateCurrentProject(prev => ({
+      ...prev,
+      regenerationPlans: [plan, ...(prev.regenerationPlans || [])],
+      lastUpdated: new Date().toISOString()
+    }));
+    return plan;
+  };
+
   const approveAndPropagateImpact = () => {
+    const approvedImpact = { ...impactState, items: impactState.items.map(item => ({ ...item, approved: true })) };
+    const plan = buildRegenerationPlan(currentProject, approvedImpact);
     updateCurrentProject(prev => {
       const now = new Date().toISOString();
       const decision: CreativeDecision = {
@@ -1868,6 +1883,7 @@ Format: ${currentProject.format}
         triggerChangeImpact,
         closeImpactModal,
         approveAndPropagateImpact,
+        buildRegenerationPlan: createRegenerationPlan,
         setProjectFormat,
         setProjectTemplate,
         updateTreatment,
