@@ -5,6 +5,10 @@ import { useProject } from '../../context/ProjectContext';
 export const RegenerationReviewPanel: React.FC = () => {
   const { currentProject, approveRegenerationProposal } = useProject();
   const proposals = (currentProject.artifactVersions || []).filter(v => v.state === 'AI_PROPOSAL');
+  const repairPlans = currentProject.regenerationPlans || [];
+  const planFor = (proposal: typeof proposals[number]) =>
+    repairPlans.find(plan => plan.id === proposal.sourcePlanId);
+
 
   if (!proposals.length) return null;
 
@@ -22,7 +26,15 @@ export const RegenerationReviewPanel: React.FC = () => {
           <div key={proposal.id} className="p-3 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="text-xs font-bold text-white">{proposal.artifactType} · {proposal.artifactId}</div>
+              <div className="text-[9px] text-cyan-300/70 mt-1">
+                Repair cycle: {proposal.repairCycleId || '—'} · Parent: {proposal.parentVersionIds?.[0] || 'new artifact'}
+              </div>
               <div className="text-[10px] text-white/40 mt-1">{proposal.changeSummary}</div>
+              {planFor(proposal) && (
+                <div className="text-[9px] text-white/35 mt-1">
+                  Plan status: {planFor(proposal)?.status} · Source item: {proposal.sourcePlanItemId || '—'}
+                </div>
+              )}
               <div className="text-[9px] text-amber-300/70 mt-1">AI_PROPOSAL · {new Date(proposal.createdAt).toLocaleString()}</div>
             </div>
             <button
@@ -34,6 +46,11 @@ export const RegenerationReviewPanel: React.FC = () => {
           </div>
         ))}
       </div>
+      {repairPlans.some(plan => plan.status === 'AWAITING_APPROVAL') && (
+        <div className="mt-4 p-3 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] text-[10px] text-cyan-100/70">
+          Multi-artifact repair is tracked as one repair cycle. Each artifact proposal has independent lineage and approval, so one approval never silently approves another artifact.
+        </div>
+      )}
       <div className="mt-3 text-[10px] text-white/35 flex items-center gap-1">
         <CheckCircle2 className="w-3 h-3" /> Approval creates a new canonical version and preserves the AI proposal as history.
       </div>
