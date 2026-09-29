@@ -37,7 +37,7 @@ import { ProductionPlanningScreen } from './components/screens/ProductionPlannin
 
 export const App: React.FC = () => {
   const { activeScreen, setActiveScreen, impactState, isContextResolverOpen } = useProject();
-  const [showProduct, setShowProduct] = useState(false);
+  const [showProduct, setShowProduct] = useState(() => new URLSearchParams(window.location.search).get('studio') === '1');
 
   if (!showProduct) {
     return <LandingScreen onEnterProduct={() => setShowProduct(true)} />;
