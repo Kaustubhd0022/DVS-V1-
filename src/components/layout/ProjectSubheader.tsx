@@ -60,9 +60,15 @@ export const ProjectSubheader: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-2 text-xs text-[#8b96a8]">
-              <span>{currentProject.contentType}</span>
+              <span>{currentProject.projectConfig?.mediaFormat || currentProject.contentType}</span>
               <span>•</span>
-              <span>{currentProject.genre}</span>
+              <span>{currentProject.projectConfig?.contentMode || currentProject.genre}</span>
+              {currentProject.projectConfig?.primaryDomain && (
+                <>
+                  <span>•</span>
+                  <span className="text-cyan-300">{currentProject.projectConfig.primaryDomain}</span>
+                </>
+              )}
               <span>•</span>
               <span className="inline-flex items-center px-2 py-0.2 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 {currentProject.stage}
