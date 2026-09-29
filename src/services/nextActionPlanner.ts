@@ -22,6 +22,22 @@ const unresolvedQuestions = (project: TattavaProject): string[] => [
 export const planNextCreatorAction = (project: TattavaProject, message?: string): NextActionPlan => {
   const text = (message || '').toLowerCase();
 
+  const evaluationPlan = project.evaluationRepairPlan;
+  if (evaluationPlan?.status === 'OPEN' || evaluationPlan?.status === 'PARTIAL') {
+    const repair = evaluationPlan.items
+      .filter(i => i.status !== 'RESOLVED')
+      .sort((a, b) => ({ HIGH: 0, MEDIUM: 1, LOW: 2 } as any)[a.priority] - ({ HIGH: 0, MEDIUM: 1, LOW: 2 } as any)[b.priority])[0];
+    if (repair) {
+      return {
+        mode: repair.action === 'REGENERATE' ? 'REGENERATE' : repair.action === 'RESEARCH' ? 'RESEARCH' : 'REVIEW',
+        reason: repair.recommendation,
+        question: repair.problem,
+        targetArtifact: repair.targetArtifact,
+        requiresHumanApproval: true
+      };
+    }
+  }
+
   const openPlan = [...(project.regenerationPlans || [])].find(p => p.status === 'READY' || p.status === 'PARTIAL');
   if (openPlan) {
     const item = openPlan.items.find(i => !i.blockedByApproval && i.stale) || openPlan.items.find(i => i.blockedByApproval);
