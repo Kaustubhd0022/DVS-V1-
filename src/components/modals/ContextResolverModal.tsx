@@ -19,26 +19,8 @@ export const ContextResolverModal: React.FC = () => {
 
   if (!isContextResolverOpen) return null;
 
-  const pkg = activeContextPackage || {
-    taskId: 'ctx-default',
-    taskType: 'Story Direction',
-    targetArtifact: 'Current Workspace',
-    retrievedCanonFacts: currentProject.storyBrain.canonFacts.slice(0, 3),
-    retrievedCharacterContext: [
-      {
-        name: 'Aanya Deshmukh',
-        want: currentProject.characters[0]?.want || '',
-        need: currentProject.characters[0]?.need || '',
-        fear: currentProject.characters[0]?.fear || '',
-        voiceStyle: currentProject.characters[0]?.voiceStyle || ''
-      }
-    ],
-    retrievedResearch: currentProject.researchFindings.slice(0, 2),
-    retrievedWorldRules: currentProject.world?.worldRules || [],
-    rationale: 'Assembled minimal scoped context package for active workflow task. Unrelated project data excluded to avoid context contamination.',
-    tokenEstimate: 1420,
-    resolvedAt: 'Just now'
-  };
+  if (!activeContextPackage) return null;
+  const pkg = activeContextPackage;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
@@ -85,6 +67,59 @@ export const ContextResolverModal: React.FC = () => {
               <span>•</span>
               <span>Project Isolation: ENFORCED (Zero Cross-Project Retrieval)</span>
             </div>
+          </div>
+
+          {/* Section 0: Resolution Scope */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-white flex items-center gap-2">
+              <Layers className="w-3.5 h-3.5 text-cyan-400" />
+              Resolution Scope
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {pkg.projectConfiguration && (
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] uppercase tracking-wider text-white/40">Project Configuration</span>
+                  <p className="text-white mt-1">{pkg.projectConfiguration.mediaFormat} · {pkg.projectConfiguration.contentMode}</p>
+                  <p className="text-white/50 mt-1">{pkg.projectConfiguration.primaryDomain || 'Domain not confirmed'} · {pkg.projectConfiguration.configurationStatus}</p>
+                </div>
+              )}
+              {pkg.currentIntent && (
+                <div className="p-3 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] uppercase tracking-wider text-white/40">Current Intent</span>
+                  <p className="text-white mt-1 line-clamp-3">{pkg.currentIntent.premise || 'No premise established'}</p>
+                  <p className="text-white/50 mt-1">Known {pkg.currentIntent.knownInformation.length} · Unknown {pkg.currentIntent.unknownInformation.length}</p>
+                </div>
+              )}
+            </div>
+            {pkg.selectedDirection && (
+              <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
+                <span className="text-[10px] uppercase tracking-wider text-cyan-300">Active Direction</span>
+                <p className="text-white font-semibold mt-1">{pkg.selectedDirection.title}</p>
+                <p className="text-white/60 mt-1">{pkg.selectedDirection.statement}</p>
+              </div>
+            )}
+            {(pkg.acceptedInsights?.length || 0) > 0 && (
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Accepted Insights</span>
+                <div className="mt-2 space-y-1">{pkg.acceptedInsights!.map(i => (
+                  <div key={i.id} className="text-white/70"><span className="text-cyan-300">{i.title}</span> — {i.statement}</div>
+                ))}</div>
+              </div>
+            )}
+            {(pkg.relevantDecisions?.length || 0) > 0 && (
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Decision History</span>
+                <div className="mt-2 space-y-1">{pkg.relevantDecisions!.map(d => (
+                  <div key={d.id} className="text-white/70"><span className="text-amber-300">{d.title}</span> — {d.decision || 'Approved decision'}</div>
+                ))}</div>
+              </div>
+            )}
+            {(pkg.unresolvedQuestions?.length || 0) > 0 && (
+              <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                <span className="text-[10px] uppercase tracking-wider text-amber-300">Unresolved Questions</span>
+                <div className="mt-2 space-y-1">{pkg.unresolvedQuestions!.map((q, i) => <div key={i} className="text-white/70">• {q}</div>)}</div>
+              </div>
+            )}
           </div>
 
           {/* Section 1: Retrieved Canonical Facts */}
