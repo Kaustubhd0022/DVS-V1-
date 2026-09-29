@@ -173,6 +173,7 @@ interface ProjectContextType {
   prepareProjectBranchMerge: (branchId: string) => BranchMergePreview | null;
   approveProjectBranchMerge: (branchId: string, mergedBy: string, rationale: string) => void;
   rejectProjectBranchMerge: (branchId: string, reviewedBy: string, rationale?: string) => void;
+  resolveBranchMergeConflict: (branchId: string, conflictId: string, resolution: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT') => void;
   mergeProjectBranch: (branchId: string, mergedBy: string, rationale: string) => void;
   abandonProjectBranch: (branchId: string) => void;
 
@@ -1007,6 +1008,25 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           creativeDecisions: [decision, ...(prev.storyBrain.creativeDecisions || [])],
           decisionLog: [decision, ...(prev.storyBrain.decisionLog || [])],
           lastUpdated: now
+        }
+      };
+    });
+  };
+
+  const resolveBranchMergeConflict = (branchId: string, conflictId: string, resolution: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT') => {
+    updateCurrentProject(prev => {
+      const preview = prev.branchMergePreview;
+      if (!preview || preview.branchId !== branchId) return prev;
+      const conflicts = preview.conflicts.map(conflict =>
+        conflict.id === conflictId ? { ...conflict, resolution } : conflict
+      );
+      const unresolved = conflicts.filter(conflict => !conflict.resolution);
+      return {
+        ...prev,
+        branchMergePreview: {
+          ...preview,
+          conflicts,
+          status: unresolved.length ? 'CONFLICTS' : 'READY'
         }
       };
     });
@@ -2166,6 +2186,7 @@ Format: ${currentProject.format}
         prepareProjectBranchMerge,
         approveProjectBranchMerge,
         rejectProjectBranchMerge,
+        resolveBranchMergeConflict,
         mergeProjectBranch,
         abandonProjectBranch,
         triggerChangeImpact,
