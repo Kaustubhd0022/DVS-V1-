@@ -17,11 +17,13 @@ import {
   DiscoveryTurn,
   DiscoveryCandidateOption,
   DiscoverySession,
+  ContextResolverPackage,
   WorldLocation,
   StructureBeat,
   SceneItem,
   PlotBeatItem
 } from '../types/project';
+import { resolveProjectContext } from './contextResolver';
 
 const DEFAULT_GROQ_KEY = '';
 const ENV_KEY = (import.meta as any).env?.VITE_GROQ_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
@@ -275,6 +277,119 @@ export function buildProjectContext(
   return parts.join('\n');
 }
 
+/**
+ * CANONICAL CONTEXT PACKAGE → GENERATION
+ * Downstream generation consumes the same resolved project intelligence package.
+ */
+export const buildContextPackagePrompt = (pkg: ContextResolverPackage): string => {
+  const lines: string[] = [
+    '=== CANONICAL TATTAVA CONTEXT PACKAGE ===',
+    'This package is the authoritative project context for the current generation task.',
+    'Do not invent project facts that are absent from this package.',
+    'Treat verified research as evidence, accepted insights as interpretations, selected direction as the active narrative constraint, and canon facts as authoritative project truth.',
+    '',
+    'Task Type: ' + pkg.taskType,
+    'Target Artifact: ' + pkg.targetArtifact,
+    'Resolution Rationale: ' + pkg.rationale,
+    'Estimated Context Tokens: ' + pkg.tokenEstimate,
+  ];
+
+  if (pkg.projectConfiguration) {
+    const c = pkg.projectConfiguration;
+    lines.push('', '=== PROJECT CONFIGURATION ===',
+      'Vertical: ' + c.vertical,
+      'Media Format: ' + c.mediaFormat,
+      'Content Mode: ' + c.contentMode,
+      'Primary Domain: ' + (c.primaryDomain || 'Not confirmed'),
+      'Secondary Domains: ' + (c.secondaryDomains.join(', ') || 'None'),
+      'Subject: ' + (c.subject || 'Not confirmed'),
+      'Geographic Scope: ' + (c.geographicScope || 'Not specified'),
+      'Temporal Scope: ' + (c.temporalScope || 'Not specified'),
+      'Audience: ' + (c.audience || 'Not specified'),
+      'Creative Intent: ' + (c.creativeIntent || 'Not specified'),
+      'Evidence Requirement: ' + c.evidenceRequirement,
+      'Narrative Freedom: ' + c.narrativeFreedom,
+      'Configuration Status: ' + c.configurationStatus);
+  }
+
+  if (pkg.currentIntent) {
+    const i = pkg.currentIntent;
+    lines.push('', '=== CURRENT PROJECT INTENT ===',
+      'Premise: ' + (i.premise || 'Unresolved'),
+      'Protagonist: ' + (i.protagonist || 'Unresolved'),
+      'Setting: ' + (i.setting || 'Unresolved'),
+      'Conflict: ' + (i.conflict || 'Unresolved'),
+      'Stakes: ' + (i.stakes || 'Unresolved'),
+      'Themes: ' + (i.themes.join(', ') || 'Unresolved'),
+      'Tone: ' + (i.tone || 'Unresolved'),
+      'Known Information: ' + (i.knownInformation.join(' | ') || 'None recorded'),
+      'Unknown Information: ' + (i.unknownInformation.join(' | ') || 'None recorded'));
+  }
+
+  if (pkg.selectedDirection) {
+    const d = pkg.selectedDirection;
+    lines.push('', '=== ACTIVE STORY DIRECTION ===',
+      'Title: ' + d.title,
+      'Statement: ' + d.statement,
+      'Strengths: ' + (d.strengths.join(' | ') || 'None recorded'),
+      'Risks: ' + (d.risks.join(' | ') || 'None recorded'),
+      'Open Questions: ' + (d.openQuestions.join(' | ') || 'None recorded'),
+      'Status: ' + d.status);
+  }
+
+  if (pkg.acceptedInsights?.length) {
+    lines.push('', '=== ACCEPTED PROJECT INSIGHTS ===');
+    pkg.acceptedInsights.forEach((i, n) => lines.push('[INSIGHT ' + (n + 1) + '] ' + i.title + ': ' + i.statement + ' (' + i.type + ')'));
+  }
+
+  if (pkg.relevantDecisions?.length) {
+    lines.push('', '=== RELEVANT CREATIVE DECISIONS ===');
+    pkg.relevantDecisions.forEach((d, n) => lines.push('[DECISION ' + (n + 1) + '] ' + d.title + ': ' + (d.decision || '') + ' | Rationale: ' + d.rationale));
+  }
+
+  if (pkg.retrievedCanonFacts.length) {
+    lines.push('', '=== AUTHORITATIVE CANON ===');
+    pkg.retrievedCanonFacts.forEach((f, n) => lines.push('[CANON ' + (n + 1) + '] ' + f.category + ': ' + f.statement + ' | Locked: ' + f.isLocked));
+  }
+
+  if (pkg.retrievedCharacterContext.length) {
+    lines.push('', '=== RETRIEVED CHARACTER CONTEXT ===');
+    pkg.retrievedCharacterContext.forEach((c, n) => lines.push('[CHARACTER ' + (n + 1) + '] ' + c.name + ' | Want: ' + c.want + ' | Need: ' + c.need + ' | Fear: ' + c.fear + ' | Voice: ' + c.voiceStyle));
+  }
+
+  if (pkg.retrievedResearch.length) {
+    lines.push('', '=== VERIFIED RESEARCH EVIDENCE ===');
+    pkg.retrievedResearch.forEach((r, n) => lines.push('[EVIDENCE ' + (n + 1) + '] Topic: ' + r.topic + ' | Claim: ' + r.claim + ' | Evidence: ' + r.evidence + ' | Source: ' + r.source));
+  }
+
+  if (pkg.retrievedWorldRules.length) lines.push('', '=== WORLD RULES ===', ...pkg.retrievedWorldRules.map((r, n) => '[RULE ' + (n + 1) + '] ' + r));
+
+  if (pkg.relevantDependencies?.length) {
+    lines.push('', '=== ACTIVE DEPENDENCIES ===');
+    pkg.relevantDependencies.forEach((d, n) => lines.push('[DEPENDENCY ' + (n + 1) + '] ' + d.sourceName + ' → ' + d.targetName + ': ' + d.description));
+  }
+
+  if (pkg.unresolvedQuestions?.length) lines.push('', '=== UNRESOLVED QUESTIONS ===', ...pkg.unresolvedQuestions.map((q, n) => '[QUESTION ' + (n + 1) + '] ' + q));
+
+  lines.push('', '=== GENERATION CONTRACT ===',
+    '1. Ground every project-specific claim in this package.',
+    '2. Never convert an unresolved question into an assumed fact.',
+    '3. Never contradict authoritative canon.',
+    '4. If a creative choice is unresolved, present it as a candidate rather than canon.',
+    '5. Produce candidate output suitable for human review; do not imply approval or canonical status.');
+  return lines.join('\n');
+};
+
+export const resolveCanonicalGenerationContext = (
+  project: TattavaProject,
+  taskType: ContextResolverPackage['taskType'],
+  targetArtifact: string,
+  query?: string,
+  selectedCharacterId?: string
+) => {
+  const resolved = resolveProjectContext(project, { taskType, targetArtifact, query, selectedCharacterId });
+  return { ...resolved, contextText: buildContextPackagePrompt(resolved.pkg) };
+};
 /**
  * Generic Groq API caller with model fallback and strict error reporting
  */
@@ -582,7 +697,8 @@ export const generateCharacterCandidate = async (
   roleFocus: 'Protagonist' | 'Antagonist' | 'Key Supporting' = 'Protagonist',
   userGuidance?: string
 ): Promise<CharacterCandidateResult> => {
-  const context = buildProjectContext(project, `Generate a ${roleFocus} candidate`);
+  const resolved = resolveCanonicalGenerationContext(project, 'Character Generation', `${roleFocus} Character Candidate`, userGuidance || roleFocus);
+  const context = resolved.contextText;
 
   const prompt = `${context}
 
@@ -1097,7 +1213,8 @@ export const punchUpDialogue = async (
   project?: TattavaProject,
   instruction: string = 'Inject cold subtext and eliminate on-the-nose exposition'
 ): Promise<string> => {
-  const projectSummary = project ? `Film: "${project.title}", Premise: "${project.intent?.premise}"` : '';
+  const resolved = project ? resolveCanonicalGenerationContext(project, 'Dialogue Voice', 'Dialogue Punch-Up', `${characterName} ${sceneContext} ${currentDialogue}`, project.selectedCharacterId || undefined) : null;
+  const projectSummary = resolved ? resolved.contextText : '';
 
   const prompt = `Punch up this screenplay line with rich subtext.
 ${projectSummary}
@@ -1115,7 +1232,7 @@ Return ONLY the punched-up dialogue line itself in quotation marks. No other tex
     temperature: 0.75,
     max_tokens: 300,
     taskName: 'Dialogue Punch-Up',
-    contextSnapshot: `${characterName}: ${currentDialogue}`
+    contextSnapshot: resolved?.contextText || `${characterName}: ${currentDialogue}`
   });
 
   return raw.trim().replace(/^["']|["']$/g, '');
@@ -1670,7 +1787,8 @@ Return ONLY valid JSON matching:
 export const generateStructureBeats = async (
   project: TattavaProject
 ): Promise<{ act1: StructureBeat[]; act2: StructureBeat[]; act3: StructureBeat[] }> => {
-  const context = buildProjectContext(project, 'Synthesize Three-Act Classical Beat Sheet');
+  const resolved = resolveCanonicalGenerationContext(project, 'Structure Generation', 'Three-Act Classical Beat Sheet', project.projectIntelligence?.development?.nextUnresolvedQuestion || project.intent?.conflict);
+  const context = resolved.contextText;
   const prompt = `${context}
 
 TASK:
@@ -1804,7 +1922,8 @@ Return ONLY valid JSON matching:
 export const generateSceneBreakdown = async (
   project: TattavaProject
 ): Promise<SceneItem[]> => {
-  const context = buildProjectContext(project, 'Synthesize initial scene breakdown');
+  const resolved = resolveCanonicalGenerationContext(project, 'Scene Drafting', 'Initial Scene Breakdown', project.intent?.conflict || project.projectIntelligence?.development?.nextUnresolvedQuestion);
+  const context = resolved.contextText;
   const prompt = `${context}
 
 TASK:
@@ -1923,17 +2042,13 @@ Return ONLY valid JSON:
 export const generateTreatmentData = async (
   project: TattavaProject
 ): Promise<{ synopsis: string; plotBeats: PlotBeatItem[]; tone: string[]; themes: string[] }> => {
-  const charactersStr = project.characters.map(c => `${c.name} (${c.role}): Flaw: ${c.flaw}, Need: ${c.need}`).join('; ');
-  const canonFacts = (project.storyBrain?.canonFacts || []).map(f => f.statement).join(' | ');
+  const resolved = resolveCanonicalGenerationContext(project, 'Treatment Generation', 'Narrative Treatment', project.intent?.conflict || project.projectIntelligence?.development?.nextUnresolvedQuestion);
+  const context = resolved.contextText;
 
-  const prompt = `
-Generate a compelling narrative treatment synopsis and a 6-beat cardinal plot progression for the film project:
-Title: "${project.title}"
-Format: ${project.format || 'Feature Film'}
-Premise: ${project.intent?.premise || project.tagline || 'Original Drama'}
-Core Conflict: ${project.intent?.conflict || 'Internal and external crisis'}
-Characters: ${charactersStr || 'Protagonist against institutional antagonist'}
-Canon Facts: ${canonFacts || 'Standard continuity'}
+  const prompt = `${context}
+
+TASK:
+Generate a compelling narrative treatment synopsis and a 6-beat cardinal plot progression for the project.
 
 Output purely JSON matching this schema:
 {
