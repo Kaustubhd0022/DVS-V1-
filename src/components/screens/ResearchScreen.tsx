@@ -83,6 +83,9 @@ export const ResearchScreen: React.FC = () => {
     setIsGenerating(true);
     setGenerationError(null);
     try {
+      if (!currentProject.projectIntelligence?.researchUniverse?.dimensions?.length) {
+        await buildResearchUniverse();
+      }
       const res = await generateResearchTopics(currentProject);
       updateCurrentProject(prev => {
         const newFindings: ResearchFinding[] = (res.topics || []).map((t, idx) => ({
@@ -92,8 +95,8 @@ export const ResearchScreen: React.FC = () => {
           evidence: t.evidence || '',
           source: t.source || 'Domain Literature',
           sourceType: (t.sourceType as any) || 'Established Publication',
-          status: 'Verified',
-          confidence: t.confidence || 88,
+          status: 'Needs Review',
+          confidence: t.confidence || 0,
           implicationForPlot: t.implicationForPlot || '',
           date: new Date().toLocaleDateString(),
           usedIn: ['Story Context', 'World Grounding']
