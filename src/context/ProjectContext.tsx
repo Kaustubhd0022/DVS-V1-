@@ -14,6 +14,8 @@ import {
   CreativeDecision,
   StoryDependency,
   ContextResolverPackage,
+  ArtifactVersionRecord,
+  ArtifactApprovalRecord,
   ContinuityIssue,
   StoryEvaluation,
   ResearchFinding,
@@ -158,6 +160,7 @@ interface ProjectContextType {
 
   // Canonical State Lifecycle
   setArtifactCandidateState: (artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue', id: string, state: CanonicalState) => void;
+  approveArtifact: (artifactType: ArtifactVersionRecord['artifactType'], artifactId: string, approvedBy: string, role: string, rationale?: string) => void;
 
   // Impact Engine
   triggerChangeImpact: (charIdOrDescription?: string, field?: string, oldVal?: any, newVal?: any) => void;
@@ -671,6 +674,126 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         };
       }
       return prev;
+    });
+  };
+
+  const approveArtifact = (
+    artifactType: ArtifactVersionRecord['artifactType'],
+    artifactId: string,
+    approvedBy: string,
+    role: string,
+    rationale?: string
+  ) => {
+    updateCurrentProject(prev => {
+      const now = new Date().toISOString();
+      const artifact = artifactType === 'direction'
+        ? prev.storyDirections.find(a => a.id === artifactId)
+        : artifactType === 'character'
+          ? prev.characters.find(a => a.id === artifactId)
+          : artifactType === 'treatment'
+            ? prev.treatment
+            : artifactType === 'scene'
+              ? prev.scenes.find(a => a.id === artifactId)
+              : prev.dialogueSuggestions.find(a => a.id === artifactId);
+      if (!artifact) return prev;
+
+      const versions = prev.artifactVersions || [];
+      const previous = [...versions].reverse().find(v =>
+        v.artifactType === artifactType && v.artifactId === artifactId && v.state === 'CANONICAL'
+      );
+      const versionId = 'artifact-version-' + Date.now();
+      const approvalId = 'artifact-approval-' + Date.now();
+      const version: ArtifactVersionRecord = {
+        id: versionId,
+        artifactType,
+        artifactId,
+        version: 'v' + (versions.filter(v => v.artifactType === artifactType && v.artifactId === artifactId).length + 1),
+        state: 'CANONICAL',
+        content: artifact,
+        createdAt: now,
+        createdBy: approvedBy,
+        changeSummary: rationale || 'Human-approved artifact',
+        supersedesVersionId: previous?.id,
+        approvalId
+      };
+      const approval: ArtifactApprovalRecord = {
+        id: approvalId,
+        artifactType,
+        artifactId,
+        versionId,
+        status: 'APPROVED',
+        approvedBy,
+        role,
+        timestamp: now,
+        rationale
+      };
+      const nextVersions = previous
+        ? versions.map(v => v.id === previous.id ? { ...v, state: 'SUPERSEDED' as CanonicalState } : v)
+        : versions;
+
+      const approvalDecision: CreativeDecision = {
+        id: 'decision-' + Date.now(),
+        title: 'Approved ' + artifactType + ' artifact',
+        decision: 'Approved ' + artifactType + ' ' + artifactId + ' as canonical ' + version.version,
+        rationale: rationale || 'Human approval recorded for downstream grounding.',
+        author: approvedBy,
+        role,
+        date: now,
+        status: 'Approved',
+        impactedAreas: [artifactType]
+      };
+
+      const nextDependencies = (prev.storyBrain?.dependencies || []).map(dep =>
+        dep.sourceEntityId === artifactId
+          ? { ...dep, isStale: true, staleReason: 'Source artifact changed through human approval ' + version.version }
+          : dep
+      );
+
+      let next = {
+        ...prev,
+        artifactVersions: [...nextVersions, version],
+        artifactApprovals: [...(prev.artifactApprovals || []), approval],
+        storyBrain: {
+          ...prev.storyBrain,
+          creativeDecisions: [...(prev.storyBrain?.creativeDecisions || []), approvalDecision],
+          decisionLog: [...(prev.storyBrain?.decisionLog || []), approvalDecision],
+          dependencies: nextDependencies,
+          lastUpdated: now
+        },
+        projectIntelligence: prev.projectIntelligence ? {
+          ...prev.projectIntelligence,
+          development: {
+            ...prev.projectIntelligence.development,
+            decisionCount: prev.projectIntelligence.development.decisionCount + 1
+          }
+        } : prev.projectIntelligence
+      };
+
+      if (artifactType === 'direction') {
+        next = {
+          ...next,
+          storyDirections: next.storyDirections.map(d => d.id === artifactId ? { ...d, candidateState: 'CANONICAL' } : d),
+          selectedDirectionId: artifactId,
+          projectIntelligence: next.projectIntelligence ? {
+            ...next.projectIntelligence,
+            directions: next.projectIntelligence.directions.map(d => d.id === artifactId ? { ...d, status: 'SELECTED' } : d),
+            development: {
+              ...next.projectIntelligence.development,
+              currentStage: 'CONTENT',
+              contentArtifactCount: next.projectIntelligence.development.contentArtifactCount + 1
+            }
+          } : next.projectIntelligence
+        };
+      } else if (artifactType === 'character') {
+        next = { ...next, characters: next.characters.map(c => c.id === artifactId ? { ...c, candidateState: 'CANONICAL' } : c) };
+      } else if (artifactType === 'treatment') {
+        next = { ...next, treatment: { ...next.treatment, candidateState: 'CANONICAL' } };
+      } else if (artifactType === 'scene') {
+        next = { ...next, scenes: next.scenes.map(s => s.id === artifactId ? { ...s, candidateState: 'CANONICAL' } : s) };
+      } else {
+        next = { ...next, dialogueSuggestions: next.dialogueSuggestions.map(d => d.id === artifactId ? { ...d, candidateState: 'CANONICAL' } : d) };
+      }
+      return next;
     });
   };
 
@@ -1786,6 +1909,7 @@ Format: ${currentProject.format}
         runStoryEvaluation,
         signOffEvaluation,
         setArtifactCandidateState,
+        approveArtifact,
         triggerChangeImpact,
         closeImpactModal,
         approveAndPropagateImpact,
