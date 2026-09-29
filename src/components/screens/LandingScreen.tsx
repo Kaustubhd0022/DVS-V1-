@@ -124,11 +124,17 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
   const [submitted, setSubmitted] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 28 });
   const heroY = useTransform(scrollYProgress, [0, 0.18], [0, -80]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.18], [1, 0.25]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowIntro(false), 3200);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     track('landing_view');
@@ -168,6 +174,43 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#050608] text-white selection:bg-amber-200/30 selection:text-white">
+      <AnimatePresence>
+        {showIntro && (
+          <motion.div
+            key="tattava-intro"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden bg-black"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(173,75,40,.10),transparent_34%)]" />
+            <div className="relative flex w-full max-w-4xl flex-col items-center justify-center px-8">
+              <motion.img
+                src="/TattvaCO.png"
+                alt="TattvaCo"
+                initial={{ opacity: 0, scale: 0.82, filter: 'blur(14px)' }}
+                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                transition={{ duration: 1.45, ease: [0.16, 1, 0.3, 1] }}
+                className="h-auto w-[min(72vw,680px)] object-contain"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 22, letterSpacing: '0.55em' }}
+                animate={{ opacity: 1, y: 0, letterSpacing: '0.18em' }}
+                transition={{ delay: 1.05, duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
+                className="-mt-4 text-center text-[11px] font-medium uppercase text-white/70 sm:text-sm"
+              >
+                The essence of every story
+              </motion.div>
+              <motion.div
+                initial={{ scaleX: 0, opacity: 0 }}
+                animate={{ scaleX: 1, opacity: 1 }}
+                transition={{ delay: 1.65, duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+                className="mt-7 h-px w-28 origin-center bg-gradient-to-r from-transparent via-[#ad4b28] to-transparent"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <motion.div className="fixed left-0 right-0 top-0 z-[70] h-px origin-left bg-amber-200" style={{ scaleX: progress }} />
 
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.07] bg-[#050608]/65 backdrop-blur-2xl">
