@@ -657,8 +657,8 @@ export interface TattvaCoProject {
 
   // Context Resolver active cache
   activeContextPackage?: ContextResolverPackage;
-  artifactVersions: ArtifactVersionRecord[];
-  artifactApprovals: ArtifactApprovalRecord[];
+  artifactVersions?: ArtifactVersionRecord[];
+  artifactApprovals?: ArtifactApprovalRecord[];
 
   // Conversational Discovery & Development Loop Session
   discovery?: DiscoverySession;
