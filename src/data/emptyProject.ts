@@ -82,6 +82,9 @@ export const createEmptyProject = (
     // Evaluation — Null until user triggers live evaluation
     evaluation: null,
 
+    artifactVersions: [],
+    artifactApprovals: [],
+
     // Conversational Discovery Loop Session
     discovery: {
       turns: [],

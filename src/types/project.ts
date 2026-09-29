@@ -582,6 +582,32 @@ export interface StakeholderApproval {
   date?: string;
 }
 
+export interface ArtifactVersionRecord {
+  id: string;
+  artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue';
+  artifactId: string;
+  version: string;
+  state: CanonicalState;
+  content: unknown;
+  createdAt: string;
+  createdBy: string;
+  changeSummary: string;
+  supersedesVersionId?: string;
+  approvalId?: string;
+}
+
+export interface ArtifactApprovalRecord {
+  id: string;
+  artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue';
+  artifactId: string;
+  versionId: string;
+  status: 'APPROVED' | 'REJECTED' | 'SUPERSEDED';
+  approvedBy: string;
+  role: string;
+  timestamp: string;
+  rationale?: string;
+}
+
 export interface PackageData {
   stepsCompleted: number;
   totalSteps: number;
@@ -631,6 +657,8 @@ export interface TattvaCoProject {
 
   // Context Resolver active cache
   activeContextPackage?: ContextResolverPackage;
+  artifactVersions?: ArtifactVersionRecord[];
+  artifactApprovals?: ArtifactApprovalRecord[];
 
   // Conversational Discovery & Development Loop Session
   discovery?: DiscoverySession;
