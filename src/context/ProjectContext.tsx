@@ -25,7 +25,7 @@ import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
-import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult } from '../services/aiService';
+import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult, generateResearchUniverse } from '../services/aiService';
 
 export type ScreenId = 
   | 'home' 
@@ -746,6 +746,33 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setCurrentProjectId(newId);
     setActiveScreen('discovery');
     return newId;
+  };
+
+  const buildResearchUniverse = async () => {
+    const result = await generateResearchUniverse(currentProject);
+    updateCurrentProject(prev => {
+      const intelligence = prev.projectIntelligence || {
+        domainNodes: [],
+        researchUniverse: { rootSubject: '', dimensions: [], unresolvedQuestions: [], coveragePercent: 0 },
+        insights: [],
+        directions: [],
+        development: { knowledgeCount: 0, insightCount: 0, directionCount: 0, decisionCount: 0, contentArtifactCount: 0, currentStage: 'KNOWLEDGE' as const }
+      };
+      return {
+        ...prev,
+        projectIntelligence: {
+          ...intelligence,
+          researchUniverse: {
+            rootSubject: result.rootSubject,
+            dimensions: result.dimensions,
+            unresolvedQuestions: result.unresolvedQuestions,
+            coveragePercent: result.coveragePercent,
+            lastExpandedAt: new Date().toISOString()
+          }
+        }
+      };
+    });
+    return result;
   };
 
   const openDemoProject = () => {
@@ -1685,6 +1712,7 @@ Format: ${currentProject.format}
         openProject,
         openDemoProject,
         createNewProject,
+    buildResearchUniverse,
         duplicateProject,
         deleteProject,
         updateCurrentProject,
