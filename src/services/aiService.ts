@@ -47,6 +47,27 @@ export let lastAiDebugTrace: AiDebugTrace | null = null;
 
 export const getLastAiDebugTrace = () => lastAiDebugTrace;
 
+/**
+ * TattvaCo Project V1 configuration inference.
+ * Produces candidates only; callers must keep configuration PROPOSED until
+ * the creator confirms it.
+ */
+export interface ProjectConfigurationCandidate {
+  mediaFormat: string;
+  contentMode: string;
+  primaryDomain: string;
+  secondaryDomains: string[];
+  subject: string;
+  geographicScope?: string;
+  temporalScope?: string;
+  audience?: string;
+  creativeIntent?: string;
+  evidenceRequirement: 'STANDARD' | 'HIGH' | 'STRICT';
+  narrativeFreedom: 'FACTUAL' | 'GROUNDED_HYBRID' | 'CREATIVE';
+  confidence: number;
+  ambiguities: string[];
+}
+
 export const getGroqApiKey = (): string => {
   if (typeof localStorage !== 'undefined') {
     const custom = localStorage.getItem('tattvaco_groq_api_key') || localStorage.getItem('tattvaco_gemini_api_key');
