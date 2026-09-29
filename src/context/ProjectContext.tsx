@@ -1985,7 +1985,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         createdBy: approvedBy,
         changeSummary: rationale || 'Human-approved regeneration proposal.',
         supersedesVersionId: previous?.id,
-        approvalId
+        approvalId,
+        parentVersionIds: previous?.id ? [previous.id] : proposal.parentVersionIds
       };
       const approval: ArtifactApprovalRecord = {
         id: approvalId,
@@ -2027,8 +2028,26 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }
         : prev.evaluationRepairPlan;
 
+      const updatedRegenerationPlans = (prev.regenerationPlans || []).map(plan => {
+        const hasProposal = plan.items.some(item => item.proposalVersionId === proposal.id);
+        if (!hasProposal) return plan;
+        const items = plan.items.map(item =>
+          item.proposalVersionId === proposal.id
+            ? { ...item, executionStatus: 'APPROVED' as const, stale: false }
+            : item
+        );
+        const actionable = items.filter(item => item.action === 'REGENERATE');
+        const allApproved = actionable.length > 0 && actionable.every(item => item.executionStatus === 'APPROVED');
+        return {
+          ...plan,
+          items,
+          status: allApproved ? 'COMPLETED' as const : 'PARTIAL' as const
+        };
+      });
+
       let next: TattavaProject = {
         ...prev,
+        regenerationPlans: updatedRegenerationPlans,
         artifactVersions: [...versions, canonical],
         evaluationRepairPlan: resolvedRepairPlan,
         artifactApprovals: [...(prev.artifactApprovals || []), approval],
