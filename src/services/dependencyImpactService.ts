@@ -41,6 +41,41 @@ export const resolveDependencyImpact = (
     approved: false
   }));
 
+  const inferred: ImpactChangeItem[] = [];
+
+  if (sourceId) {
+    const character = project.characters.find(c => c.id === sourceId);
+    if (character) {
+      project.scenes
+        .filter(scene => scene.characterIds.includes(sourceId) || scene.characters.includes(character.name))
+        .forEach((scene, index) => inferred.push({
+          id: 'inferred-scene-' + scene.id + '-' + index,
+          category: 'Scenes',
+          objectName: 'Scene ' + scene.sceneNumber + ': ' + scene.slugline,
+          field: trigger.field || 'Character dependency',
+          oldValue: String(trigger.oldValue ?? 'Current approved character state'),
+          newValue: String(trigger.newValue ?? 'Requires review/regeneration'),
+          reason: 'Scene references the changed character and may depend on the changed state.',
+          severity: 'High',
+          approved: false
+        }));
+
+      project.dialogueSuggestions
+        .filter(dialogue => dialogue.character === character.name)
+        .forEach((dialogue, index) => inferred.push({
+          id: 'inferred-dialogue-' + dialogue.id + '-' + index,
+          category: 'Dialogue',
+          objectName: dialogue.label || dialogue.character,
+          field: trigger.field || 'Character dependency',
+          oldValue: String(trigger.oldValue ?? 'Current approved character state'),
+          newValue: String(trigger.newValue ?? 'Requires review/regeneration'),
+          reason: 'Dialogue is authored for the changed character and may require voice/subtext review.',
+          severity: 'Medium',
+          approved: false
+        }));
+    }
+  }
+
   const staleDependencies = dependencies.filter(d => d.isStale);
   const staleItems = staleDependencies
     .filter(d => !items.some(i => i.id.includes(d.id)))
@@ -56,7 +91,7 @@ export const resolveDependencyImpact = (
       approved: false
     }));
 
-  const allItems = [...items, ...staleItems];
+  const allItems = [...items, ...inferred, ...staleItems];
   const summary = {
     characters: allItems.filter(i => i.category === 'Characters').length,
     story: allItems.filter(i => i.category === 'Story').length,
