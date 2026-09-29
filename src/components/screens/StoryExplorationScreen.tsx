@@ -24,6 +24,7 @@ import { useProject } from '../../context/ProjectContext';
 import { generateStoryDirections, fleshOutStoryDirection } from '../../services/aiService';
 import { StoryDirection } from '../../types/project';
 import { BranchEvolutionPanel } from './BranchEvolutionPanel';
+import { RegenerationReviewPanel } from './RegenerationReviewPanel';
 
 export const StoryExplorationScreen: React.FC = () => {
   const { 
@@ -307,6 +308,7 @@ export const StoryExplorationScreen: React.FC = () => {
       </div>
 
       <BranchEvolutionPanel />
+      <RegenerationReviewPanel />
 
       {/* Error alert banner */}
       {generationError && (
