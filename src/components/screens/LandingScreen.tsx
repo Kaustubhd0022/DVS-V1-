@@ -186,8 +186,11 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(173,75,40,.10),transparent_34%)]" />
             <div className="relative flex w-full max-w-4xl flex-col items-center justify-center px-8">
               <motion.img
-                src="/TattvaCO.png"
+                src="https://raw.githubusercontent.com/Kaustubhd0022/DVS-V1-/main/TattvaCO.png"
                 alt="TattvaCo"
+                onError={(event) => {
+                  event.currentTarget.src = "/tattvaCo-logo.png";
+                }}
                 initial={{ opacity: 0, scale: 0.82, filter: 'blur(14px)' }}
                 animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                 transition={{ duration: 1.45, ease: [0.16, 1, 0.3, 1] }}
