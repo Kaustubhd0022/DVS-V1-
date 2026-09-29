@@ -731,10 +731,42 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ? versions.map(v => v.id === previous.id ? { ...v, state: 'SUPERSEDED' as CanonicalState } : v)
         : versions;
 
+      const approvalDecision: CreativeDecision = {
+        id: 'decision-' + Date.now(),
+        title: 'Approved ' + artifactType + ' artifact',
+        decision: 'Approved ' + artifactType + ' ' + artifactId + ' as canonical ' + version.version,
+        rationale: rationale || 'Human approval recorded for downstream grounding.',
+        author: approvedBy,
+        role,
+        date: now,
+        status: 'Approved',
+        impactedAreas: [artifactType]
+      };
+
+      const nextDependencies = (prev.storyBrain?.dependencies || []).map(dep =>
+        dep.sourceEntityId === artifactId
+          ? { ...dep, isStale: true, staleReason: 'Source artifact changed through human approval ' + version.version }
+          : dep
+      );
+
       let next = {
         ...prev,
         artifactVersions: [...nextVersions, version],
-        artifactApprovals: [...(prev.artifactApprovals || []), approval]
+        artifactApprovals: [...(prev.artifactApprovals || []), approval],
+        storyBrain: {
+          ...prev.storyBrain,
+          creativeDecisions: [...(prev.storyBrain?.creativeDecisions || []), approvalDecision],
+          decisionLog: [...(prev.storyBrain?.decisionLog || []), approvalDecision],
+          dependencies: nextDependencies,
+          lastUpdated: now
+        },
+        projectIntelligence: prev.projectIntelligence ? {
+          ...prev.projectIntelligence,
+          development: {
+            ...prev.projectIntelligence.development,
+            decisionCount: prev.projectIntelligence.development.decisionCount + 1
+          }
+        } : prev.projectIntelligence
       };
 
       if (artifactType === 'direction') {
