@@ -1,3 +1,5 @@
+import { ProjectConfiguration, ProjectIntelligence } from '../domain/tattvacoProject';
+
 export type ApprovalStatus = 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'LOCKED';
 
 /**
@@ -597,6 +599,9 @@ export interface TattvaCoProject {
   status: ApprovalStatus;
   canonicalVersion?: string;
   isDemo?: boolean;
+  /** V1 vertical-aware configuration and persistent project intelligence. */
+  projectConfig?: ProjectConfiguration;
+  projectIntelligence?: ProjectIntelligence;
 
   // The Heart of Tattava: Story Brain System of Record
   storyBrain: StoryBrain;
