@@ -657,6 +657,42 @@ export interface ProjectBranch {
   mergeDecisionId?: string;
 }
 
+export interface BranchMergeConflict {
+  id: string;
+  artifactType: ArtifactVersionRecord['artifactType'];
+  artifactId: string;
+  branchVersionId: string;
+  canonicalVersionId?: string;
+  branchContent: unknown;
+  canonicalContent?: unknown;
+  reason: string;
+  resolution?: 'USE_BRANCH' | 'KEEP_CANONICAL' | 'MANUAL_EDIT';
+}
+
+export interface BranchMergeDiff {
+  artifactType: ArtifactVersionRecord['artifactType'];
+  artifactId: string;
+  branchVersionId: string;
+  canonicalVersionId?: string;
+  changeType: 'ADDED' | 'MODIFIED' | 'UNCHANGED';
+  changedFields: string[];
+  summary: string;
+}
+
+export interface BranchMergePreview {
+  id: string;
+  branchId: string;
+  baseCanonicalVersion: string;
+  targetCanonicalVersion: string;
+  createdAt: string;
+  diffs: BranchMergeDiff[];
+  conflicts: BranchMergeConflict[];
+  status: 'READY' | 'CONFLICTS' | 'APPROVED' | 'REJECTED';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rationale?: string;
+}
+
 export interface BranchMergeRecord {
   id: string;
   branchId: string;
@@ -666,6 +702,7 @@ export interface BranchMergeRecord {
   mergedBy: string;
   rationale: string;
   status: 'PROPOSED' | 'APPROVED' | 'REJECTED';
+  previewId?: string;
 }
 
 export interface ArtifactApprovalRecord {
@@ -734,6 +771,7 @@ export interface TattvaCoProject {
   artifactApprovals?: ArtifactApprovalRecord[];
   projectBranches?: ProjectBranch[];
   branchMerges?: BranchMergeRecord[];
+  branchMergePreview?: BranchMergePreview | null;
   regenerationPlans?: RegenerationPlan[];
 
   // Conversational Discovery & Development Loop Session
