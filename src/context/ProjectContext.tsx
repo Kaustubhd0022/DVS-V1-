@@ -188,6 +188,7 @@ interface ProjectContextType {
   approveAndPropagateImpact: () => void;
   buildRegenerationPlan: () => void;
   executeRegenerationPlan: (planId: string) => Promise<RegenerationResult[]>;
+  approveRegenerationProposal: (versionId: string, approvedBy: string, role: string, rationale?: string) => void;
   
   // Specific Screen Helper Methods
   setProjectFormat: (format: string) => void;
@@ -1925,6 +1926,90 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const closeImpactModal = () => {
     setImpactState(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const approveRegenerationProposal = (versionId: string, approvedBy: string, role: string, rationale?: string) => {
+    updateCurrentProject(prev => {
+      const proposal = (prev.artifactVersions || []).find(v => v.id === versionId && v.state === 'AI_PROPOSAL');
+      if (!proposal) return prev;
+
+      const now = new Date().toISOString();
+      const previous = (prev.artifactVersions || [])
+        .filter(v => v.artifactType === proposal.artifactType && v.artifactId === proposal.artifactId && v.state === 'CANONICAL')
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      const approvalId = 'artifact-approval-' + Date.now();
+      const canonicalId = 'artifact-version-' + Date.now();
+      const versionNumber = (prev.artifactVersions || [])
+        .filter(v => v.artifactType === proposal.artifactType && v.artifactId === proposal.artifactId).length + 1;
+
+      const canonical: ArtifactVersionRecord = {
+        ...proposal,
+        id: canonicalId,
+        version: 'v' + versionNumber,
+        state: 'CANONICAL',
+        createdAt: now,
+        createdBy: approvedBy,
+        changeSummary: rationale || 'Human-approved regeneration proposal.',
+        supersedesVersionId: previous?.id,
+        approvalId
+      };
+      const approval: ArtifactApprovalRecord = {
+        id: approvalId,
+        artifactType: proposal.artifactType,
+        artifactId: proposal.artifactId,
+        versionId: canonicalId,
+        status: 'APPROVED',
+        approvedBy,
+        role,
+        timestamp: now,
+        rationale
+      };
+      const versions = (prev.artifactVersions || []).map(v =>
+        v.id === previous?.id ? { ...v, state: 'SUPERSEDED' as CanonicalState } :
+        v.id === proposal.id ? { ...v, state: 'SUPERSEDED' as CanonicalState } : v
+      );
+      const decision: CreativeDecision = {
+        id: 'decision-' + Date.now(),
+        title: 'Approved regenerated ' + proposal.artifactType,
+        decision: 'Approved regenerated ' + proposal.artifactType + ' ' + proposal.artifactId + ' as ' + canonical.version,
+        rationale: rationale || 'Human approval recorded for downstream grounding.',
+        author: approvedBy,
+        role,
+        date: now,
+        status: 'Approved',
+        impactedAreas: [proposal.artifactType, 'Regeneration']
+      };
+
+      let next: TattavaProject = {
+        ...prev,
+        artifactVersions: [...versions, canonical],
+        artifactApprovals: [...(prev.artifactApprovals || []), approval],
+        storyBrain: {
+          ...prev.storyBrain,
+          creativeDecisions: [decision, ...(prev.storyBrain?.creativeDecisions || [])],
+          decisionLog: [decision, ...(prev.storyBrain?.decisionLog || [])],
+          dependencies: (prev.storyBrain?.dependencies || []).map(dep =>
+            dep.targetEntityId === proposal.artifactId
+              ? { ...dep, isStale: false, staleReason: undefined }
+              : dep
+          ),
+          lastUpdated: now
+        }
+      };
+
+      if (proposal.artifactType === 'character') {
+        next = { ...next, characters: next.characters.map(a => a.id === proposal.artifactId ? { ...(proposal.content as Character), candidateState: 'CANONICAL' } : a) };
+      } else if (proposal.artifactType === 'treatment') {
+        next = { ...next, treatment: { ...(proposal.content as TreatmentData), candidateState: 'CANONICAL' } };
+      } else if (proposal.artifactType === 'scene') {
+        next = { ...next, scenes: next.scenes.map(a => a.id === proposal.artifactId ? { ...(proposal.content as SceneItem), candidateState: 'CANONICAL' } : a) };
+      } else if (proposal.artifactType === 'direction') {
+        next = { ...next, storyDirections: next.storyDirections.map(a => a.id === proposal.artifactId ? { ...(proposal.content as StoryDirection), candidateState: 'CANONICAL' } : a), selectedDirectionId: proposal.artifactId };
+      } else {
+        next = { ...next, dialogueSuggestions: next.dialogueSuggestions.map(a => a.id === proposal.artifactId ? { ...(proposal.content as any), candidateState: 'CANONICAL' } : a) };
+      }
+      return next;
+    });
   };
 
   const executeRegenerationPlan = async (planId: string): Promise<RegenerationResult[]> => {
