@@ -1150,16 +1150,18 @@ export interface EvaluationResult {
 export const evaluateProjectNarrative = async (
   project: TattavaProject
 ): Promise<EvaluationResult> => {
-  const context = buildProjectContext(project, 'Comprehensive Narrative Quality Evaluation', {
-    includeDrafts: true,
-    includeResearch: true,
-    includeDecisions: true
-  });
+  const resolved = resolveCanonicalGenerationContext(
+    project,
+    'Evaluation',
+    'Project Narrative Readiness',
+    'Evaluate the current project against canonical context, approved decisions, research evidence, unresolved questions, and active dependencies.'
+  );
+  const context = resolved.contextText;
 
   const prompt = `${context}
 
 TASK:
-Evaluate this project's narrative readiness across the 6-dimension industry rubric:
+Evaluate this project's narrative readiness using ONLY the resolved canonical context package. Separate authoritative canon, verified evidence, accepted creative decisions, and unresolved questions. Never treat an unresolved question as a fact.\n\nEvaluate this project's narrative readiness across the 6-dimension industry rubric:
 1. Premise Integrity
 2. Character Consistency & Depth
 3. Narrative Pacing & Tension
