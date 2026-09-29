@@ -1511,6 +1511,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       return {
         ...prev,
+        regenerationPlans: [plan, ...(prev.regenerationPlans || [])],
         storyBrain: {
           ...prev.storyBrain,
           creativeDecisions: [decision, ...(prev.storyBrain.creativeDecisions || [])],
