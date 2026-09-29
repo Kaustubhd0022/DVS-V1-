@@ -21,7 +21,8 @@ import {
   ResearchFinding,
   DiscoveryTurn,
   DiscoveryCandidateOption,
-  DiscoverySession
+  DiscoverySession,
+  RegenerationPlan
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
@@ -32,6 +33,7 @@ import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
 import { resolveProjectContext } from '../services/contextResolver';
 import { resolveDependencyImpact } from '../services/dependencyImpactService';
 import { buildRegenerationPlan } from '../services/regenerationPlanner';
+import { executeRegenerationItem, RegenerationResult } from '../services/regenerationExecutor';
 
 export type ScreenId = 
   | 'home' 
@@ -169,6 +171,7 @@ interface ProjectContextType {
   closeImpactModal: () => void;
   approveAndPropagateImpact: () => void;
   buildRegenerationPlan: () => void;
+  executeRegenerationPlan: (planId: string) => Promise<RegenerationResult[]>;
   
   // Specific Screen Helper Methods
   setProjectFormat: (format: string) => void;
@@ -1481,6 +1484,43 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setImpactState(prev => ({ ...prev, isOpen: false }));
   };
 
+  const executeRegenerationPlan = async (planId: string): Promise<RegenerationResult[]> => {
+    const plan = (currentProject.regenerationPlans || []).find(p => p.id === planId);
+    if (!plan) return [];
+
+    const results: RegenerationResult[] = [];
+    for (const item of plan.items) {
+      const result = await executeRegenerationItem(currentProject, item);
+      results.push(result);
+
+      if (result.ok) {
+        updateCurrentProject(prev => {
+          if (result.artifactType === 'character') {
+            return { ...prev, characters: prev.characters.map(c => c.id === result.artifactId ? result.artifact : c) };
+          }
+          if (result.artifactType === 'treatment') {
+            return { ...prev, treatment: result.artifact };
+          }
+          if (result.artifactType === 'scene') {
+            return { ...prev, scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s) };
+          }
+          return prev;
+        });
+      }
+    }
+
+    updateCurrentProject(prev => ({
+      ...prev,
+      regenerationPlans: (prev.regenerationPlans || []).map(p => p.id === planId ? {
+        ...p,
+        status: results.some(r => !r.ok) ? 'PARTIAL' : 'COMPLETED'
+      } : p),
+      lastUpdated: new Date().toISOString()
+    }));
+
+    return results;
+  };
+
   const createRegenerationPlan = () => {
     const plan = buildRegenerationPlan(currentProject, impactState);
     updateCurrentProject(prev => ({
@@ -1884,6 +1924,7 @@ Format: ${currentProject.format}
         closeImpactModal,
         approveAndPropagateImpact,
         buildRegenerationPlan: createRegenerationPlan,
+        executeRegenerationPlan,
         setProjectFormat,
         setProjectTemplate,
         updateTreatment,
