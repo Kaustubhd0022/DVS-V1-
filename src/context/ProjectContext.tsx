@@ -1193,20 +1193,22 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     updateCurrentProject(prev => {
       const preview = prev.branchMergePreview;
       if (!preview || preview.branchId !== branchId) return prev;
+      const conflicts = preview.conflicts.map(conflict =>
+        conflict.id === conflictId
+          ? { ...conflict, resolution: 'MANUAL_EDIT' as const, manualContent: content }
+          : conflict
+      );
+      const allResolved = conflicts.every(conflict =>
+        Boolean(conflict.resolution) && (
+          conflict.resolution !== 'MANUAL_EDIT' || conflict.manualContent !== undefined
+        )
+      );
       return {
         ...prev,
         branchMergePreview: {
           ...preview,
-          conflicts: preview.conflicts.map(conflict =>
-            conflict.id === conflictId
-              ? { ...conflict, resolution: 'MANUAL_EDIT', manualContent: content }
-              : conflict
-          ),
-          status: preview.conflicts
-            .filter(conflict => conflict.id !== conflictId)
-            .every(conflict => conflict.resolution || conflict.id === conflictId)
-            ? 'READY'
-            : 'CONFLICTS'
+          conflicts,
+          status: allResolved ? 'READY' : 'CONFLICTS'
         }
       };
     });
