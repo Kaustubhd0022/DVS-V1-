@@ -28,7 +28,7 @@ import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
-import { evaluateProjectNarrative, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
+import { evaluateProjectNarrative, generateEvaluationRepairPlan, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
 import { resolveProjectContext } from '../services/contextResolver';
 import { resolveDependencyImpact } from '../services/dependencyImpactService';
@@ -546,6 +546,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const runStoryEvaluation = async () => {
     try {
       const evalRes = await evaluateProjectNarrative(currentProject);
+      const repairPlan = await generateEvaluationRepairPlan(currentProject, evalRes);
       updateCurrentProject(prev => {
         const fullDimensions = [
           {
@@ -614,6 +615,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return {
           ...prev,
           evaluation: updatedEval,
+          evaluationRepairPlan: repairPlan,
           pilotMetrics: {
             ...prev.pilotMetrics,
             totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1

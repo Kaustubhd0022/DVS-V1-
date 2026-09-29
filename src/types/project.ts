@@ -467,6 +467,26 @@ export interface StoryEvaluation {
   };
 }
 
+
+export interface EvaluationRepairItem {
+  id: string;
+  dimension: string;
+  targetArtifact: 'research' | 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue' | 'evaluation';
+  problem: string;
+  recommendation: string;
+  action: 'REVIEW' | 'REGENERATE' | 'RESEARCH';
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
+}
+
+export interface EvaluationRepairPlan {
+  id: string;
+  evaluationAt: string;
+  generatedAt: string;
+  status: 'OPEN' | 'PARTIAL' | 'RESOLVED';
+  items: EvaluationRepairItem[];
+}
+
 // -------------------------------------------------------------
 // PILOT INSTRUMENTATION & TELEMETRY MODEL
 // -------------------------------------------------------------
@@ -683,6 +703,7 @@ export interface TattvaCoProject {
 
   // AI Story Evaluation Harness
   evaluation?: StoryEvaluation | null;
+  evaluationRepairPlan?: EvaluationRepairPlan | null;
 
   // Context Resolver active cache
   activeContextPackage?: ContextResolverPackage;

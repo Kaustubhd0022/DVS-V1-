@@ -21,7 +21,8 @@ import {
   WorldLocation,
   StructureBeat,
   SceneItem,
-  PlotBeatItem
+  PlotBeatItem,
+  EvaluationRepairPlan
 } from '../types/project';
 import { resolveProjectContext } from './contextResolver';
 
@@ -1203,6 +1204,90 @@ Return ONLY valid JSON:
   });
 
   return extractJsonFromResponse(raw);
+};
+
+/**
+ * EVALUATION -> REPAIR PLANNER
+ * Converts grounded evaluation diagnostics into explicit, human-reviewable repair work.
+ * This never mutates canon or artifacts.
+ */
+export const generateEvaluationRepairPlan = async (
+  project: TattavaProject,
+  evaluation: EvaluationResult
+): Promise<EvaluationRepairPlan> => {
+  const resolved = resolveCanonicalGenerationContext(
+    project,
+    'Evaluation',
+    'Evaluation Repair Plan',
+    'Translate the latest narrative evaluation into the smallest set of grounded repair actions. Prioritize gaps that can be addressed through research, exploration, or downstream artifact regeneration.'
+  );
+  const context = resolved.contextText;
+
+  const prompt = context + `
+
+LATEST EVALUATION:
+${JSON.stringify(evaluation)}
+
+TASK:
+Create a repair plan from the evaluation. Use only problems actually supported by the canonical context and evaluation.
+Rules:
+- Do not invent project facts.
+- Do not rewrite canon.
+- Distinguish RESEARCH from artifact REGENERATE and human REVIEW.
+- Prefer the smallest downstream repair that addresses the diagnosed gap.
+- If a gap is primarily a creative choice, target direction or review rather than silently deciding it.
+- Maximum 6 repair items.
+- Every item must explain the diagnosed problem and the recommended action.
+
+Return ONLY valid JSON:
+{
+  "status": "OPEN",
+  "items": [
+    {
+      "dimension": "Character Consistency & Depth",
+      "targetArtifact": "character",
+      "problem": "Specific diagnosed gap",
+      "recommendation": "Specific repair instruction",
+      "action": "REGENERATE",
+      "priority": "HIGH"
+    }
+  ]
+}`;
+
+  const raw = await callGroq([
+    { role: 'system', content: 'You are a senior film development repair planner. Return JSON only. Diagnose and route work; never make canon decisions.' },
+    { role: 'user', content: prompt }
+  ], {
+    temperature: 0.3,
+    max_tokens: 1800,
+    jsonMode: true,
+    taskName: 'Evaluation Repair Planning',
+    contextSnapshot: context
+  });
+
+  const parsed = extractJsonFromResponse(raw);
+  const allowedTargets = ['research', 'direction', 'character', 'treatment', 'scene', 'dialogue', 'evaluation'];
+  const allowedActions = ['REVIEW', 'REGENERATE', 'RESEARCH'];
+  const allowedPriorities = ['HIGH', 'MEDIUM', 'LOW'];
+
+  const items = Array.isArray(parsed.items) ? parsed.items.slice(0, 6).map((item: any, index: number) => ({
+    id: 'eval-repair-' + Date.now() + '-' + (index + 1),
+    dimension: item.dimension || 'Narrative Readiness',
+    targetArtifact: allowedTargets.includes(item.targetArtifact) ? item.targetArtifact : 'evaluation',
+    problem: item.problem || 'Evaluation identified a gap requiring review.',
+    recommendation: item.recommendation || 'Review the evaluation finding against canonical project context.',
+    action: allowedActions.includes(item.action) ? item.action : 'REVIEW',
+    priority: allowedPriorities.includes(item.priority) ? item.priority : 'MEDIUM',
+    status: 'OPEN' as const
+  })) : [];
+
+  return {
+    id: 'eval-repair-plan-' + Date.now(),
+    evaluationAt: project.evaluation?.evaluatedAt || new Date().toISOString(),
+    generatedAt: new Date().toISOString(),
+    status: items.length ? 'OPEN' : 'RESOLVED',
+    items
+  };
 };
 
 /**
