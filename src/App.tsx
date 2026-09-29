@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useProject, ScreenId, PIPELINE_STEPS } from './context/ProjectContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { TopHeader } from './components/layout/TopHeader';
@@ -28,6 +29,7 @@ import { EvaluationScreen } from './components/screens/EvaluationScreen';
 import { PackageDeliveryScreen } from './components/screens/PackageDeliveryScreen';
 
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
+import { TattavaMotionProvider } from './components/motion/TattavaMotion';
 
 // Deferred / Out of Scope (Retained for preview compatibility)
 import { VisualDevScreen } from './components/screens/VisualDevScreen';
@@ -85,7 +87,8 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0e12] text-white flex overflow-x-hidden font-sans selection:bg-amber-500/30 selection:text-white">
+    <TattavaMotionProvider>
+      <div className="min-h-screen bg-[#0c0e12] text-white flex overflow-x-hidden font-sans selection:bg-amber-500/30 selection:text-white">
       {/* Left Persistent Dark Navigation */}
       <Sidebar />
 
@@ -103,7 +106,18 @@ export const App: React.FC = () => {
             key={activeScreen}
             fallbackScreen={() => setActiveScreen('discovery')}
           >
-            {renderActiveScreen()}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeScreen}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.24, ease: 'easeOut' }}
+                className="min-h-full"
+              >
+                {renderActiveScreen()}
+              </motion.div>
+            </AnimatePresence>
           </ErrorBoundary>
         </main>
       </div>
@@ -116,6 +130,7 @@ export const App: React.FC = () => {
 
       {/* Flagship Modal: Scoped Context Resolver Inspector */}
       {isContextResolverOpen && <ContextResolverModal />}
-    </div>
+      </div>
+    </TattavaMotionProvider>
   );
 };
