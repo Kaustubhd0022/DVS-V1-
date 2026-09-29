@@ -406,8 +406,44 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
 
             {modal === 'signin' && (
               <div className="mt-6">
-                <p className="text-sm leading-6 text-white/50">Pilot access is currently provisioned for invited users.</p>
-                <button onClick={() => { setModal(null); openWaitlist(); }} className="mt-6 w-full rounded-xl bg-white px-4 py-3 text-sm font-medium text-black">Request access</button>
+                <div className="mb-5 rounded-xl border border-amber-200/15 bg-amber-200/[0.04] p-4">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-amber-200/70">Master access</div>
+                  <p className="mt-2 text-xs leading-5 text-white/40">
+                    Pilot workspace access is provisioned for the Tattava master account. No password is required for this pilot entry.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1.5 block text-[10px] uppercase tracking-[0.16em] text-white/30">Name</label>
+                    <input value="TATTVACO" readOnly className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/80 outline-none" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[10px] uppercase tracking-[0.16em] text-white/30">Email</label>
+                    <input value="KAUSTUBH.D@TATTVACO.COM" readOnly className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/80 outline-none" />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    track('master_signin_success', { name: 'TATTVACO', email: 'KAUSTUBH.D@TATTVACO.COM' });
+                    localStorage.setItem('tattava_master_session', JSON.stringify({
+                      name: 'TATTVACO',
+                      email: 'KAUSTUBH.D@TATTVACO.COM',
+                      role: 'master',
+                      signedInAt: new Date().toISOString(),
+                    }));
+                    setModal(null);
+                    enterProduct();
+                  }}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-200 px-4 py-3 text-sm font-medium text-black hover:bg-amber-100"
+                >
+                  Enter Tattava <ArrowRight className="h-4 w-4" />
+                </button>
+
+                <p className="mt-3 text-center text-[10px] leading-4 text-white/25">
+                  Master access is for the current pilot environment. Production authentication should replace this flow before public launch.
+                </p>
               </div>
             )}
 
