@@ -878,6 +878,76 @@ Return ONLY valid JSON matching:
 };
 
 /**
+ * V1 RESEARCH UNIVERSE
+ * Maps the project's knowledge space before generating claims.
+ * This is a research-plan operation, not evidence verification.
+ */
+export interface ResearchUniverseResult {
+  rootSubject: string;
+  dimensions: Array<{
+    id: string;
+    label: string;
+    description: string;
+    parentDimensionId?: string;
+    status: 'OPEN' | 'IN_PROGRESS' | 'COVERED' | 'NOT_RELEVANT';
+    depth: number;
+    childCount?: number;
+  }>;
+  unresolvedQuestions: string[];
+  coveragePercent: number;
+}
+
+export const generateResearchUniverse = async (project: TattavaProject): Promise<ResearchUniverseResult> => {
+  const context = buildProjectContext(project, 'Map the research universe required to understand this project before generating factual findings.');
+  const prompt = context + `
+TASK:
+Build a project-specific RESEARCH UNIVERSE.
+Do not invent factual claims or pretend research has already been verified.
+Identify knowledge dimensions that must be investigated to understand the project, including core subject/domain, historical/cultural/social context where relevant, institutions/systems/practices, people/communities, geography/places, time period, terminology/language, contested or uncertain areas, and research-dependent creative implications.
+
+Return ONLY valid JSON:
+{
+  "rootSubject": "The project's central knowledge subject",
+  "dimensions": [{
+    "id": "short-stable-id",
+    "label": "Research dimension",
+    "description": "What needs to be learned and why it matters",
+    "parentDimensionId": "optional parent id",
+    "status": "OPEN",
+    "depth": 0,
+    "childCount": 0
+  }],
+  "unresolvedQuestions": ["Specific question the research must answer"],
+  "coveragePercent": 0
+}
+
+Rules:
+- Dimensions are research territories, NOT claims.
+- Keep unknowns explicit.
+- Do not mark a dimension COVERED unless the current project already contains sufficient grounded evidence.
+- coveragePercent reflects current evidence coverage, not AI confidence.
+- Prefer 8-15 useful dimensions over generic categories.
+`;
+  const raw = await callGroq([
+    { role: 'system', content: 'You are Tattava Research Architect. Map knowledge spaces without fabricating evidence. Return JSON only.' },
+    { role: 'user', content: prompt }
+  ], {
+    temperature: 0.35,
+    max_tokens: 2600,
+    jsonMode: true,
+    taskName: 'Research Universe Mapping',
+    contextSnapshot: context
+  });
+  const parsed = extractJsonFromResponse(raw);
+  return {
+    rootSubject: parsed.rootSubject || project.projectConfig?.subject || project.intent?.premise || project.title,
+    dimensions: Array.isArray(parsed.dimensions) ? parsed.dimensions : [],
+    unresolvedQuestions: Array.isArray(parsed.unresolvedQuestions) ? parsed.unresolvedQuestions : [],
+    coveragePercent: typeof parsed.coveragePercent === 'number' ? Math.max(0, Math.min(100, parsed.coveragePercent)) : 0
+  };
+};
+
+/**
  * SECTION 18: DYNAMIC CONTINUITY CHECK
  * Compares current approved canon against current draft/story elements.
  */
