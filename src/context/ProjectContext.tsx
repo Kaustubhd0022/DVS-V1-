@@ -27,6 +27,7 @@ import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
 import { evaluateProjectNarrative, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
+import { resolveProjectContext } from '../services/contextResolver';
 
 export type ScreenId = 
   | 'home' 
@@ -329,44 +330,16 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // -------------------------------------------------------------
   const resolveContext = (
     taskType: ContextResolverPackage['taskType'],
-    targetArtifact: string
+    targetArtifact: string,
+    query?: string,
+    selectedCharacterId?: string
   ): ContextResolverPackage => {
-    const protagonist = currentProject.characters?.find(c => c.role === 'Protagonist') || currentProject.characters?.[0];
-    const antagonist = currentProject.characters?.find(c => c.role === 'Antagonist') || currentProject.characters?.[1];
-
-    const retrievedCanon = currentProject.storyBrain?.canonFacts?.slice(0, 4) || [];
-    const retrievedResearch = currentProject.researchFindings?.filter(r => r.status === 'Verified')?.slice(0, 3) || [];
-    const retrievedRules = currentProject.world?.worldRules || [];
-
-    const characterContext = protagonist ? [
-      {
-        name: protagonist.name,
-        want: protagonist.want,
-        need: protagonist.need,
-        fear: protagonist.fear,
-        voiceStyle: protagonist.voiceStyle
-      },
-      ...(antagonist ? [{
-        name: antagonist.name,
-        want: antagonist.want,
-        need: antagonist.need,
-        fear: antagonist.fear,
-        voiceStyle: antagonist.voiceStyle
-      }] : [])
-    ] : [];
-
-    const pkg: ContextResolverPackage = {
-      taskId: 'ctx-' + Date.now(),
+    const { pkg } = resolveProjectContext(currentProject, {
       taskType,
       targetArtifact,
-      retrievedCanonFacts: retrievedCanon,
-      retrievedCharacterContext: characterContext,
-      retrievedResearch,
-      retrievedWorldRules: retrievedRules,
-      rationale: `Assembled minimal versioned slice for ${targetArtifact}. Excluded unverified rumors and external cross-project data to guarantee zero hallucinated canon.`,
-      tokenEstimate: 1420,
-      resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+      query,
+      selectedCharacterId
+    });
 
     setActiveContextPackage(pkg);
     updateCurrentProject(prev => ({
@@ -380,6 +353,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     return pkg;
   };
+
 
   const openContextResolver = (taskOrPkg?: ContextResolverPackage | ContextResolverPackage['taskType'], targetArtifact?: string) => {
     if (typeof taskOrPkg === 'object' && taskOrPkg !== null) {

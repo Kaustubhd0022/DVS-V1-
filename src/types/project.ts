@@ -1,4 +1,4 @@
-import { ProjectConfiguration, ProjectIntelligence } from '../domain/tattvacoProject';
+import { ProjectConfiguration, ProjectIntelligence, ProjectInsight, ProjectDirection } from '../domain/tattvacoProject';
 
 export type ApprovalStatus = 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'LOCKED';
 
@@ -385,6 +385,23 @@ export interface ContextResolverPackage {
   taskId: string;
   taskType: 'Story Direction' | 'Treatment Beat' | 'Scene Drafting' | 'Dialogue Voice' | 'Continuity Check' | 'Evaluation';
   targetArtifact: string;
+  projectConfiguration?: ProjectConfiguration;
+  currentIntent?: {
+    premise: string;
+    protagonist: string;
+    setting: string;
+    conflict: string;
+    stakes: string;
+    themes: string[];
+    tone: string;
+    knownInformation: string[];
+    unknownInformation: string[];
+  };
+  acceptedInsights?: ProjectInsight[];
+  selectedDirection?: ProjectDirection;
+  relevantDecisions?: CreativeDecision[];
+  relevantDependencies?: StoryDependency[];
+  unresolvedQuestions?: string[];
   retrievedCanonFacts: CanonFact[];
   retrievedCharacterContext: { name: string; want: string; need: string; fear: string; voiceStyle: string }[];
   retrievedResearch: ResearchFinding[];
