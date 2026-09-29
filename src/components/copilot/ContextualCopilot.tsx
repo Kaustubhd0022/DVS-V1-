@@ -12,6 +12,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
+import { planNextCreatorAction } from '../../services/nextActionPlanner';
 
 export const ContextualCopilot: React.FC = () => {
   const { 
@@ -21,11 +22,13 @@ export const ContextualCopilot: React.FC = () => {
     currentProject, 
     copilotMessages, 
     sendCopilotMessage,
-    triggerChangeImpact
+    triggerChangeImpact,
+    executeRegenerationPlan
   } = useProject();
 
   const [inputVal, setInputVal] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  const nextAction = planNextCreatorAction(currentProject);
 
   if (!isCopilotOpen) return null;
 
@@ -61,7 +64,7 @@ export const ContextualCopilot: React.FC = () => {
       case 'research':
         return [
           'What research is still missing?',
-          'Verify coaching hub claims',
+          'Verify an unresolved project claim',
           'Connect findings to Scene 1',
           'Detect research contradictions'
         ];
@@ -74,10 +77,10 @@ export const ContextualCopilot: React.FC = () => {
         ];
       case 'characters':
         return [
-          'Does Aanya motivation stay consistent?',
-          'Test Change Impact: Age 24 → 34',
-          'Generate voice profile for Kabir',
-          'Deepen antagonist philosophy'
+          'Check character motivation consistency',
+          'Analyze character change impact',
+          'Generate a character voice profile',
+          'Deepen the antagonist philosophy'
         ];
       case 'screenplay':
         return [
@@ -154,6 +157,45 @@ export const ContextualCopilot: React.FC = () => {
         </button>
       </div>
 
+      {/* Next Action Intelligence */}
+      <div className="px-4 py-3 bg-[#151a24] border-b border-[#252d3b]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] uppercase tracking-wider font-bold text-[#7d8b9f]">Tattava's Next Action</span>
+          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f25b2a]/10 text-[#f25b2a] border border-[#f25b2a]/20">
+            {nextAction.mode}
+          </span>
+        </div>
+        <p className="text-xs text-white font-medium">{nextAction.reason}</p>
+        {nextAction.question && (
+          <p className="text-[11px] text-[#9aa6b8] mt-1.5">Question: {nextAction.question}</p>
+        )}
+        <div className="flex items-center gap-2 mt-2">
+          {nextAction.requiresHumanApproval && (
+            <span className="text-[9px] text-amber-300">Human approval required</span>
+          )}
+          {nextAction.mode === 'REGENERATE' && nextAction.sourcePlanId && (
+            <button
+              onClick={async () => {
+                setIsThinking(true);
+                await executeRegenerationPlan(nextAction.sourcePlanId!);
+                setIsThinking(false);
+              }}
+              className="ml-auto text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#f25b2a] text-white hover:bg-[#e04b1a]"
+            >
+              Regenerate
+            </button>
+          )}
+          {nextAction.mode === 'ASK' && nextAction.question && (
+            <button
+              onClick={() => handleSend(nextAction.question)}
+              className="ml-auto text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#202636] text-[#d8e0ec] hover:bg-[#2a3345]"
+            >
+              Resolve
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Project Context Badge */}
       <div className="px-4 py-2 bg-[#141822] border-b border-[#1f2533] flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 text-[#9aa6b8]">
@@ -224,13 +266,7 @@ export const ContextualCopilot: React.FC = () => {
           {chips.map((chip, idx) => (
             <button
               key={idx}
-              onClick={() => {
-                if (chip.includes('Age 24 → 34')) {
-                  triggerChangeImpact('char-aanya', 'age', 24, 34);
-                } else {
-                  handleSend(chip);
-                }
-              }}
+              onClick={() => handleSend(chip)}
               className="w-full text-left text-xs text-[#b5c1d1] hover:text-white bg-[#171b24] hover:bg-[#202636] border border-[#282f3f] hover:border-[#384359] px-2.5 py-1.5 rounded-lg flex items-center justify-between group transition-all"
             >
               <span className="truncate">{chip}</span>
