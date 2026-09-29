@@ -313,13 +313,16 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
               <div className="mb-7 text-center text-xs uppercase tracking-[0.2em] text-amber-200/70">TATTAVA INTELLIGENCE</div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {[
-                  ['REASONING', 'Narrative decisions', Brain],
-                  ['RESEARCH', 'Evidence synthesis', Search],
-                  ['WRITING', 'Creative generation', Sparkles],
-                ].map(([title, sub, Icon]) => {
-                  const I = Icon as React.ElementType;
-                  return <div key={title as string} className="rounded-xl border border-white/10 bg-white/[0.025] p-4 text-center"><I className="mx-auto h-5 w-5 text-amber-200/70" /><div className="mt-3 text-xs font-medium">{title}</div><div className="mt-1 text-[11px] text-white/35">{sub}</div></div>;
-                })}
+                  { title: 'REASONING', sub: 'Narrative decisions', Icon: Brain },
+                  { title: 'RESEARCH', sub: 'Evidence synthesis', Icon: Search },
+                  { title: 'WRITING', sub: 'Creative generation', Icon: Sparkles },
+                ].map(({ title, sub, Icon }) => (
+                  <div key={title} className="rounded-xl border border-white/10 bg-white/[0.025] p-4 text-center">
+                    <Icon className="mx-auto h-5 w-5 text-amber-200/70" />
+                    <div className="mt-3 text-xs font-medium">{title}</div>
+                    <div className="mt-1 text-[11px] text-white/35">{sub}</div>
+                  </div>
+                ))}
               </div>
               <div className="mx-auto my-4 h-8 w-px bg-gradient-to-b from-white/10 to-amber-200/40" />
               <div className="rounded-xl border border-amber-200/20 bg-amber-200/[0.04] p-5 text-center">
