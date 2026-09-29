@@ -187,7 +187,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={runIntakeAnalysis}
             disabled={isAnalyzing}
@@ -197,23 +197,24 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
             <span>{isAnalyzing ? 'Analyzing Input...' : 'Re-Analyze with AI'}</span>
           </button>
 
-          {!isApproved ? (
+          {!isApproved && (
             <button
               onClick={handleApproveAndInitializeBrain}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/20"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/10 text-xs font-semibold transition-all"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Approve & Initialize Story Brain</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setActiveScreen('story-brain')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all shadow-lg shadow-emerald-500/20"
-            >
-              <span>View Story Brain Hub</span>
-              <ArrowRight className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Approve Canon</span>
             </button>
           )}
+
+          <button
+            onClick={() => setActiveScreen('research')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+            title="Advance to Traceable Research & Evidence"
+          >
+            <span>Next: Research & Evidence</span>
+            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+          </button>
         </div>
       </div>
 
@@ -441,7 +442,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {!isApproved ? (
                 <button
                   onClick={handleApproveAndInitializeBrain}
@@ -452,13 +453,21 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
                 </button>
               ) : (
                 <button
-                  onClick={() => setActiveScreen('story-exploration')}
+                  onClick={() => setActiveScreen('research')}
                   className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"
                 >
-                  <span>Explore Story Directions</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Next: Traceable Research</span>
+                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </button>
               )}
+
+              <button
+                onClick={() => setActiveScreen('story-exploration')}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all border border-white/10 flex items-center gap-2 cursor-pointer"
+              >
+                <span>Explore Story Directions</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>

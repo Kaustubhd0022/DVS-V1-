@@ -163,6 +163,21 @@ export function buildProjectContext(
     parts.push(`\n=== STORY BRAIN CANON ===\nNo canonical facts established yet.`);
   }
 
+  // Active / Selected Story Direction (Authoritative Narrative Engine)
+  const selectedDirection = project.storyDirections?.find(d => d.isSelected) || project.storyDirections?.find(d => d.candidateState === 'CANONICAL');
+  if (selectedDirection) {
+    parts.push(`\n=== ACTIVE NARRATIVE DIRECTION (AUTHORITATIVE SPINE) ===`);
+    parts.push(`Direction: ${selectedDirection.title}`);
+    parts.push(`Logline: ${selectedDirection.logline}`);
+    if (selectedDirection.narrativeEngine) parts.push(`Narrative Engine: ${selectedDirection.narrativeEngine}`);
+    if (selectedDirection.tone) parts.push(`Tone: ${selectedDirection.tone}`);
+    if (selectedDirection.stakes) parts.push(`Stakes: ${selectedDirection.stakes}`);
+    if (selectedDirection.protagonistArc) parts.push(`Protagonist Arc: ${selectedDirection.protagonistArc}`);
+    if (selectedDirection.conflict) parts.push(`Core Conflict: ${selectedDirection.conflict}`);
+    if (selectedDirection.theme) parts.push(`Theme: ${selectedDirection.theme}`);
+    parts.push(`MANDATE FOR ALL DOWNSTREAM GENERATION: You MUST align character development, dramatic beats, treatment, and scenes strictly to this chosen narrative engine.`);
+  }
+
   // Characters
   const characters = project.characters || [];
   if (characters.length > 0) {
@@ -578,14 +593,20 @@ export interface StoryDirectionCandidate {
 }
 
 export const generateStoryDirections = async (
-  project: TattavaProject
+  project: TattavaProject,
+  userGuidance?: string
 ): Promise<StoryDirectionCandidate[]> => {
-  const context = buildProjectContext(project, 'Synthesize 3 distinct alternative Story Directions');
+  const context = buildProjectContext(
+    project, 
+    userGuidance 
+      ? `Synthesize 3 distinct alternative Story Directions branching from creator direction: "${userGuidance}"`
+      : 'Synthesize 3 distinct alternative Story Directions'
+  );
 
   const prompt = `${context}
 
 TASK:
-Create 3 radically distinct, commercially viable story directions exploring different narrative engines for this premise:
+${userGuidance ? `The creator has specified the following creative direction / narrative spine:\n"${userGuidance}"\n\nYou MUST treat this user-specified direction as primary and authoritative. Synthesize 3 distinct, commercially viable story directions exploring different narrative engines that strictly embody and expand upon this creator direction:` : `Create 3 radically distinct, commercially viable story directions exploring different narrative engines for this premise:`}
 - Direction A: Tight, claustrophobic psychological procedural
 - Direction B: High-stakes institutional conspiracy / thriller
 - Direction C: Intimate character-driven drama / moral tragedy
@@ -651,6 +672,107 @@ Return ONLY valid JSON matching:
 
   const parsed = extractJsonFromResponse(raw);
   return Array.isArray(parsed.directions) ? parsed.directions : [];
+};
+
+/**
+ * Elaborate and structure a creator-specified story direction into full narrative engine architecture
+ */
+export const fleshOutStoryDirection = async (
+  project: TattavaProject,
+  userDirection: {
+    title: string;
+    logline: string;
+    narrativeEngine?: string;
+    tone?: string;
+    stakes?: string;
+    theme?: string;
+  }
+): Promise<StoryDirectionCandidate> => {
+  const context = buildProjectContext(project, `Flesh out user-specified direction: ${userDirection.title}`);
+
+  const prompt = `${context}
+
+TASK:
+The creator has established the following authorial story direction:
+- Title: "${userDirection.title}"
+- Logline / Core Idea: "${userDirection.logline}"
+${userDirection.narrativeEngine ? `- Narrative Engine Intent: "${userDirection.narrativeEngine}"` : ''}
+${userDirection.tone ? `- Tone Intent: "${userDirection.tone}"` : ''}
+${userDirection.stakes ? `- Stakes Intent: "${userDirection.stakes}"` : ''}
+
+You MUST treat this user direction as authoritative and primary. Elaborate the deep narrative engine architecture around it:
+- protagonistArc: Detailed internal arc of the protagonist
+- conflict: Primary dramatic opposition
+- stakes: The catastrophic consequence of failure
+- theme: Core thematic question
+- tone: Stylistic and tonal reference
+- strengths: Why this direction is unique and commercially viable
+- risks: Creative pitfall to actively mitigate
+- compTitles: Two prominent reference comps (e.g. "Sicario meets Succession")
+
+Return ONLY valid JSON matching:
+{
+  "badgeLetter": "★",
+  "title": "${userDirection.title}",
+  "logline": "${userDirection.logline}",
+  "narrativeEngine": "...",
+  "protagonistArc": "...",
+  "conflict": "...",
+  "stakes": "...",
+  "theme": "...",
+  "tone": "${userDirection.tone || 'Grounded Neo-Noir'}",
+  "strengths": "...",
+  "risks": "...",
+  "compTitles": "..."
+}`;
+
+  try {
+    const raw = await callGroq([
+      {
+        role: 'system',
+        content: 'You are Tattava, an elite cinematic intelligence development engine. You flesh out creator-specified narrative engines into high-fidelity story architectures. Return JSON only.'
+      },
+      { role: 'user', content: prompt }
+    ], {
+      temperature: 0.65,
+      max_tokens: 2000,
+      jsonMode: true,
+      taskName: 'Flesh Out User Direction',
+      contextSnapshot: context
+    });
+
+    const parsed = extractJsonFromResponse(raw);
+    return {
+      badgeLetter: parsed.badgeLetter || '★',
+      title: parsed.title || userDirection.title,
+      logline: parsed.logline || userDirection.logline,
+      narrativeEngine: parsed.narrativeEngine || userDirection.narrativeEngine || 'Creator-specified plot & character engine',
+      protagonistArc: parsed.protagonistArc || 'Transformational moral crisis across three acts',
+      conflict: parsed.conflict || 'External opposition vs internal compromise',
+      stakes: parsed.stakes || userDirection.stakes || 'Personal and systemic survival',
+      theme: parsed.theme || userDirection.theme || 'Power, truth, and conviction',
+      tone: parsed.tone || userDirection.tone || 'Intense, cinematic, grounded',
+      strengths: parsed.strengths || 'Directly aligned with creator vision and core dramatic stakes',
+      risks: parsed.risks || 'Maintain narrative momentum in middle act',
+      compTitles: parsed.compTitles || 'Original Narrative Engine'
+    };
+  } catch (err) {
+    console.warn('Live AI call issue in fleshOutStoryDirection, using grounded architecture fallback:', err);
+    return {
+      badgeLetter: '★',
+      title: userDirection.title,
+      logline: userDirection.logline,
+      narrativeEngine: userDirection.narrativeEngine || `Relentless character crucible centered on ${userDirection.title}`,
+      protagonistArc: 'Reluctant insider forced to confront institutional corruption, sacrificing personal safety for structural truth.',
+      conflict: 'Moral integrity vs entrenched systemic power',
+      stakes: userDirection.stakes || 'Irreversible personal loss and systemic collapse',
+      theme: userDirection.theme || 'Sovereignty, truth, and the price of silence',
+      tone: userDirection.tone || 'Grounded Neo-Noir, Tense, Atmospheric',
+      strengths: 'Deeply authorial, immediate character empathy, and high narrative propulsion',
+      risks: 'Ensure secondary antagonist motives match protagonist moral dilemma',
+      compTitles: 'Michael Clayton meets Sicario'
+    };
+  }
 };
 
 /**
@@ -1065,6 +1187,10 @@ INSTRUCTIONS:
    - Fill appliedDecision with summary, rationale, and a precise canonFactCreated statement.
 5. NEXT CREATIVE QUESTION: Determine the single most crucial unresolved creative question to explore next.
 6. QUICK REPLIES: Provide 3-4 natural suggestions for quick selection.
+7. USER-ENTERED QUESTIONS & ALTERNATIVE DIRECTIONS: If the creator asks their own creative question or provides an alternative direction/concept/kingdom (e.g., "Alternative direction: ...", "Creative question: ...", or any custom creator input):
+   - You MUST treat user-entered questions and directions as authoritative, primary inputs. Do NOT treat them as secondary feedback.
+   - Ground your conversationalReply and internal reasoning directly in their specified question/direction.
+   - If they provide an alternative direction, validate it with historical/dramatic evidence and build candidate options or next steps that honor and advance their alternative direction.
 
 Return ONLY a valid JSON object matching this schema:
 {

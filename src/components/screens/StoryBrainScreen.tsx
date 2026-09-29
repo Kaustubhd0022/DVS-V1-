@@ -135,10 +135,19 @@ export const StoryBrainScreen: React.FC = () => {
 
             <button
               onClick={() => setIsAddFactOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20"
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 text-xs font-semibold flex items-center gap-2 transition-all"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 text-amber-400" />
               <span>Add Canon Fact</span>
+            </button>
+
+            <button
+              onClick={() => setActiveScreen('intake')}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-95 whitespace-nowrap cursor-pointer"
+              title="Advance to Project Intake & Ambiguity Dossier"
+            >
+              <span>Next: Project Intake</span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
         </div>
@@ -569,6 +578,27 @@ export const StoryBrainScreen: React.FC = () => {
         </div>
       )}
 
+      {/* Bottom Stage Forward Navigation Card */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-[#141826] via-[#161c2e] to-[#121622] border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+            <Layers className="w-4 h-4" />
+            <span>Story Brain System of Record Locked</span>
+          </div>
+          <p className="text-xs text-white/70 max-w-xl">
+            Authoritative canon facts and creative decisions are preserved. Proceed to Project Intake to examine premise extraction and ambiguity triage.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setActiveScreen('intake')}
+          className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-95 whitespace-nowrap cursor-pointer"
+        >
+          <span>Next: Project Intake & Dossier</span>
+          <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+        </button>
+      </div>
+
       {/* MODAL: ADD CANON FACT */}
       {isAddFactOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
@@ -682,7 +712,7 @@ export const StoryBrainScreen: React.FC = () => {
                 <label className="text-xs text-white/70 block mb-1">Creative Rationale</label>
                 <textarea
                   value={decisionRationale}
-                  onChange={e => setNewStatement(e.target.value)}
+                  onChange={e => setDecisionRationale(e.target.value)}
                   placeholder="Explain why this decision was made and what alternatives were rejected..."
                   rows={3}
                   className="w-full p-2.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"

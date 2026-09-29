@@ -98,6 +98,7 @@ interface ProjectContextType {
   discoverySession: DiscoverySession;
   sendDiscoveryMessage: (message: string, sourceAttachment?: { name: string; content: string }) => Promise<void>;
   applyDiscoveryDecision: (turnId: string, optionId: string, customRationale?: string) => Promise<void>;
+  applyCustomDiscoveryDecision: (turnId: string, customTitle: string, customFinding?: string, customDramaticImplication?: string) => Promise<void>;
   startProjectFromIdea: (idea: string, attachment?: { name: string; content: string }) => Promise<string>;
 
   // Navigation
@@ -125,6 +126,7 @@ interface ProjectContextType {
   updateCharacter: (charId: string, updates: Partial<Character>) => void;
   selectStoryDirection: (dirId: string) => void;
   combineDirections: (dirAId: string, dirBId: string, combinedTitle: string) => void;
+  addCustomStoryDirection: (direction: Partial<StoryDirection> & { title: string; logline: string }, makeCanonical?: boolean) => void;
   selectFormat: (formatId: string) => void;
   selectTemplate: (templateId: string) => void;
   applyDialogueAlternative: (suggestionText: string, characterName: string) => void;
@@ -967,6 +969,93 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await sendDiscoveryMessage(`I have decided on: ${chosenOption.title}. What is the next unresolved creative question?`);
   };
 
+  const applyCustomDiscoveryDecision = async (
+    turnId: string,
+    customTitle: string,
+    customFinding?: string,
+    customDramaticImplication?: string
+  ) => {
+    if (!customTitle.trim()) return;
+
+    const decSummary = customTitle.trim();
+    const decRationale = customDramaticImplication?.trim() || customFinding?.trim() || 'Creator-specified alternative direction adopted as canonical baseline.';
+    const canonFactText = `${currentProject.title} Narrative Baseline: ${decSummary}. ${customFinding || ''}`.trim();
+
+    // Mark existing candidate options in the turn as dismissed
+    const updatedTurns = (currentProject.discovery?.turns || []).map(t => {
+      if (t.id !== turnId) return t;
+      return {
+        ...t,
+        candidateOptions: t.candidateOptions?.map(opt => ({
+          ...opt,
+          status: 'DISMISSED' as const
+        })),
+        appliedDecision: {
+          summary: decSummary,
+          rationale: decRationale,
+          canonFactCreated: canonFactText
+        }
+      };
+    });
+
+    const newCanonFact: CanonFact = {
+      id: 'cf-' + Date.now(),
+      statement: canonFactText,
+      category: 'World Rule',
+      entityIds: [],
+      source: 'USER_DECISION (Creator-Specified Alternative)',
+      dateEstablished: new Date().toLocaleDateString(),
+      isLocked: true,
+      version: 'v1.0',
+      tags: ['Decision', 'Creator Direction', 'Canon']
+    };
+
+    const newDecision: CreativeDecision = {
+      id: 'dec-' + Date.now(),
+      title: `Direction Established: ${decSummary}`,
+      decision: decSummary,
+      rationale: decRationale,
+      author: 'Story Creator',
+      role: 'Creative Partner',
+      date: new Date().toLocaleDateString(),
+      status: 'ACCEPTED',
+      impactedAreas: ['World', 'Story Brain', 'Premise', 'Story Directions']
+    };
+
+    const newResearchFinding: ResearchFinding = {
+      id: 'rf-' + Date.now(),
+      topic: decSummary,
+      claim: customFinding || decSummary,
+      evidence: customDramaticImplication || 'Creator-defined narrative reality',
+      source: 'Creator Canonical Specification',
+      sourceType: 'Primary Source',
+      date: new Date().toLocaleDateString(),
+      confidence: 100,
+      status: 'Verified',
+      usedIn: ['Story Setting', 'World Canon']
+    };
+
+    updateCurrentProject(prev => ({
+      ...prev,
+      storyBrain: {
+        ...prev.storyBrain,
+        canonFacts: [...(prev.storyBrain?.canonFacts || []), newCanonFact],
+        creativeDecisions: [...(prev.storyBrain?.creativeDecisions || []), newDecision],
+        decisionLog: [...(prev.storyBrain?.decisionLog || []), newDecision],
+        lastUpdated: 'Just now'
+      },
+      researchFindings: [...(prev.researchFindings || []), newResearchFinding],
+      discovery: {
+        turns: updatedTurns,
+        ambiguityLevel: Math.max(10, (prev.discovery?.ambiguityLevel ?? 50) - 20),
+        lastUpdated: 'Just now'
+      }
+    }));
+
+    // Advance discovery conversation with creator's direction
+    await sendDiscoveryMessage(`I have established an alternative creative direction: "${decSummary}". ${customFinding ? `Context: ${customFinding}. ` : ''}Please acknowledge this direction as canon and explore the next unresolved creative questions.`);
+  };
+
   const startProjectFromIdea = async (idea: string, attachment?: { name: string; content: string }): Promise<string> => {
     const detectedTitle = idea.match(/called\s+([A-Za-z0-9_'\s]+)/i)?.[1]?.trim().replace(/[."]$/, '') || (idea.length < 30 ? idea : 'Untitled Project');
     const isSeries = idea.toLowerCase().includes('series') || idea.toLowerCase().includes('show') || idea.toLowerCase().includes('ott');
@@ -1323,6 +1412,82 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }));
   };
 
+  const addCustomStoryDirection = (
+    direction: Partial<StoryDirection> & { title: string; logline: string },
+    makeCanonical: boolean = false
+  ) => {
+    const dirId = 'sd-custom-' + Date.now();
+    const newDir: StoryDirection = {
+      id: dirId,
+      badgeLetter: '★',
+      title: direction.title.trim(),
+      logline: direction.logline.trim(),
+      genre: direction.genre || currentProject.genre || 'Drama / Thriller',
+      narrativeEngine: direction.narrativeEngine?.trim() || 'Creator-Specified Narrative Engine',
+      protagonistArc: direction.protagonistArc?.trim() || 'Central transformative arc driven by creator vision',
+      conflict: direction.conflict?.trim() || 'Primary conflict established by authorial intent',
+      stakes: direction.stakes?.trim() || 'Catastrophic consequences if protagonist fails',
+      theme: direction.theme?.trim() || 'Truth, consequence, and authorial conviction',
+      tone: direction.tone?.trim() || 'Grounded, Cinematic, Dramatic',
+      audience: direction.audience?.trim() || 'Core Audience',
+      potential: direction.potential || 'High',
+      risks: direction.risks || 'Protect pacing and structural momentum',
+      strengths: direction.strengths || 'Directly embodies creator vision and authorial intent',
+      tags: direction.tags?.length ? direction.tags : ['User Specified', 'Core Engine'],
+      imageUrl: direction.imageUrl || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=600&auto=format&fit=crop',
+      isSelected: true,
+      candidateState: makeCanonical ? 'CANONICAL' : 'CANDIDATE',
+      rationale: direction.rationale || 'Specified by creator as primary story direction.'
+    };
+
+    updateCurrentProject(prev => {
+      const updatedCanon = [...(prev.storyBrain?.canonFacts || [])];
+      const updatedDecisions = [...(prev.storyBrain?.creativeDecisions || prev.storyBrain?.decisionLog || [])];
+
+      if (makeCanonical) {
+        updatedCanon.push({
+          id: 'cf-' + Date.now(),
+          statement: `Story Direction Canon: "${newDir.title}". ${newDir.logline}`,
+          category: 'World Rule',
+          entityIds: [],
+          source: 'USER_SPECIFIED_DIRECTION',
+          dateEstablished: new Date().toLocaleDateString(),
+          isLocked: true,
+          version: 'v1.0',
+          tags: ['Story Direction', 'Authoritative']
+        });
+
+        updatedDecisions.push({
+          id: 'dec-' + Date.now(),
+          title: `Authoritative Direction: ${newDir.title}`,
+          decision: newDir.title,
+          rationale: newDir.logline,
+          author: 'Story Creator',
+          role: 'Author / Director',
+          date: new Date().toLocaleDateString(),
+          status: 'ACCEPTED',
+          impactedAreas: ['Story Spine', 'Characters', 'Scenes', 'Treatment']
+        });
+      }
+
+      return {
+        ...prev,
+        selectedDirectionId: dirId,
+        storyDirections: [
+          ...prev.storyDirections.map(d => ({ ...d, isSelected: false })),
+          newDir
+        ],
+        storyBrain: {
+          ...prev.storyBrain,
+          canonFacts: updatedCanon,
+          creativeDecisions: updatedDecisions,
+          decisionLog: updatedDecisions,
+          lastUpdated: 'Just now'
+        }
+      };
+    });
+  };
+
   const selectFormat = (formatId: string) => {
     updateCurrentProject(prev => ({
       ...prev,
@@ -1499,6 +1664,7 @@ Format: ${currentProject.format}
         discoverySession: currentProject.discovery || { turns: [], ambiguityLevel: 80, lastUpdated: 'Initialized' },
         sendDiscoveryMessage,
         applyDiscoveryDecision,
+        applyCustomDiscoveryDecision,
         startProjectFromIdea,
         setActiveScreen,
         goToStep,
@@ -1514,6 +1680,7 @@ Format: ${currentProject.format}
         updateCharacter,
         selectStoryDirection,
         combineDirections,
+        addCustomStoryDirection,
         selectFormat,
         selectTemplate,
         applyDialogueAlternative,

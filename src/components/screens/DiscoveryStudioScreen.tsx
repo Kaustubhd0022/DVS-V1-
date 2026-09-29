@@ -26,8 +26,8 @@ import {
   Info,
   Flame,
   ChevronDown,
-  Eye,
-  Sliders
+  Sliders,
+  Plus
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { DiscoveryCandidateOption, DiscoveryTurn } from '../../types/project';
@@ -38,6 +38,7 @@ export const DiscoveryStudioScreen: React.FC = () => {
     discoverySession, 
     sendDiscoveryMessage, 
     applyDiscoveryDecision,
+    applyCustomDiscoveryDecision,
     setActiveScreen,
     openContextResolver
   } = useProject();
@@ -47,6 +48,9 @@ export const DiscoveryStudioScreen: React.FC = () => {
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const [showThoughtMap, setShowThoughtMap] = useState<Record<string, boolean>>({});
   const [activeIntelTab, setActiveIntelTab] = useState<'brain' | 'knowns' | 'research' | 'decisions'>('brain');
+  const [customQuestionInput, setCustomQuestionInput] = useState<Record<string, string>>({});
+  const [showAlternativeDirection, setShowAlternativeDirection] = useState<Record<string, boolean>>({});
+  const [customDirectionInput, setCustomDirectionInput] = useState<Record<string, { title: string; finding: string; dramaticImplication: string }>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -179,6 +183,16 @@ export const DiscoveryStudioScreen: React.FC = () => {
           >
             <Compass className="w-4 h-4 text-cyan-400" />
             <span className="hidden sm:inline">Context Inspector</span>
+          </button>
+
+          {/* Next -> Story Brain Forward Navigation */}
+          <button
+            onClick={() => setActiveScreen('story-brain')}
+            className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
+            title="Proceed to Story Brain (System of Record)"
+          >
+            <span>Next: Story Brain</span>
+            <ArrowRight className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
       </div>
@@ -415,6 +429,109 @@ export const DiscoveryStudioScreen: React.FC = () => {
                               );
                             })}
                           </div>
+
+                          {/* Alternative Direction Input if none of the AI candidate options fit */}
+                          {!turn.candidateOptions.some(o => o.status === 'ACCEPTED') && (
+                            <div className="pt-2 border-t border-white/10">
+                              {!showAlternativeDirection[turn.id] ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAlternativeDirection(prev => ({ ...prev, [turn.id]: true }))}
+                                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-amber-300 hover:text-amber-200 border border-dashed border-amber-500/30 hover:border-amber-500/60 text-xs font-semibold transition-all group cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                  <span>None of these fit? Propose an alternative direction or kingdom</span>
+                                </button>
+                              ) : (
+                                <div className="p-4 rounded-2xl bg-[#171b26] border border-amber-500/40 space-y-3 animate-fadeIn">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+                                      <Compass className="w-3.5 h-3.5 text-amber-400" />
+                                      <span>Propose Alternative Creative Direction / Kingdom</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowAlternativeDirection(prev => ({ ...prev, [turn.id]: false }))}
+                                      className="text-white/40 hover:text-white text-xs cursor-pointer"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+
+                                  <p className="text-[11px] text-white/60">
+                                    Specify your desired setting or historical reality. Tattava will incorporate it directly into Story Brain canon or research evidence-backed options around it.
+                                  </p>
+
+                                  <div className="space-y-2.5">
+                                    <input
+                                      type="text"
+                                      placeholder="Kingdom / Setting / Premise (e.g. Kamarupa Kingdom - Varman Dynasty)"
+                                      value={customDirectionInput[turn.id]?.title || ''}
+                                      onChange={(e) => setCustomDirectionInput(prev => ({
+                                        ...prev,
+                                        [turn.id]: { ...(prev[turn.id] || { title: '', finding: '', dramaticImplication: '' }), title: e.target.value }
+                                      }))}
+                                      className="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/40 focus:border-amber-500 focus:outline-none"
+                                    />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                      <input
+                                        type="text"
+                                        placeholder="Historical finding / context (optional)"
+                                        value={customDirectionInput[turn.id]?.finding || ''}
+                                        onChange={(e) => setCustomDirectionInput(prev => ({
+                                          ...prev,
+                                          [turn.id]: { ...(prev[turn.id] || { title: '', finding: '', dramaticImplication: '' }), finding: e.target.value }
+                                        }))}
+                                        className="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/40 focus:border-amber-500 focus:outline-none"
+                                      />
+                                      <input
+                                        type="text"
+                                        placeholder="Dramatic implication / core conflict (optional)"
+                                        value={customDirectionInput[turn.id]?.dramaticImplication || ''}
+                                        onChange={(e) => setCustomDirectionInput(prev => ({
+                                          ...prev,
+                                          [turn.id]: { ...(prev[turn.id] || { title: '', finding: '', dramaticImplication: '' }), dramaticImplication: e.target.value }
+                                        }))}
+                                        className="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/40 focus:border-amber-500 focus:outline-none"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const data = customDirectionInput[turn.id];
+                                        if (!data?.title?.trim()) return;
+                                        handleSendMessage(`Alternative Direction: "${data.title.trim()}". ${data.finding ? `Context: ${data.finding}. ` : ''}${data.dramaticImplication ? `Dramatic stakes: ${data.dramaticImplication}. ` : ''}Please acknowledge this direction as valid and provide evidence-backed candidate options around it.`);
+                                        setShowAlternativeDirection(prev => ({ ...prev, [turn.id]: false }));
+                                      }}
+                                      disabled={!customDirectionInput[turn.id]?.title?.trim() || isSubmitting}
+                                      className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all disabled:opacity-40 cursor-pointer"
+                                    >
+                                      Ask AI to Research & Expand
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const data = customDirectionInput[turn.id];
+                                        if (!data?.title?.trim()) return;
+                                        applyCustomDiscoveryDecision(turn.id, data.title, data.finding, data.dramaticImplication);
+                                        setShowAlternativeDirection(prev => ({ ...prev, [turn.id]: false }));
+                                      }}
+                                      disabled={!customDirectionInput[turn.id]?.title?.trim() || isSubmitting}
+                                      className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                      <span>Establish Canon with My Direction</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -464,6 +581,48 @@ export const DiscoveryStudioScreen: React.FC = () => {
                               ))}
                             </div>
                           )}
+
+                          {/* User-Entered Creative Question Input */}
+                          <div className="pt-2 border-t border-amber-500/20">
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const q = customQuestionInput[turn.id];
+                                if (!q?.trim()) return;
+                                handleSendMessage(`Creative Question: ${q.trim()}`);
+                                setCustomQuestionInput(prev => ({ ...prev, [turn.id]: '' }));
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <div className="relative flex-1">
+                                <input
+                                  type="text"
+                                  placeholder="Or enter your own creative question..."
+                                  value={customQuestionInput[turn.id] || ''}
+                                  onChange={(e) => setCustomQuestionInput(prev => ({ ...prev, [turn.id]: e.target.value }))}
+                                  className="w-full bg-black/40 border border-amber-500/30 rounded-xl pl-3.5 pr-8 py-2 text-xs text-white placeholder-amber-200/40 focus:border-amber-400 focus:outline-none transition-colors"
+                                />
+                                {customQuestionInput[turn.id] && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCustomQuestionInput(prev => ({ ...prev, [turn.id]: '' }))}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+
+                              <button
+                                type="submit"
+                                disabled={!customQuestionInput[turn.id]?.trim() || isSubmitting}
+                                className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-sm disabled:opacity-40 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                              >
+                                <span>Explore Question</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -471,11 +630,35 @@ export const DiscoveryStudioScreen: React.FC = () => {
                 );
               })}
 
-              {/* Typing indicator while Groq LPU infers */}
+              {/* Typing indicator while AI infers */}
               {isSubmitting && (
                 <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#181c26] border border-amber-500/30 text-amber-300 text-xs font-semibold animate-pulse">
                   <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
                   <span>Tattava is analyzing project intelligence and researching historical options...</span>
+                </div>
+              )}
+
+              {/* Stage Forward Navigation Banner when discovery has active turns */}
+              {turns.length > 0 && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#181c26] to-amber-500/5 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                      <Brain className="w-4 h-4" />
+                      <span>Ready to review authoritative canon?</span>
+                    </div>
+                    <p className="text-[11px] text-white/70">
+                      Decisions and facts established in Discovery are locked into Story Brain.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveScreen('story-brain')}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md shadow-amber-500/20 active:scale-95 whitespace-nowrap cursor-pointer"
+                  >
+                    <span>Next: Story Brain</span>
+                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
                 </div>
               )}
 

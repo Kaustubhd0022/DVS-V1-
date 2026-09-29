@@ -65,7 +65,7 @@ export interface ResearchFinding {
 
 export interface StoryDirection {
   id: string;
-  badgeLetter: 'A' | 'B' | 'C' | 'D';
+  badgeLetter: string;
   title: string;
   logline: string;
   genre: string;
