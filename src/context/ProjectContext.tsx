@@ -24,6 +24,7 @@ import {
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
+import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
 import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult } from '../services/aiService';
 
 export type ScreenId = 
@@ -855,8 +856,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           genre: result.projectUpdates?.genre || prev.genre,
           projectConfig: prev.projectConfig ? {
             ...prev.projectConfig,
-            mediaFormat: (result.projectUpdates?.contentType as any) || prev.projectConfig.mediaFormat,
-            contentMode: (result.projectUpdates?.contentMode as any) || prev.projectConfig.contentMode,
+            mediaFormat: result.projectUpdates?.contentType ? inferMediaFormat(result.projectUpdates.contentType) : prev.projectConfig.mediaFormat,
+            contentMode: result.projectUpdates?.contentMode ? inferContentMode(result.projectUpdates.contentMode) : prev.projectConfig.contentMode,
             primaryDomain: result.projectUpdates?.primaryDomain || prev.projectConfig.primaryDomain,
             secondaryDomains: result.projectUpdates?.secondaryDomains || prev.projectConfig.secondaryDomains,
             subject: result.projectUpdates?.subject || prev.projectConfig.subject,
