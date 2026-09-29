@@ -11,6 +11,7 @@ export const BranchEvolutionPanel: React.FC = () => {
     approveProjectBranchMerge,
     rejectProjectBranchMerge,
     resolveBranchMergeConflict,
+    setBranchMergeManualContent,
     abandonProjectBranch
   } = useProject();
 
@@ -18,6 +19,7 @@ export const BranchEvolutionPanel: React.FC = () => {
   const [purpose, setPurpose] = useState('');
   const [createdBy, setCreatedBy] = useState('Story Creator');
   const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+  const [manualDrafts, setManualDrafts] = useState<Record<string, string>>({});
 
   const branches = currentProject.projectBranches || [];
   const versions = currentProject.artifactVersions || [];
@@ -155,6 +157,30 @@ export const BranchEvolutionPanel: React.FC = () => {
                                 <button key={option} onClick={() => resolveBranchMergeConflict(activeBranch.id, conflict.id, option)} className={`py-2 rounded-lg border text-[10px] font-bold ${conflict.resolution === option ? 'border-cyan-400/60 bg-cyan-400/10 text-cyan-200' : 'border-white/10 bg-white/5 text-white/60 hover:text-white'}`}>{option.replace('_',' ')}</button>
                               ))}
                             </div>
+                            {conflict.resolution === 'MANUAL_EDIT' && (
+                              <div className="mt-3 space-y-2">
+                                <div className="text-[10px] text-white/45">Edit the branch artifact JSON. Merge remains blocked until valid content is saved.</div>
+                                <textarea
+                                  value={manualDrafts[conflict.id] ?? JSON.stringify(conflict.manualContent ?? conflict.branchContent, null, 2)}
+                                  onChange={e => setManualDrafts(prev => ({ ...prev, [conflict.id]: e.target.value }))}
+                                  rows={8}
+                                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white font-mono outline-none focus:border-cyan-400/50"
+                                />
+                                <button
+                                  onClick={() => {
+                                    try {
+                                      const parsed = JSON.parse(manualDrafts[conflict.id] ?? '');
+                                      setBranchMergeManualContent(activeBranch.id, conflict.id, parsed);
+                                    } catch {
+                                      // Keep the draft visible so the user can correct invalid JSON.
+                                    }
+                                  }}
+                                  className="px-3 py-2 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-200 text-[10px] font-bold"
+                                >
+                                  Save Manual Content
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
