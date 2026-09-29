@@ -2023,16 +2023,29 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       if (result.ok) {
         updateCurrentProject(prev => {
+          const now = new Date().toISOString();
+          const proposalId = 'regen-proposal-' + Date.now() + '-' + result.artifactId;
+          const proposal: ArtifactVersionRecord = {
+            id: proposalId,
+            artifactType: result.artifactType,
+            artifactId: result.artifactId,
+            version: 'proposal-' + ((prev.artifactVersions || []).length + 1),
+            state: 'AI_PROPOSAL',
+            content: result.artifact,
+            createdAt: now,
+            createdBy: 'Tattava AI',
+            changeSummary: 'AI regeneration proposal: ' + result.message
+          };
           if (result.artifactType === 'character') {
-            return { ...prev, characters: prev.characters.map(c => c.id === result.artifactId ? result.artifact : c) };
+            return { ...prev, characters: prev.characters.map(c => c.id === result.artifactId ? result.artifact : c), artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
           if (result.artifactType === 'treatment') {
-            return { ...prev, treatment: result.artifact };
+            return { ...prev, treatment: result.artifact, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
           if (result.artifactType === 'scene') {
-            return { ...prev, scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s) };
+            return { ...prev, scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s), artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
-          return prev;
+          return { ...prev, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
         });
       }
     }
@@ -2462,6 +2475,7 @@ Format: ${currentProject.format}
         approveAndPropagateImpact,
         buildRegenerationPlan: createRegenerationPlan,
         executeRegenerationPlan,
+        approveRegenerationProposal,
         setProjectFormat,
         setProjectTemplate,
         updateTreatment,
