@@ -110,6 +110,7 @@ interface ProjectContextType {
   openProject: (projectId: string, targetScreen?: ScreenId) => void;
   openDemoProject: () => void;
   createNewProject: (data: Partial<TattavaProject>) => string;
+  buildResearchUniverse: () => Promise<unknown>;
   duplicateProject: (projectId: string) => void;
   deleteProject: (projectId: string) => void;
 
