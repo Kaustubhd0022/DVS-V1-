@@ -164,6 +164,32 @@ export function buildProjectContext(
   parts.push(`Genre: ${project.genre || 'Drama'}`);
   parts.push(`Language: ${project.language || 'Hindi / English'}`);
   parts.push(`Canonical Version: ${project.canonicalVersion || 'v0.1'}`);
+  parts.push(`Vertical: ${project.projectConfig?.vertical || 'TATTVACO_PROJECT'}`);
+  parts.push(`Media Format: ${project.projectConfig?.mediaFormat || project.contentType || 'OTHER'}`);
+  parts.push(`Content Mode: ${project.projectConfig?.contentMode || 'HYBRID'}`);
+  parts.push(`Primary Domain: ${project.projectConfig?.primaryDomain || 'Not yet confirmed'}`);
+  if (project.projectConfig?.secondaryDomains?.length) {
+    parts.push(`Secondary Domains: ${project.projectConfig.secondaryDomains.join(', ')}`);
+  }
+  if (project.projectConfig?.subject) parts.push(`Subject: ${project.projectConfig.subject}`);
+  if (project.projectConfig?.geographicScope) parts.push(`Geographic Scope: ${project.projectConfig.geographicScope}`);
+  if (project.projectConfig?.temporalScope) parts.push(`Temporal Scope: ${project.projectConfig.temporalScope}`);
+  parts.push(`Evidence Requirement: ${project.projectConfig?.evidenceRequirement || 'HIGH'}`);
+  parts.push(`Narrative Freedom: ${project.projectConfig?.narrativeFreedom || 'GROUNDED_HYBRID'}`);
+
+  const intelligence = project.projectIntelligence;
+  if (intelligence) {
+    parts.push(`\n=== PROJECT INTELLIGENCE STATE ===`);
+    parts.push(`Research coverage: ${intelligence.researchUniverse.coveragePercent}%`);
+    parts.push(`Research dimensions: ${intelligence.researchUniverse.dimensions.length}`);
+    parts.push(`Unresolved questions: ${intelligence.researchUniverse.unresolvedQuestions.length}`);
+    parts.push(`Insights: ${intelligence.insights.length}`);
+    parts.push(`Directions: ${intelligence.directions.length}`);
+    parts.push(`Development stage: ${intelligence.development.currentStage}`);
+    if (intelligence.development.nextUnresolvedQuestion) {
+      parts.push(`Next unresolved question: ${intelligence.development.nextUnresolvedQuestion}`);
+    }
+  }
 
   if (project.intent?.premise) {
     parts.push(`\n=== APPROVED USER PREMISE ===\n${project.intent.premise}`);
