@@ -2105,7 +2105,8 @@ Output purely JSON matching this schema:
       temperature: 0.6,
       max_tokens: 3000,
       jsonMode: true,
-      taskName: 'Narrative Treatment Synthesis'
+      taskName: 'Narrative Treatment Synthesis',
+      contextSnapshot: context
     });
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
