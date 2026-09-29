@@ -645,6 +645,29 @@ export interface ArtifactVersionRecord {
   approvalId?: string;
 }
 
+export interface ProjectBranch {
+  id: string;
+  name: string;
+  purpose: string;
+  baseCanonicalVersion: string;
+  createdAt: string;
+  createdBy: string;
+  status: 'ACTIVE' | 'MERGED' | 'ABANDONED';
+  artifactVersionIds: string[];
+  mergeDecisionId?: string;
+}
+
+export interface BranchMergeRecord {
+  id: string;
+  branchId: string;
+  sourceVersionIds: string[];
+  targetProjectVersion: string;
+  mergedAt: string;
+  mergedBy: string;
+  rationale: string;
+  status: 'PROPOSED' | 'APPROVED' | 'REJECTED';
+}
+
 export interface ArtifactApprovalRecord {
   id: string;
   artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue';
@@ -709,6 +732,8 @@ export interface TattvaCoProject {
   activeContextPackage?: ContextResolverPackage;
   artifactVersions?: ArtifactVersionRecord[];
   artifactApprovals?: ArtifactApprovalRecord[];
+  projectBranches?: ProjectBranch[];
+  branchMerges?: BranchMergeRecord[];
   regenerationPlans?: RegenerationPlan[];
 
   // Conversational Discovery & Development Loop Session
