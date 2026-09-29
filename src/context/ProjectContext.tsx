@@ -25,7 +25,7 @@ import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
-import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult, generateResearchUniverse } from '../services/aiService';
+import { evaluateProjectNarrative, getGroqApiKey, processDiscoveryTurn, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections } from '../services/aiService';
 
 export type ScreenId = 
   | 'home' 
@@ -111,6 +111,9 @@ interface ProjectContextType {
   openDemoProject: () => void;
   createNewProject: (data: Partial<TattavaProject>) => string;
   buildResearchUniverse: () => Promise<unknown>;
+  generateProjectInsights: () => Promise<unknown>;
+  generateProjectDirections: () => Promise<unknown>;
+  setProjectInsightStatus: (insightId: string, status: 'CANDIDATE' | 'ACCEPTED' | 'DISMISSED') => void;
   duplicateProject: (projectId: string) => void;
   deleteProject: (projectId: string) => void;
 
@@ -769,6 +772,72 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             unresolvedQuestions: result.unresolvedQuestions,
             coveragePercent: result.coveragePercent,
             lastExpandedAt: new Date().toISOString()
+          }
+        }
+      };
+    });
+    return result;
+  };
+
+
+  const generateProjectInsights = async () => {
+    const result = await synthesizeProjectInsights(currentProject);
+    updateCurrentProject(prev => {
+      const intelligence = prev.projectIntelligence!;
+      const insights = result.insights.map((item, index) => ({
+        id: `insight-${Date.now()}-${index + 1}`,
+        ...item,
+        status: 'CANDIDATE' as const
+      }));
+      return {
+        ...prev,
+        projectIntelligence: {
+          ...intelligence,
+          insights,
+          development: {
+            ...intelligence.development,
+            insightCount: insights.length,
+            currentStage: insights.length ? 'INSIGHT' : intelligence.development.currentStage
+          }
+        }
+      };
+    });
+    return result;
+  };
+
+  const setProjectInsightStatus = (insightId: string, status: 'CANDIDATE' | 'ACCEPTED' | 'DISMISSED') => {
+    updateCurrentProject(prev => {
+      if (!prev.projectIntelligence) return prev;
+      const insights = prev.projectIntelligence.insights.map(i => i.id === insightId ? { ...i, status } : i);
+      return {
+        ...prev,
+        projectIntelligence: {
+          ...prev.projectIntelligence,
+          insights,
+          development: { ...prev.projectIntelligence.development, insightCount: insights.filter(i => i.status !== 'DISMISSED').length }
+        }
+      };
+    });
+  };
+
+  const generateProjectDirections = async () => {
+    const result = await generateProjectDirections(currentProject);
+    updateCurrentProject(prev => {
+      const intelligence = prev.projectIntelligence!;
+      const directions = result.directions.map((item, index) => ({
+        id: `direction-${Date.now()}-${index + 1}`,
+        ...item,
+        status: 'CANDIDATE' as const
+      }));
+      return {
+        ...prev,
+        projectIntelligence: {
+          ...intelligence,
+          directions,
+          development: {
+            ...intelligence.development,
+            directionCount: directions.length,
+            currentStage: directions.length ? 'DIRECTION' : intelligence.development.currentStage
           }
         }
       };
@@ -1714,6 +1783,9 @@ Format: ${currentProject.format}
         openDemoProject,
         createNewProject,
     buildResearchUniverse,
+    generateProjectInsights,
+    generateProjectDirections,
+    setProjectInsightStatus,
         duplicateProject,
         deleteProject,
         updateCurrentProject,
