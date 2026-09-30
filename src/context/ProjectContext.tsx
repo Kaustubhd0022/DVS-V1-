@@ -2084,8 +2084,24 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         next = { ...next, scenes: next.scenes.map(a => a.id === proposal.artifactId ? { ...(proposal.content as SceneItem), candidateState: 'CANONICAL' } : a) };
       } else if (proposal.artifactType === 'direction') {
         next = { ...next, storyDirections: next.storyDirections.map(a => a.id === proposal.artifactId ? { ...(proposal.content as StoryDirection), candidateState: 'CANONICAL' } : a), selectedDirectionId: proposal.artifactId };
-      } else {
-        next = { ...next, dialogueSuggestions: next.dialogueSuggestions.map(a => a.id === proposal.artifactId ? { ...(proposal.content as any), candidateState: 'CANONICAL' } : a) };
+      } else if (proposal.artifactType === 'screenplay') {
+        const generated = proposal.content as ScreenplayLine[];
+        const sceneNumber = generated[0]?.sceneNumber;
+        const screenplay = sceneNumber
+          ? [...next.screenplay.filter(line => line.sceneNumber !== sceneNumber), ...generated.map(line => ({ ...line, candidateState: 'CANONICAL' as const }))]
+          : generated.map(line => ({ ...line, candidateState: 'CANONICAL' as const }));
+        next = { ...next, screenplay, screenplayLines: screenplay };
+      } else if (proposal.artifactType === 'dialogue') {
+        const generated = proposal.content as DialogueSuggestion[];
+        const existingId = proposal.artifactId;
+        const suggestions = next.dialogueSuggestions.filter(a => a.id !== existingId);
+        next = {
+          ...next,
+          dialogueSuggestions: [
+            ...suggestions,
+            ...generated.map(suggestion => ({ ...suggestion, candidateState: 'CANONICAL' as const }))
+          ]
+        };
       }
       return next;
     });
