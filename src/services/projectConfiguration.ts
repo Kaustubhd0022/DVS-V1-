@@ -152,6 +152,8 @@ export const invalidateDownstreamArtifacts = (
   evaluationComparisons: [],
   package: {
     ...project.package,
+    configurationFingerprint,
+    isSynthesisStale: true,
     isGreenlit: false,
     checklist: project.package.checklist.map(item => ({
       ...item,
