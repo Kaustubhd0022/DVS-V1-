@@ -102,7 +102,7 @@ export const applyCanonicalConfiguration = (project: TattavaProject): TattavaPro
     })),
     screenplayLines: (project.screenplayLines || project.screenplay || []).map(line => ({
       ...line,
-      isSynthesisStale: changed || line.configurationFingerprint !== config.configurationFingerprint
+      isSynthesisStale: demoWorkspace ? false : changed || line.configurationFingerprint !== config.configurationFingerprint
     })),
     dialogueSuggestions: (project.dialogueSuggestions || []).map(dialogue => ({
       ...dialogue,
