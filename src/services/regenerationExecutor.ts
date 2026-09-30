@@ -1,10 +1,12 @@
-import { TattavaProject, RegenerationPlanItem, Character, TreatmentData, SceneItem } from '../types/project';
-import { generateCharacterCandidate, generateTreatmentData, generateSceneBreakdown } from './aiService';
+import { TattavaProject, RegenerationPlanItem, Character, TreatmentData, SceneItem, ScreenplayLine, DialogueSuggestion } from '../types/project';
+import { generateCharacterCandidate, generateTreatmentData, generateSceneBreakdown, generateScreenplayDraft, punchUpDialogue } from './aiService';
 
 export type RegenerationResult =
   | { ok: true; artifactType: 'character'; artifactId: string; artifact: Character; message: string }
   | { ok: true; artifactType: 'treatment'; artifactId: string; artifact: TreatmentData; message: string }
   | { ok: true; artifactType: 'scene'; artifactId: string; artifact: SceneItem; message: string }
+  | { ok: true; artifactType: 'screenplay'; artifactId: string; artifact: ScreenplayLine[]; message: string }
+  | { ok: true; artifactType: 'dialogue'; artifactId: string; artifact: DialogueSuggestion[]; message: string }
   | { ok: false; artifactType: RegenerationPlanItem['artifactType']; artifactId: string; message: string };
 
 export const executeRegenerationItem = async (
@@ -75,6 +77,61 @@ export const executeRegenerationItem = async (
       candidateState: 'AI_PROPOSAL'
     };
     return { ok: true, artifactType: 'scene', artifactId: existing.id, artifact, message: 'Scene regenerated as an AI proposal; canonical state unchanged.' };
+  }
+
+  if (item.artifactType === 'screenplay') {
+    const existingLines = project.screenplay || project.screenplayLines || [];
+    const sceneNumber = Number(item.artifactId.split(':').pop()) || project.scenes?.[0]?.sceneNumber || 1;
+    const generated = await generateScreenplayDraft(project, sceneNumber);
+    const artifact = generated.map(line => ({
+      ...line,
+      configurationFingerprint: project.projectConfig?.configurationFingerprint,
+      isSynthesisStale: false
+    }));
+    return {
+      ok: true,
+      artifactType: 'screenplay',
+      artifactId: item.artifactId,
+      artifact,
+      message: `Screenplay regenerated from current Scene ${sceneNumber}; canonical state unchanged.`
+    };
+  }
+
+  if (item.artifactType === 'dialogue') {
+    const existing = project.dialogueSuggestions.find(d => d.id === item.artifactId);
+    if (!existing) return { ok: false, artifactType: 'dialogue', artifactId: item.artifactId, message: 'Dialogue artifact not found.' };
+
+    const screenplayLine = (project.screenplay || project.screenplayLines || [])
+      .find(line => line.type === 'dialogue' && (!existing.character || line.characterName === existing.character));
+    if (!screenplayLine) {
+      return { ok: false, artifactType: 'dialogue', artifactId: item.artifactId, message: 'No current screenplay dialogue source found.' };
+    }
+
+    const scene = project.scenes?.find(s => s.sceneNumber === screenplayLine.sceneNumber);
+    const sceneContext = [
+      scene ? `Scene ${scene.sceneNumber}: ${scene.slugline}` : '',
+      scene?.summary || '',
+      scene?.emotionalBeat || '',
+      `Current screenplay line: ${screenplayLine.content}`
+    ].filter(Boolean).join(' | ');
+
+    const [altA, altB] = await Promise.all([
+      punchUpDialogue(screenplayLine.content, screenplayLine.characterName || existing.character, sceneContext, project, 'Preserve character voice while increasing subtext and specificity.'),
+      punchUpDialogue(screenplayLine.content, screenplayLine.characterName || existing.character, sceneContext, project, 'Create a materially different emotional strategy without changing canon facts.')
+    ]);
+
+    const fingerprint = project.projectConfig?.configurationFingerprint;
+    const artifact: DialogueSuggestion[] = [
+      { ...existing, id: existing.id + '-regen-a-' + Date.now(), label: 'Regenerated — Subtext', text: altA, candidateState: 'AI_PROPOSAL', configurationFingerprint: fingerprint, isSynthesisStale: false },
+      { ...existing, id: existing.id + '-regen-b-' + Date.now(), label: 'Regenerated — Alternate Strategy', text: altB, candidateState: 'AI_PROPOSAL', configurationFingerprint: fingerprint, isSynthesisStale: false }
+    ];
+    return {
+      ok: true,
+      artifactType: 'dialogue',
+      artifactId: existing.id,
+      artifact,
+      message: 'Dialogue alternatives regenerated from the current screenplay and scene context; canonical state unchanged.'
+    };
   }
 
   return { ok: false, artifactType: item.artifactType, artifactId: item.artifactId, message: 'No safe automatic generator is wired for this artifact type yet.' };
