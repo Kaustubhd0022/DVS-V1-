@@ -34,6 +34,7 @@ import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
+import { applyCanonicalConfiguration, getCanonicalConfiguration, isSeriesFormat, invalidateDownstreamArtifacts } from '../services/projectConfiguration';
 import { evaluateProjectNarrative, generateEvaluationRepairPlan, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
 import { resolveProjectContext } from '../services/contextResolver';
@@ -215,41 +216,7 @@ const STORAGE_KEY = 'tattava_copilot_pilot_v1';
 const LEGACY_STORAGE_KEY = 'tattvaco_projects_v1';
 
 const normalizePersistedProjectForConfiguration = (project: TattvaCoProject): TattvaCoProject => {
-  const format = project.format || project.formats?.find(f => f.isSelected)?.title || 'Feature Film';
-  const template = project.template || project.templates?.find(t => t.isSelected)?.title || 'Three-Act Classical Thriller';
-  const isSeries = /series/i.test(format);
-  const duration = isSeries ? 45 : 120;
-  const fingerprint = format + '|' + template;
-  const structureAligned = project.structure?.configurationFingerprint === fingerprint
-    && project.structure?.estimatedDurationMins === duration
-    && (!isSeries || project.structure?.structureScope === 'EPISODE');
-  const treatmentAligned = project.treatment?.configurationFingerprint === fingerprint && !project.treatment?.isSynthesisStale;
-  const scenesAligned = Array.isArray(project.scenes) && project.scenes.length > 0
-    && project.scenes.every(s => s.configurationFingerprint === fingerprint && !s.isSynthesisStale);
-  return {
-    ...project,
-    format,
-    template,
-    structure: {
-      ...project.structure,
-      estimatedDurationMins: duration,
-      episodeCount: isSeries ? (project.structure?.episodeCount || 6) : undefined,
-      episodeDurationMins: isSeries ? (project.structure?.episodeDurationMins || 45) : undefined,
-      activeEpisodeNumber: isSeries ? (project.structure?.activeEpisodeNumber || 1) : undefined,
-      structureScope: isSeries ? 'EPISODE' : 'FEATURE',
-      configurationFingerprint: fingerprint,
-      isSynthesisStale: !structureAligned
-    },
-    treatment: {
-      ...project.treatment,
-      configurationFingerprint: fingerprint,
-      isSynthesisStale: !treatmentAligned
-    },
-    scenes: (project.scenes || []).map(scene => ({
-      ...scene,
-      isSynthesisStale: !scenesAligned || scene.configurationFingerprint !== fingerprint
-    }))
-  };
+  return applyCanonicalConfiguration(project);
 };
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -2494,51 +2461,46 @@ Format: ${currentProject.format}
 
   const setProjectFormat = (formatTitle: string) => {
     updateCurrentProject(prev => {
-      const isSeries = /series/i.test(formatTitle);
+      const isSeries = isSeriesFormat(formatTitle);
       const episodeCount = isSeries ? 6 : undefined;
       const episodeDurationMins = isSeries ? 45 : undefined;
-      const previousDuration = prev.structure?.estimatedDurationMins || 120;
-      const estimatedDurationMins = isSeries ? 45 : 120;
-      const scope = isSeries ? 'EPISODE' : 'FEATURE';
-      const fingerprint = `${formatTitle}|${prev.template}`;
+      const activeEpisodeNumber = isSeries ? (prev.projectConfig?.activeEpisodeNumber || prev.structure?.activeEpisodeNumber || 1) : undefined;
+      const runtime = isSeries ? 45 : 120;
+      const templateTitle = prev.template || prev.templates?.find(t => t.isSelected)?.title || 'Three-Act Classical Thriller';
+      const fingerprint = [formatTitle.trim(), templateTitle.trim(), runtime, isSeries ? `episodes:${episodeCount}` : 'feature', isSeries ? `episode:${activeEpisodeNumber}` : 'film'].join('|');
 
-      // Immediately migrate the visible structural artifact to the new runtime.
-      // This prevents a 120-min feature beat sheet from remaining visible after
-      // the user selects a 45-min episode format.
-      const remapTimeRange = (range: string) => {
-        const match = range?.match(/(\\d+)\\s*:?\\s*(\\d*)\\s*-\\s*(\\d+)\\s*:?\\s*(\\d*)/);
-        if (!match) return range;
-        const toMin = (m: string, s: string) => Number(m) + (s ? Number(s) / 60 : 0);
-        const start = toMin(match[1], match[2]);
-        const end = toMin(match[3], match[4]);
-        const scale = (value: number) => Math.max(0, Math.min(estimatedDurationMins, Math.round((value / previousDuration) * estimatedDurationMins)));
-        return `${String(scale(start)).padStart(2, '0')}:00 - ${String(scale(end)).padStart(2, '0')}:00`;
-      };
-
-      const remapBeats = (beats: any[]) => (beats || []).map((beat: any) => ({
-        ...beat,
-        timeRange: remapTimeRange(beat.timeRange)
-      }));
-
-      return {
+      const next: TattavaProject = {
         ...prev,
+        contentType: formatTitle,
         format: formatTitle,
         formats: prev.formats.map(f => ({ ...f, isSelected: f.title === formatTitle || (formatTitle === 'Limited Series' && /Limited Web Series/i.test(f.title)) })),
-        structure: {
-          ...prev.structure,
-          templateName: prev.template || prev.structure.templateName,
-          estimatedDurationMins,
+        projectConfig: {
+          ...(prev.projectConfig || {}),
+          formatLabel: formatTitle,
+          templateName: templateTitle,
+          mediaFormat: inferMediaFormat(formatTitle),
+          contentMode: prev.projectConfig?.contentMode || inferContentMode(formatTitle),
           episodeCount,
           episodeDurationMins,
-          activeEpisodeNumber: isSeries ? (prev.structure.activeEpisodeNumber || 1) : undefined,
-          structureScope: scope,
+          activeEpisodeNumber,
+          configurationFingerprint: fingerprint,
+          configurationStatus: 'USER_CONFIRMED'
+        },
+        structure: {
+          ...prev.structure,
+          templateName: templateTitle,
+          estimatedDurationMins: runtime,
+          episodeCount,
+          episodeDurationMins,
+          activeEpisodeNumber,
+          structureScope: isSeries ? 'EPISODE' : 'FEATURE',
           configurationFingerprint: fingerprint,
           isSynthesisStale: true,
           acts: {
             ...prev.structure.acts,
-            act1: { ...prev.structure.acts.act1, time: isSeries ? '00:00 – 11:00' : '00:00 – 30:00', beats: remapBeats(prev.structure.acts.act1.beats) },
-            act2: { ...prev.structure.acts.act2, time: isSeries ? '11:00 – 34:00' : '30:00 – 90:00', beats: remapBeats(prev.structure.acts.act2.beats) },
-            act3: { ...prev.structure.acts.act3, time: isSeries ? '34:00 – 45:00' : '90:00 – 120:00', beats: remapBeats(prev.structure.acts.act3.beats) }
+            act1: { ...prev.structure.acts.act1, time: isSeries ? '00:00 – 11:00' : '00:00 – 30:00' },
+            act2: { ...prev.structure.acts.act2, time: isSeries ? '11:00 – 34:00' : '30:00 – 90:00' },
+            act3: { ...prev.structure.acts.act3, time: isSeries ? '34:00 – 45:00' : '90:00 – 120:00' }
           },
           timeline: isSeries
             ? [
@@ -2548,46 +2510,65 @@ Format: ${currentProject.format}
                 { label: 'Episode Climax', timeMin: 41, act: 'Act III Climax' }
               ]
             : prev.structure.timeline
-        },
-        treatment: {
-          ...prev.treatment,
+        }
+      };
+
+      // Configuration changes invalidate every downstream narrative artifact.
+      const invalidated = invalidateDownstreamArtifacts(next, fingerprint);
+      return {
+        ...invalidated,
+        structure: {
+          ...invalidated.structure,
+          templateName: templateTitle,
+          estimatedDurationMins: runtime,
+          episodeCount,
+          episodeDurationMins,
+          activeEpisodeNumber,
+          structureScope: isSeries ? 'EPISODE' : 'FEATURE',
           configurationFingerprint: fingerprint,
-          isSynthesisStale: true
-        },
-        scenes: (prev.scenes || []).map(scene => ({
-          ...scene,
-          configurationFingerprint: fingerprint,
-          isSynthesisStale: true
-        })),
-        screenplay: isSeries ? [] : prev.screenplay,
-        screenplayLines: isSeries ? [] : prev.screenplayLines,
-        dialogueSuggestions: isSeries ? [] : prev.dialogueSuggestions
+          isSynthesisStale: true,
+          acts: next.structure.acts,
+          timeline: next.structure.timeline
+        }
       };
     });
   };
 
   const setProjectTemplate = (templateTitle: string) => {
-    updateCurrentProject(prev => ({
-      ...prev,
-      template: templateTitle,
-      templates: prev.templates.map(t => ({ ...t, isSelected: t.title === templateTitle })),
-      structure: {
-        ...prev.structure,
-        templateName: templateTitle,
-        configurationFingerprint: `${prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film'}|${templateTitle}`,
-        isSynthesisStale: true
-      },
-      treatment: {
-        ...prev.treatment,
-        configurationFingerprint: (prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film') + '|' + templateTitle,
-        isSynthesisStale: true
-      },
-      scenes: (prev.scenes || []).map(scene => ({
-        ...scene,
-        configurationFingerprint: (prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film') + '|' + templateTitle,
-        isSynthesisStale: true
-      }))
-    }));
+    updateCurrentProject(prev => {
+      const formatTitle = prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film';
+      const isSeries = isSeriesFormat(formatTitle);
+      const runtime = isSeries ? 45 : 120;
+      const episodeCount = isSeries ? (prev.projectConfig?.episodeCount || 6) : undefined;
+      const activeEpisodeNumber = isSeries ? (prev.projectConfig?.activeEpisodeNumber || 1) : undefined;
+      const fingerprint = [formatTitle.trim(), templateTitle.trim(), runtime, isSeries ? `episodes:${episodeCount}` : 'feature', isSeries ? `episode:${activeEpisodeNumber}` : 'film'].join('|');
+
+      const next: TattavaProject = {
+        ...prev,
+        template: templateTitle,
+        templates: prev.templates.map(t => ({ ...t, isSelected: t.title === templateTitle })),
+        projectConfig: {
+          ...(prev.projectConfig || {}),
+          formatLabel: formatTitle,
+          templateName: templateTitle,
+          mediaFormat: inferMediaFormat(formatTitle),
+          contentMode: prev.projectConfig?.contentMode || inferContentMode(formatTitle),
+          episodeCount,
+          episodeDurationMins: isSeries ? 45 : undefined,
+          activeEpisodeNumber,
+          configurationFingerprint: fingerprint,
+          configurationStatus: 'USER_CONFIRMED'
+        },
+        structure: {
+          ...prev.structure,
+          templateName: templateTitle,
+          configurationFingerprint: fingerprint,
+          isSynthesisStale: true
+        }
+      };
+
+      return invalidateDownstreamArtifacts(next, fingerprint);
+    });
   };
 
   const updateTreatment = (updates: Partial<TreatmentData>) => {
