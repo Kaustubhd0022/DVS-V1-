@@ -2135,7 +2135,38 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             return { ...prev, treatment: result.artifact, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
           if (result.artifactType === 'scene') {
-            return { ...prev, scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s), artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
+            return {
+              ...prev,
+              scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s),
+              artifactVersions: [proposal, ...(prev.artifactVersions || [])]
+            };
+          }
+          if (result.artifactType === 'screenplay') {
+            const generated = result.artifact as ScreenplayLine[];
+            const sceneNumber = generated[0]?.sceneNumber;
+            const screenplay = sceneNumber
+              ? [
+                  ...(prev.screenplay || []).filter(line => line.sceneNumber !== sceneNumber),
+                  ...generated
+                ]
+              : [...(prev.screenplay || []), ...generated];
+            return {
+              ...prev,
+              screenplay,
+              screenplayLines: screenplay,
+              artifactVersions: [proposal, ...(prev.artifactVersions || [])]
+            };
+          }
+          if (result.artifactType === 'dialogue') {
+            const generated = result.artifact as any[];
+            return {
+              ...prev,
+              dialogueSuggestions: [
+                ...(prev.dialogueSuggestions || []).filter(d => d.id !== result.artifactId),
+                ...generated
+              ],
+              artifactVersions: [proposal, ...(prev.artifactVersions || [])]
+            };
           }
           return { ...prev, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
         });
