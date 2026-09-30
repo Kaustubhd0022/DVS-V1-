@@ -2459,9 +2459,29 @@ Format: ${currentProject.format}
       const isSeries = /series/i.test(formatTitle);
       const episodeCount = isSeries ? 6 : undefined;
       const episodeDurationMins = isSeries ? 45 : undefined;
+      const previousDuration = prev.structure?.estimatedDurationMins || 120;
       const estimatedDurationMins = isSeries ? 45 : 120;
       const scope = isSeries ? 'EPISODE' : 'FEATURE';
       const fingerprint = `${formatTitle}|${prev.template}`;
+
+      // Immediately migrate the visible structural artifact to the new runtime.
+      // This prevents a 120-min feature beat sheet from remaining visible after
+      // the user selects a 45-min episode format.
+      const remapTimeRange = (range: string) => {
+        const match = range?.match(/(\\d+)\\s*:?\\s*(\\d*)\\s*-\\s*(\\d+)\\s*:?\\s*(\\d*)/);
+        if (!match) return range;
+        const toMin = (m: string, s: string) => Number(m) + (s ? Number(s) / 60 : 0);
+        const start = toMin(match[1], match[2]);
+        const end = toMin(match[3], match[4]);
+        const scale = (value: number) => Math.max(0, Math.min(estimatedDurationMins, Math.round((value / previousDuration) * estimatedDurationMins)));
+        return `${String(scale(start)).padStart(2, '0')}:00 - ${String(scale(end)).padStart(2, '0')}:00`;
+      };
+
+      const remapBeats = (beats: any[]) => (beats || []).map((beat: any) => ({
+        ...beat,
+        timeRange: remapTimeRange(beat.timeRange)
+      }));
+
       return {
         ...prev,
         format: formatTitle,
@@ -2475,7 +2495,21 @@ Format: ${currentProject.format}
           activeEpisodeNumber: isSeries ? (prev.structure.activeEpisodeNumber || 1) : undefined,
           structureScope: scope,
           configurationFingerprint: fingerprint,
-          isSynthesisStale: true
+          isSynthesisStale: true,
+          acts: {
+            ...prev.structure.acts,
+            act1: { ...prev.structure.acts.act1, time: isSeries ? '00:00 – 11:00' : '00:00 – 30:00', beats: remapBeats(prev.structure.acts.act1.beats) },
+            act2: { ...prev.structure.acts.act2, time: isSeries ? '11:00 – 34:00' : '30:00 – 90:00', beats: remapBeats(prev.structure.acts.act2.beats) },
+            act3: { ...prev.structure.acts.act3, time: isSeries ? '34:00 – 45:00' : '90:00 – 120:00', beats: remapBeats(prev.structure.acts.act3.beats) }
+          },
+          timeline: isSeries
+            ? [
+                { label: 'Episode Setup / Inciting Incident', timeMin: 6, act: 'Act I' },
+                { label: 'Episode Midpoint Reversal', timeMin: 23, act: 'Act II Midpoint' },
+                { label: 'Crisis / All Is Lost', timeMin: 34, act: 'Act II Climax' },
+                { label: 'Episode Climax', timeMin: 41, act: 'Act III Climax' }
+              ]
+            : prev.structure.timeline
         }
       };
     });
