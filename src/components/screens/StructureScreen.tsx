@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   GitCommit, Clock, Sparkles, Layers, ArrowRight, 
@@ -92,6 +92,15 @@ export const StructureScreen: React.FC = () => {
       setIsGenerating(false);
     }
   };
+
+  // When Format/Template changes upstream, automatically regenerate the structure
+  // against the new configuration instead of leaving the previous feature/episode
+  // artifact visible as if it were canonical.
+  useEffect(() => {
+    if (structure.isSynthesisStale && !isGenerating) {
+      void handleGenerateStructure();
+    }
+  }, [currentProject.format, currentProject.template, structure.configurationFingerprint]);
 
   const runAiPacingTool = () => {
     setAiOptimizing(true);
