@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   FileText, Sparkles, CheckCircle2, ArrowRight, 
@@ -10,6 +10,12 @@ import { generateTreatmentData } from '../../services/aiService';
 
 export const TreatmentScreen: React.FC = () => {
   const { currentProject, updateTreatment, nextStep, openContextResolver } = useProject();
+  const isSeries = /series/i.test(currentProject.format || currentProject.formats?.find(f => f.isSelected)?.title || '');
+  const episodeDuration = currentProject.structure?.episodeDurationMins || (isSeries ? 45 : currentProject.structure?.estimatedDurationMins || 120);
+  const episodeCount = currentProject.structure?.episodeCount || (isSeries ? 6 : undefined);
+  const activeEpisode = currentProject.structure?.activeEpisodeNumber || 1;
+  const configurationFingerprint = (currentProject.format || 'Feature Film') + '|' + (currentProject.template || 'Three-Act Classical Thriller');
+
   const treatment = currentProject.treatment || {
     version: 'v0.1',
     wordCount: 0,
@@ -49,7 +55,9 @@ export const TreatmentScreen: React.FC = () => {
         tone: generated.tone,
         themes: generated.themes,
         plotBeats: generated.plotBeats,
-        status: 'IN_REVIEW'
+        status: 'IN_REVIEW',
+        configurationFingerprint,
+        isSynthesisStale: false
       });
       setSynopsisText(generated.synopsis);
     } catch (err: any) {
@@ -58,6 +66,12 @@ export const TreatmentScreen: React.FC = () => {
       setIsSynthesizing(false);
     }
   };
+
+  useEffect(() => {
+    if (treatment.isSynthesisStale && !isSynthesizing) {
+      void handleSynthesizeTreatment();
+    }
+  }, [currentProject.format, currentProject.template, treatment.configurationFingerprint, treatment.isSynthesisStale]);
 
   const runAiEnhancement = () => {
     setAiEnhancing(true);
@@ -87,7 +101,7 @@ export const TreatmentScreen: React.FC = () => {
             Narrative Treatment & Prose Dossier
           </h1>
           <p className="text-sm text-white/60 mt-1 max-w-2xl">
-            Version {treatment.version || 'v0.1'} • {wordCount.toLocaleString()} Words • Complete Scene-by-Scene Narrative Spine for <strong className="text-white">"{currentProject.title}"</strong>
+            Version {treatment.version || 'v0.1'} • {wordCount.toLocaleString()} Words • {isSeries ? `Episode ${activeEpisode}/${episodeCount} • ${episodeDuration} min` : 'Feature'} • Complete Narrative Spine for <strong className="text-white">"{currentProject.title}"</strong>
           </p>
         </div>
 
@@ -117,7 +131,17 @@ export const TreatmentScreen: React.FC = () => {
         </div>
       </div>
 
-      {treatmentError && (
+{treatment.isSynthesisStale && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-4">
+          <div>
+            <div className="font-semibold">{isSeries ? 'Format changed: episode treatment needs synthesis' : 'Treatment configuration changed'}</div>
+            <div className="mt-1 text-white/50">{isSeries ? `Generating the narrative treatment for Episode ${activeEpisode} of ${episodeCount} at ${episodeDuration} minutes.` : 'The previous treatment belongs to another format/template.'}</div>
+          </div>
+          <button onClick={handleSynthesizeTreatment} disabled={isSynthesizing} className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 font-semibold text-black hover:bg-amber-400 disabled:opacity-50">{isSynthesizing ? 'Synthesizing…' : 'Update Treatment'}</button>
+        </div>
+      )}
+
+            {treatmentError && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
