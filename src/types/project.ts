@@ -757,7 +757,7 @@ export interface BranchMergeRecord {
 
 export interface ArtifactApprovalRecord {
   id: string;
-  artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue';
+  artifactType: ArtifactVersionRecord['artifactType'];
   artifactId: string;
   versionId: string;
   status: 'APPROVED' | 'REJECTED' | 'SUPERSEDED';
