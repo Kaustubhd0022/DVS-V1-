@@ -480,6 +480,8 @@ export interface StoryEvaluation {
   actionItems: string[];
   evaluatorModel: string;
   evaluatedAt: string;
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   humanSignOff?: {
     approvedBy: string;
     role: string;
@@ -768,6 +770,8 @@ export interface ArtifactApprovalRecord {
 }
 
 export interface PackageData {
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   stepsCompleted: number;
   totalSteps: number;
   deliverablesCount: number;
