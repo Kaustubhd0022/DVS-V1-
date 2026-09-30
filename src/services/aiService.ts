@@ -2127,15 +2127,28 @@ export const generateTreatmentData = async (
 ): Promise<{ synopsis: string; plotBeats: PlotBeatItem[]; tone: string[]; themes: string[] }> => {
   const resolved = resolveCanonicalGenerationContext(project, 'Treatment Generation', 'Narrative Treatment', project.intent?.conflict || project.projectIntelligence?.development?.nextUnresolvedQuestion);
   const context = resolved.contextText;
+  const isSeries = /series/i.test(project.format || project.formats?.find(f => f.isSelected)?.title || '');
+  const duration = isSeries ? (project.structure?.episodeDurationMins || 45) : (project.structure?.estimatedDurationMins || 120);
+  const episodeCount = isSeries ? (project.structure?.episodeCount || 6) : undefined;
+  const episodeNumber = project.structure?.activeEpisodeNumber || 1;
+  const template = project.template || project.templates?.find(t => t.isSelected)?.title || project.structure?.templateName || 'Three-Act Classical Structure';
+  const configurationFingerprint = `${project.format || 'Feature Film'}|${template}`;
 
   const prompt = `${context}
 
+TREATMENT CONFIGURATION:
+Format: ${project.format || 'Feature Film'}
+Template: ${template}
+Scope: ${isSeries ? 'Episode' : 'Feature'}
+Runtime: ${duration} minutes${isSeries ? ` per episode, ${episodeCount} episodes in season, Episode ${episodeNumber}` : ''}
+For a series, write ONLY the selected episode's narrative treatment. Do not write a season synopsis and do not treat the project as a feature film.
+
 TASK:
-Generate a compelling narrative treatment synopsis and a 6-beat cardinal plot progression for the project.
+Generate a compelling narrative treatment synopsis and a 6-beat cardinal plot progression for the configured ${isSeries ? 'episode' : 'story'}.
 
 Output purely JSON matching this schema:
 {
-  "synopsis": "A 3-paragraph evocative narrative treatment synopsis establishing the opening image, rising conflict, midpoint revelation, dark night of the soul, and thematic resolution.",
+  "synopsis": "A 3-paragraph evocative narrative treatment for the configured scope. For a series, this must be one complete episode arc with setup, escalation, midpoint, crisis, climax and an ending that sustains the season arc.",
   "tone": ["Procedural", "Noir", "Tense", "Atmospheric"],
   "themes": ["Accountability", "Moral Agency", "Institutional Truth"],
   "plotBeats": [
@@ -2205,7 +2218,9 @@ Output purely JSON matching this schema:
         act: (['ACT I', 'ACT II', 'ACT III'] as const).includes(b.act) ? b.act : idx < 2 ? 'ACT I' : idx < 4 ? 'ACT II' : 'ACT III',
         title: b.title || `Plot Beat ${idx + 1}`,
         description: b.description || 'Dramatic narrative movement.',
-        candidateState: 'AI_PROPOSAL' as const
+        candidateState: 'AI_PROPOSAL' as const,
+        configurationFingerprint,
+        isSynthesisStale: false
       }))
     };
   } catch (err) {
