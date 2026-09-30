@@ -140,7 +140,6 @@ export const StructureScreen: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
           >
             <span>{isGenerating ? 'Synthesizing Beats...' : (isSeries ? `Synthesize Episode ${activeEpisode} Structure (AI)` : 'Synthesize 3-Act Beats (AI)')}</span>
-            <span>{isGenerating ? 'Synthesizing Beats...' : '{isSeries ? `Synthesize Episode ${activeEpisode} Structure (AI)` : 'Synthesize 3-Act Beats (AI)'}'}</span>
           </button>
 
           {allBeats.length > 0 && (
