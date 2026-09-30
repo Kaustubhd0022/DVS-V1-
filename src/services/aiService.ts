@@ -1896,6 +1896,17 @@ TASK:
 Synthesize 9 cardinal dramatic beats across 3 Acts (3 in Act I, 4 in Act II, 2 in Act III) for the configured runtime and template.
 For a series, these beats are for the selected episode and should create an episode-level arc with setup, escalation, midpoint reversal, crisis, climax and an ending that sustains the season arc.
 Return ONLY valid JSON matching:
+{
+  "act1": [
+    { "number": 1, "act": "ACT I - SETUP", "timeRange": "00:00 - 12:00", "title": "Opening Image & Status Quo", "description": "Detailed 2-sentence description." }
+  ],
+  "act2": [
+    { "number": 4, "act": "ACT II - CONFRONTATION", "timeRange": "12:00 - 34:00", "title": "Midpoint / Escalation", "description": "Detailed description." }
+  ],
+  "act3": [
+    { "number": 8, "act": "ACT III - RESOLUTION", "timeRange": "34:00 - 45:00", "title": "Climax & Resolution", "description": "Detailed description." }
+  ]
+}
   try {
     const raw = await callGroq([
       { role: 'system', content: 'You are an elite narrative dramaturge. Return valid JSON only.' },
@@ -1913,7 +1924,7 @@ Return ONLY valid JSON matching:
       id: `beat-${Date.now()}-${fallbackNum}`,
       number: b?.number || fallbackNum,
       act: actName,
-      timeRange: b?.timeRange || (fallbackNum <= 3 ? '00:00 - 30:00' : fallbackNum <= 7 ? '30:00 - 85:00' : '85:00 - 110:00'),
+      timeRange: b?.timeRange || (fallbackNum <= 3 ? `00:00 - ${Math.round(duration * 0.25)}:00` : fallbackNum <= 7 ? `${Math.round(duration * 0.25)}:00 - ${Math.round(duration * 0.76)}:00` : `${Math.round(duration * 0.76)}:00 - ${duration}:00`),
       title: b?.title || `Cardinal Beat ${fallbackNum}`,
       description: b?.description || 'Crucial dramatic turning point in the structural spine.',
       imageUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80',
