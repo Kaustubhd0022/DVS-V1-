@@ -2449,6 +2449,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       status: 'APPROVED',
       package: {
         ...prev.package,
+        configurationFingerprint: getCanonicalConfiguration(prev).configurationFingerprint,
+        isSynthesisStale: false,
         isGreenlit: true,
         stakeholders: prev.package.stakeholders.map(s => ({
           ...s,
