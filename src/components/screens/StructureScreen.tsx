@@ -129,7 +129,7 @@ export const StructureScreen: React.FC = () => {
             disabled={isGenerating}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+            <span>{isGenerating ? 'Synthesizing Beats...' : (isSeries ? `Synthesize Episode ${activeEpisode} Structure (AI)` : 'Synthesize 3-Act Beats (AI)')}</span>
             <span>{isGenerating ? 'Synthesizing Beats...' : '{isSeries ? `Synthesize Episode ${activeEpisode} Structure (AI)` : 'Synthesize 3-Act Beats (AI)'}'}</span>
           </button>
 
@@ -190,20 +190,20 @@ export const StructureScreen: React.FC = () => {
               {isSeries ? `Episode ${activeEpisode} Runtime Timeline & Tension Arc (0 – ${episodeDuration} Mins)` : `Dynamic Runtime Timeline & Tension Arc (0 – ${configuredDuration} Mins)`}
             </h3>
           </div>
-          <span className="text-xs font-mono text-white/40">Target Pace: High Octane Procedural</span>
+          <span className="text-xs font-mono text-white/40">{isSeries ? 'Template: Episode-level Three-Act Rhythm' : 'Target Pace: High Octane Procedural'}</span>
         </div>
 
         {/* Interactive Timeline Bar */}
         <div className="relative pt-6 pb-2">
           {/* Act segmentation bar */}
           <div className="h-3 rounded-full bg-white/5 overflow-hidden flex relative">
-            <div className="w-[24%] bg-amber-500/30 border-r border-amber-500/40 relative group cursor-pointer" title="Act I: Min 0-30">
+            <div className={`relative group cursor-pointer ${isSeries ? 'w-[25%]' : 'w-[24%]'} bg-amber-500/30 border-r border-amber-500/40`} title={`Act I: Min 0-${isSeries ? 11 : 30}`}>
               <span className="absolute inset-0 bg-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <div className="w-[48%] bg-blue-500/30 border-r border-blue-500/40 relative group cursor-pointer" title="Act II: Min 30-90">
+            <div className={`relative group cursor-pointer ${isSeries ? 'w-[51%]' : 'w-[48%]'} bg-blue-500/30 border-r border-blue-500/40`} title={`Act II: Min ${isSeries ? 11 : 30}-${isSeries ? 34 : 90}`}>
               <span className="absolute inset-0 bg-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <div className="w-[28%] bg-rose-500/30 relative group cursor-pointer" title="Act III: Min 90-125">
+            <div className={`relative group cursor-pointer ${isSeries ? 'w-[24%]' : 'w-[28%]'} bg-rose-500/30`} title={`Act III: Min ${isSeries ? 34 : 90}-${isSeries ? 45 : configuredDuration}`}>
               <span className="absolute inset-0 bg-rose-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
@@ -212,19 +212,19 @@ export const StructureScreen: React.FC = () => {
           <div className="relative h-12 mt-2">
             <div className="absolute left-[12%] -translate-x-1/2 flex flex-col items-center">
               <div className="w-2 h-2 rounded-full bg-amber-400" />
-              <span className="text-[10px] font-mono text-amber-400 mt-1 whitespace-nowrap">Min 12: Inciting Incident</span>
+              <span className="text-[10px] font-mono text-amber-400 mt-1 whitespace-nowrap">{isSeries ? 'Min 06: Inciting Incident' : 'Min 12: Inciting Incident'}</span>
             </div>
             <div className="absolute left-[48%] -translate-x-1/2 flex flex-col items-center">
               <div className="w-2 h-2 rounded-full bg-blue-400" />
-              <span className="text-[10px] font-mono text-blue-400 mt-1 whitespace-nowrap">Min 60: Midpoint Reversal</span>
+              <span className="text-[10px] font-mono text-blue-400 mt-1 whitespace-nowrap">{isSeries ? 'Min 23: Midpoint Reversal' : 'Min 60: Midpoint Reversal'}</span>
             </div>
             <div className="absolute left-[72%] -translate-x-1/2 flex flex-col items-center">
               <div className="w-2 h-2 rounded-full bg-rose-400" />
-              <span className="text-[10px] font-mono text-rose-400 mt-1 whitespace-nowrap">Min 88: All Is Lost</span>
+              <span className="text-[10px] font-mono text-rose-400 mt-1 whitespace-nowrap">{isSeries ? 'Min 34: All Is Lost' : 'Min 88: All Is Lost'}</span>
             </div>
             <div className="absolute left-[90%] -translate-x-1/2 flex flex-col items-center">
               <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-[10px] font-mono text-emerald-400 mt-1 whitespace-nowrap">Min 105: Climax</span>
+              <span className="text-[10px] font-mono text-emerald-400 mt-1 whitespace-nowrap">{isSeries ? 'Min 41: Climax' : 'Min 105: Climax'}</span>
             </div>
           </div>
         </div>
