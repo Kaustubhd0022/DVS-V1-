@@ -218,6 +218,8 @@ export interface StoryStructure {
 
 export interface PlotBeatItem {
   id: string;
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   number: number;
   title: string;
   act: 'ACT I' | 'ACT II' | 'ACT III';
