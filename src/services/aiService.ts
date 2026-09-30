@@ -1924,6 +1924,7 @@ Return ONLY valid JSON matching:
     { "number": 8, "act": "ACT III - RESOLUTION", "timeRange": "34:00 - 45:00", "title": "Climax & Resolution", "description": "Detailed description." }
   ]
 }
+`;
   try {
     const raw = await callGroq([
       { role: 'system', content: 'You are an elite narrative dramaturge. Return valid JSON only.' },
