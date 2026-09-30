@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   FileCode2, Sparkles, ArrowRight, Download, Share2, 
@@ -7,15 +7,18 @@ import {
 } from 'lucide-react';
 import { ScreenplayLine } from '../../types/project';
 import { punchUpDialogue } from '../../services/geminiService';
+import { generateScreenplayDraft } from '../../services/aiService';
+import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const ScreenplayScreen: React.FC = () => {
-  const { currentProject, updateScreenplayLine, addScreenplayLine, nextStep, openContextResolver } = useProject();
+  const { currentProject, updateScreenplayLine, addScreenplayLine, updateCurrentProject, nextStep, openContextResolver } = useProject();
   const scriptLines = currentProject.screenplayLines || currentProject.screenplay || [];
 
   const [activeSceneNumber, setActiveSceneNumber] = useState<number>(1);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [aiPunchingUp, setAiPunchingUp] = useState(false);
   const [isDraftingScene, setIsDraftingScene] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   const filteredLines = scriptLines.filter(l => l.sceneNumber === activeSceneNumber);
 
@@ -37,60 +40,31 @@ export const ScreenplayScreen: React.FC = () => {
     addScreenplayLine(newLine);
   };
 
-  const handleDraftSceneWithAi = () => {
+  const handleDraftSceneWithAi = async () => {
     setIsDraftingScene(true);
-    setTimeout(() => {
-      const locName = currentProject.world?.locations?.[0]?.name?.toUpperCase() || 'COMMAND CENTER';
-      const sampleLines: ScreenplayLine[] = [
-        {
-          id: `scr-gen-${Date.now()}-1`,
-          sceneNumber: activeSceneNumber,
-          type: 'scene_heading',
-          content: `INT. ${locName} - NIGHT`
-        },
-        {
-          id: `scr-gen-${Date.now()}-2`,
-          sceneNumber: activeSceneNumber,
-          type: 'action',
-          content: `Monsoon rain lashes against the reinforced windows. The glow of surveillance monitors bathes ${leadName} in cold cyan light.`
-        },
-        {
-          id: `scr-gen-${Date.now()}-3`,
-          sceneNumber: activeSceneNumber,
-          type: 'character',
-          content: leadName
-        },
-        {
-          id: `scr-gen-${Date.now()}-4`,
-          sceneNumber: activeSceneNumber,
-          type: 'dialogue',
-          content: `The telemetry reports were manipulated before the breach occurred. Someone signed off on the bypass.`,
-          characterName: leadName
-        },
-        {
-          id: `scr-gen-${Date.now()}-5`,
-          sceneNumber: activeSceneNumber,
-          type: 'character',
-          content: secondCharName
-        },
-        {
-          id: `scr-gen-${Date.now()}-6`,
-          sceneNumber: activeSceneNumber,
-          type: 'parenthetical',
-          content: '(calm, measuring every word)'
-        },
-        {
-          id: `scr-gen-${Date.now()}-7`,
-          sceneNumber: activeSceneNumber,
-          type: 'dialogue',
-          content: `And who do you think authorized that bypass? Some questions don't have survivable answers.`,
-          characterName: secondCharName
-        }
-      ];
+    setDraftError(null);
+    try {
+      const canonicalConfig = getCanonicalConfiguration(currentProject);
+      const generated = await generateScreenplayDraft(currentProject, activeSceneNumber);
+      if (!generated.length) throw new Error('AI returned no screenplay lines.');
 
-      sampleLines.forEach(l => addScreenplayLine(l));
+      const remaining = (currentProject.screenplay || []).filter(
+        line => line.sceneNumber !== activeSceneNumber
+      );
+      const merged = [...remaining, ...generated].sort((a, b) =>
+        a.sceneNumber - b.sceneNumber
+      );
+
+      updateCurrentProject(prev => ({
+        ...prev,
+        screenplay: merged,
+        screenplayLines: merged
+      }));
+    } catch (err: any) {
+      setDraftError(err?.message || 'Failed to generate a project-grounded screenplay draft.');
+    } finally {
       setIsDraftingScene(false);
-    }, 600);
+    }
   };
 
   const runAiDialoguePunchUp = async () => {
@@ -117,6 +91,19 @@ export const ScreenplayScreen: React.FC = () => {
   const sceneNumbers = currentProject.scenes && currentProject.scenes.length > 0
     ? currentProject.scenes.map(s => s.sceneNumber)
     : [1, 2, 3, 4];
+
+  const canonicalConfig = getCanonicalConfiguration(currentProject);
+  const activeSceneArtifact = currentProject.scenes?.find(s => s.sceneNumber === activeSceneNumber);
+  const activeSceneLines = scriptLines.filter(line => line.sceneNumber === activeSceneNumber);
+  const screenplayStale = activeSceneArtifact
+    ? activeSceneLines.some(line => line.isSynthesisStale || line.configurationFingerprint !== canonicalConfig.configurationFingerprint)
+      || activeSceneLines.length === 0
+    : false;
+
+  useEffect(() => {
+    if (!screenplayStale || isDraftingScene || !activeSceneArtifact) return;
+    void handleDraftSceneWithAi();
+  }, [canonicalConfig.configurationFingerprint, activeSceneNumber, screenplayStale]);
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto pb-16">
@@ -162,6 +149,26 @@ export const ScreenplayScreen: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {draftError && (
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
+          <span>{draftError}</span>
+          <button onClick={() => setDraftError(null)} className="text-white/40 hover:text-white">✕</button>
+        </div>
+      )}
+
+      {screenplayStale && activeSceneArtifact && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
+          <span>Screenplay is stale for the current project configuration. Tattava is rebuilding Scene {activeSceneNumber} from the current scene, canon, and project configuration.</span>
+          <button
+            onClick={handleDraftSceneWithAi}
+            disabled={isDraftingScene}
+            className="px-3 py-1.5 rounded-lg bg-amber-500 text-black font-bold disabled:opacity-50"
+          >
+            {isDraftingScene ? 'Drafting…' : 'Draft Now'}
+          </button>
+        </div>
+      )}
 
       {/* Formatting & Scene Bar */}
       <div className="p-3.5 rounded-xl bg-[#12141a]/95 border border-white/10 flex flex-wrap items-center justify-between gap-4">
