@@ -241,6 +241,9 @@ export interface TreatmentData {
 export interface SceneItem {
   id: string;
   sceneNumber: number;
+  /** Format/template configuration that produced this scene. */
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   act: 'ACT I - SETUP' | 'ACT II - CONFRONTATION' | 'ACT III - RESOLUTION';
   slugline: string;
   duration: string;
