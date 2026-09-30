@@ -9,21 +9,126 @@ export interface ChangeTrigger {
 }
 
 const categoryForDependency = (dep: StoryDependency): ImpactChangeItem['category'] => {
-  if (dep.dependencyType === 'Character -> Scene') return 'Scenes';
+  if (dep.dependencyType === 'Character -> Scene' || dep.dependencyType === 'Treatment -> Scene') return 'Scenes';
+  if (dep.dependencyType === 'Scene -> Screenplay' || dep.dependencyType === 'Character -> Screenplay' || dep.dependencyType === 'Canon -> Screenplay') return 'Screenplay';
   if (dep.dependencyType === 'Canon -> Motivation') return 'Characters';
-  if (dep.dependencyType === 'Research -> Plot') return 'Story';
-  if (dep.dependencyType === 'Beat -> Dialogue') return 'Dialogue';
+  if (dep.dependencyType === 'Research -> Plot' || dep.dependencyType === 'Structure -> Treatment' || dep.dependencyType === 'Research -> Treatment') return 'Story';
+  if (dep.dependencyType === 'Beat -> Dialogue' || dep.dependencyType === 'Screenplay -> Dialogue') return 'Dialogue';
   return 'Story';
 };
 
 const severityForDependency = (dep: StoryDependency): ImpactChangeItem['severity'] =>
-  dep.dependencyType === 'Canon -> Motivation' || dep.dependencyType === 'Research -> Plot' ? 'High' : 'Medium';
+  dep.dependencyType === 'Canon -> Motivation' ||
+  dep.dependencyType === 'Research -> Plot' ||
+  dep.dependencyType === 'Scene -> Screenplay' ||
+  dep.dependencyType === 'Character -> Screenplay'
+    ? 'High'
+    : 'Medium';
+
+export const deriveArtifactDependencies = (project: TattavaProject): StoryDependency[] => {
+  const edges: StoryDependency[] = [];
+
+  project.characters.forEach(character => {
+    project.scenes
+      .filter(scene => scene.characterIds.includes(character.id) || scene.characters.includes(character.name))
+      .forEach(scene => edges.push({
+        id: `derived-character-scene-${character.id}-${scene.id}`,
+        sourceEntityId: character.id,
+        sourceName: character.name,
+        targetEntityId: scene.id,
+        targetName: `Scene ${scene.sceneNumber}: ${scene.slugline}`,
+        dependencyType: 'Character -> Scene',
+        description: 'Scene directly references this character.',
+        isStale: Boolean(scene.isSynthesisStale)
+      }));
+  });
+
+  project.scenes.forEach(scene => {
+    const screenplayId = `screenplay:scene:${scene.sceneNumber}`;
+    edges.push({
+      id: `derived-scene-screenplay-${scene.id}`,
+      sourceEntityId: scene.id,
+      sourceName: `Scene ${scene.sceneNumber}`,
+      targetEntityId: screenplayId,
+      targetName: `Screenplay Scene ${scene.sceneNumber}`,
+      dependencyType: 'Scene -> Screenplay',
+      description: 'Screenplay is generated from the current scene breakdown.',
+      isStale: Boolean(scene.isSynthesisStale || project.screenplay.some(line => line.sceneNumber === scene.sceneNumber && line.isSynthesisStale))
+    });
+  });
+
+  project.screenplay.forEach(line => {
+    if (line.type !== 'dialogue') return;
+    const dialogueTargets = project.dialogueSuggestions.filter(d => !line.characterName || d.character === line.characterName);
+    dialogueTargets.forEach(dialogue => edges.push({
+      id: `derived-screenplay-dialogue-${line.id}-${dialogue.id}`,
+      sourceEntityId: `screenplay:scene:${line.sceneNumber}`,
+      sourceName: `Screenplay Scene ${line.sceneNumber}`,
+      targetEntityId: dialogue.id,
+      targetName: dialogue.label || dialogue.character,
+      dependencyType: 'Screenplay -> Dialogue',
+      description: 'Dialogue suggestion is derived from the current screenplay voice and scene context.',
+      isStale: Boolean(dialogue.isSynthesisStale)
+    }));
+  });
+
+  project.treatment?.plotBeats?.forEach(beat => {
+    project.scenes
+      .filter(scene => scene.act.replace('ACT ', '').startsWith(beat.act.replace('ACT ', '').charAt(0)))
+      .forEach(scene => edges.push({
+        id: `derived-treatment-scene-${beat.id}-${scene.id}`,
+        sourceEntityId: `treatment-beat:${beat.id}`,
+        sourceName: beat.title,
+        targetEntityId: scene.id,
+        targetName: `Scene ${scene.sceneNumber}: ${scene.slugline}`,
+        dependencyType: 'Treatment -> Scene',
+        description: 'Scene is downstream of the treatment beat covering its act.',
+        isStale: Boolean(beat.isSynthesisStale || scene.isSynthesisStale)
+      }));
+  });
+
+  if (project.treatment) {
+    edges.push({
+      id: 'derived-structure-treatment',
+      sourceEntityId: 'structure',
+      sourceName: 'Story Structure',
+      targetEntityId: 'treatment',
+      targetName: 'Narrative Treatment',
+      dependencyType: 'Structure -> Treatment',
+      description: 'Treatment is generated from the active story structure.',
+      isStale: Boolean(project.structure.isSynthesisStale || project.treatment.isSynthesisStale)
+    });
+  }
+
+  project.storyBrain?.canonFacts?.forEach(fact => {
+    fact.entityIds.forEach(entityId => {
+      const character = project.characters.find(c => c.id === entityId);
+      if (character) {
+        edges.push({
+          id: `derived-canon-character-${fact.id}-${character.id}`,
+          sourceEntityId: fact.id,
+          sourceName: fact.statement,
+          targetEntityId: character.id,
+          targetName: character.name,
+          dependencyType: 'Canon -> Motivation',
+          description: 'Character intelligence depends on this approved canon fact.',
+          isStale: false
+        });
+      }
+    });
+  });
+
+  return edges;
+};
 
 export const resolveDependencyImpact = (
   project: TattavaProject,
   trigger: ChangeTrigger
 ): ImpactAnalysisState => {
-  const dependencies = project.storyBrain?.dependencies || [];
+  const dependencies = [
+    ...(project.storyBrain?.dependencies || []),
+    ...deriveArtifactDependencies(project)
+  ].filter((dep, index, all) => all.findIndex(existing => existing.id === dep.id) === index);
   const sourceId = trigger.sourceEntityId;
 
   // Walk the dependency graph transitively. A changed upstream entity must
