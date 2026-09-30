@@ -201,6 +201,13 @@ export interface StoryStructure {
   totalSequences: number;
   keyTurningPoints: number;
   emotionalPeaks: number;
+  /** Format-aware structure configuration. For series, these describe the episode architecture. */
+  structureScope?: 'FEATURE' | 'EPISODE';
+  episodeCount?: number;
+  episodeDurationMins?: number;
+  activeEpisodeNumber?: number;
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   acts: {
     act1: { title: string; time: string; beats: StructureBeat[] };
     act2: { title: string; time: string; beats: StructureBeat[] };
