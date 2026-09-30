@@ -25,11 +25,38 @@ export const resolveDependencyImpact = (
 ): ImpactAnalysisState => {
   const dependencies = project.storyBrain?.dependencies || [];
   const sourceId = trigger.sourceEntityId;
-  const impacted = dependencies.filter(dep =>
-    !sourceId || dep.sourceEntityId === sourceId || dep.targetEntityId === sourceId
-  );
 
-  const items: ImpactChangeItem[] = impacted.map((dep, index) => ({
+  // Walk the dependency graph transitively. A changed upstream entity must
+  // surface not only its direct consumers but every downstream consumer.
+  const reachable = new Set<string>(sourceId ? [sourceId] : []);
+  const impactedDependencies: typeof dependencies = [];
+  let frontier = sourceId ? [sourceId] : [];
+
+  while (frontier.length) {
+    const next: string[] = [];
+    for (const id of frontier) {
+      dependencies
+        .filter(dep => dep.sourceEntityId === id)
+        .forEach(dep => {
+          if (!impactedDependencies.some(existing => existing.id === dep.id)) {
+            impactedDependencies.push(dep);
+          }
+          if (!reachable.has(dep.targetEntityId)) {
+            reachable.add(dep.targetEntityId);
+            next.push(dep.targetEntityId);
+          }
+        });
+    }
+    frontier = next;
+  }
+
+  const directlyRelevant = sourceId
+    ? dependencies.filter(dep => dep.targetEntityId === sourceId && !impactedDependencies.some(i => i.id === dep.id))
+    : dependencies;
+
+  const allDependencies = [...impactedDependencies, ...directlyRelevant];
+
+  const items: ImpactChangeItem[] = allDependencies.map((dep, index) => ({
     id: 'impact-' + dep.id + '-' + index,
     category: categoryForDependency(dep),
     objectName: dep.targetName,
@@ -41,14 +68,14 @@ export const resolveDependencyImpact = (
     approved: false
   }));
 
-  const inferred: ImpactChangeItem[] = [];
-
+  // Artifact-level downstream edges are inferred where the persisted graph
+  // has not yet been explicitly materialized.
   if (sourceId) {
     const character = project.characters.find(c => c.id === sourceId);
     if (character) {
       project.scenes
         .filter(scene => scene.characterIds.includes(sourceId) || scene.characters.includes(character.name))
-        .forEach((scene, index) => inferred.push({
+        .forEach((scene, index) => items.push({
           id: 'inferred-scene-' + scene.id + '-' + index,
           category: 'Scenes',
           objectName: 'Scene ' + scene.sceneNumber + ': ' + scene.slugline,
@@ -62,7 +89,7 @@ export const resolveDependencyImpact = (
 
       project.dialogueSuggestions
         .filter(dialogue => dialogue.character === character.name)
-        .forEach((dialogue, index) => inferred.push({
+        .forEach((dialogue, index) => items.push({
           id: 'inferred-dialogue-' + dialogue.id + '-' + index,
           category: 'Dialogue',
           objectName: dialogue.label || dialogue.character,
@@ -77,9 +104,9 @@ export const resolveDependencyImpact = (
   }
 
   const staleDependencies = dependencies.filter(d => d.isStale);
-  const staleItems = staleDependencies
+  staleDependencies
     .filter(d => !items.some(i => i.id.includes(d.id)))
-    .map((dep, index) => ({
+    .forEach((dep, index) => items.push({
       id: 'stale-' + dep.id + '-' + index,
       category: categoryForDependency(dep),
       objectName: dep.targetName,
@@ -91,27 +118,30 @@ export const resolveDependencyImpact = (
       approved: false
     }));
 
-  const allItems = [...items, ...inferred, ...staleItems];
-  const summary = {
-    characters: allItems.filter(i => i.category === 'Characters').length,
-    story: allItems.filter(i => i.category === 'Story').length,
-    scenes: allItems.filter(i => i.category === 'Scenes').length,
-    dialogue: allItems.filter(i => i.category === 'Dialogue').length,
-    visuals: allItems.filter(i => i.category === 'Visuals').length,
-    production: allItems.filter(i => i.category === 'Production').length
-  };
+  const deduped = items.filter((item, index, arr) =>
+    arr.findIndex(other => other.objectName === item.objectName && other.category === item.category && other.field === item.field) === index
+  );
 
   return {
-    isOpen: allItems.length > 0,
+    isOpen: deduped.length > 0,
+    sourceEntityId: sourceId,
     sourceTrigger: trigger.sourceDescription || (
       (trigger.field ? trigger.field + ': ' : '') +
       String(trigger.oldValue ?? '') + ' → ' + String(trigger.newValue ?? '')
     ),
-    totalAffected: allItems.length,
-    summary,
-    items: allItems
+    totalAffected: deduped.length,
+    summary: {
+      characters: deduped.filter(i => i.category === 'Characters').length,
+      story: deduped.filter(i => i.category === 'Story').length,
+      scenes: deduped.filter(i => i.category === 'Scenes').length,
+      dialogue: deduped.filter(i => i.category === 'Dialogue').length,
+      visuals: deduped.filter(i => i.category === 'Visuals').length,
+      production: deduped.filter(i => i.category === 'Production').length
+    },
+    items: deduped
   };
 };
+
 
 export const markImpactedDependenciesStale = (
   dependencies: StoryDependency[],
