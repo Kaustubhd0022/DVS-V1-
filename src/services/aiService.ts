@@ -1877,41 +1877,25 @@ export const generateStructureBeats = async (
 ): Promise<{ act1: StructureBeat[]; act2: StructureBeat[]; act3: StructureBeat[] }> => {
   const resolved = resolveCanonicalGenerationContext(project, 'Structure Generation', 'Three-Act Classical Beat Sheet', project.projectIntelligence?.development?.nextUnresolvedQuestion || project.intent?.conflict);
   const context = resolved.contextText;
-  const prompt = `${context}
+  const isSeries = /series/i.test(project.format || project.formats?.find(f => f.isSelected)?.title || '');
+  const duration = isSeries ? (project.structure?.episodeDurationMins || 45) : (project.structure?.estimatedDurationMins || 120);
+  const episodeCount = isSeries ? (project.structure?.episodeCount || 6) : undefined;
+  const template = project.template || project.templates?.find(t => t.isSelected)?.title || project.structure?.templateName || 'Three-Act Classical Structure';
+  const episodeNumber = project.structure?.activeEpisodeNumber || 1;
+
+  const prompt = context + `
+
+STRUCTURE CONFIGURATION:
+Format: ${project.format || project.formats?.find(f => f.isSelected)?.title || 'Feature Film'}
+Template: ${template}
+Scope: ${isSeries ? 'Episode' : 'Feature'}
+Runtime: ${duration} minutes${isSeries ? ` per episode, ${episodeCount} episodes in season, synthesizing Episode ${episodeNumber}` : ''}
+Do not use a feature-film runtime for a series. Do not collapse the entire season into one episode. Preserve the canonical project context while structuring only the requested scope.
 
 TASK:
-Synthesize 9 cardinal dramatic beats across 3 Acts (3 in Act I, 4 in Act II, 2 in Act III).
+Synthesize 9 cardinal dramatic beats across 3 Acts (3 in Act I, 4 in Act II, 2 in Act III) for the configured runtime and template.
+For a series, these beats are for the selected episode and should create an episode-level arc with setup, escalation, midpoint reversal, crisis, climax and an ending that sustains the season arc.
 Return ONLY valid JSON matching:
-{
-  "act1": [
-    {
-      "number": 1,
-      "act": "ACT I - SETUP",
-      "timeRange": "00:00 - 12:00",
-      "title": "Opening Image & Status Quo",
-      "description": "Detailed 2-sentence description of the beat."
-    }
-  ],
-  "act2": [
-    {
-      "number": 4,
-      "act": "ACT II - CONFRONTATION",
-      "timeRange": "30:00 - 45:00",
-      "title": "B-Story & Escalation",
-      "description": "Detailed description."
-    }
-  ],
-  "act3": [
-    {
-      "number": 8,
-      "act": "ACT III - RESOLUTION",
-      "timeRange": "90:00 - 105:00",
-      "title": "Climax & Moral Reckoning",
-      "description": "Detailed description."
-    }
-  ]
-}`;
-
   try {
     const raw = await callGroq([
       { role: 'system', content: 'You are an elite narrative dramaturge. Return valid JSON only.' },
