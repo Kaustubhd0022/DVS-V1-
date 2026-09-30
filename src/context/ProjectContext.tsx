@@ -226,7 +226,10 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map(normalizePersistedProjectForConfiguration);
+          // Demo workspaces are reference-only and must never become persistent user projects.
+          return parsed
+            .filter((project: TattavaProject) => !project.isDemo)
+            .map(normalizePersistedProjectForConfiguration);
         }
       } catch (e) {
         console.error('Failed to parse saved projects', e);
@@ -272,7 +275,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Sync to local storage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+    // Persist only user projects. Demo/reference workspaces remain session-scoped.
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects.filter(project => !project.isDemo)));
   }, [projects]);
 
   // Clean empty fallback project if no project has been created yet
@@ -1434,11 +1438,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const openDemoProject = () => {
-    const existing = projects.find(p => p.id === seedProject.id);
-    if (!existing) {
-      setProjects(prev => [seedProject, ...prev]);
-    }
-    setCurrentProjectId(seedProject.id);
+    const demo = normalizePersistedProjectForConfiguration(
+      JSON.parse(JSON.stringify({ ...seedProject, isDemo: true }))
+    );
+    setProjects(prev => [demo, ...prev.filter(p => p.id !== demo.id)]);
+    setCurrentProjectId(demo.id);
     setActiveScreen('story-brain');
   };
 
