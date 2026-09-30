@@ -10,6 +10,24 @@ import { generateStructureBeats } from '../../services/aiService';
 export const StructureScreen: React.FC = () => {
   const { currentProject, updateCurrentProject, nextStep } = useProject();
   const structure = currentProject.structure;
+  const isSeries = /series/i.test(currentProject.format || currentProject.formats?.find(f => f.isSelected)?.title || '');
+  const episodeCount = structure.episodeCount || (isSeries ? 6 : undefined);
+  const episodeDuration = structure.episodeDurationMins || (isSeries ? 45 : structure.estimatedDurationMins || 120);
+  const activeEpisode = structure.activeEpisodeNumber || 1;
+  const configuredDuration = isSeries ? episodeDuration : (structure.estimatedDurationMins || 120);
+
+  const formatBeatTime = (range: string) => {
+    if (!structure.isSynthesisStale || !isSeries) return range;
+    const match = range.match(/(\d+):?(\d*)\s*-\s*(\d+):?(\d*)/);
+    if (!match) return range;
+    const toMinutes = (mins: string, secs: string) => Number(mins) + (secs ? Number(secs) / 60 : 0);
+    const start = toMinutes(match[1], match[2]);
+    const end = toMinutes(match[3], match[4]);
+    const sourceDuration = structure.estimatedDurationMins || 122;
+    const scaled = (m: number) => Math.max(0, Math.min(configuredDuration, Math.round((m / sourceDuration) * configuredDuration)));
+    const fmt = (m: number) => String(Math.floor(m)).padStart(2, '0') + ':00';
+    return `${fmt(scaled(start))} - ${fmt(scaled(end))}`;
+  };
 
   const allBeats = [
     ...(structure.acts?.act1?.beats || []),
@@ -32,20 +50,28 @@ export const StructureScreen: React.FC = () => {
         ...prev,
         structure: {
           ...prev.structure,
+          structureScope: isSeries ? 'EPISODE' : 'FEATURE',
+          episodeCount: isSeries ? episodeCount : undefined,
+          episodeDurationMins: isSeries ? episodeDuration : undefined,
+          activeEpisodeNumber: isSeries ? activeEpisode : undefined,
+          estimatedDurationMins: configuredDuration,
+          templateName: currentProject.template || prev.structure.templateName,
+          configurationFingerprint: `${currentProject.format || 'Feature Film'}|${currentProject.template || prev.structure.templateName}`,
+          isSynthesisStale: false,
           acts: {
             act1: {
               title: 'Act I - Setup & Inciting Incident',
-              time: '0-25m',
+              time: isSeries ? '00:00 – 11:00' : '00:00 – 30:00',
               beats: generated.act1
             },
             act2: {
               title: 'Act II - Rising Stakes & Confrontation',
-              time: '25-85m',
+              time: isSeries ? '11:00 – 34:00' : '30:00 – 90:00',
               beats: generated.act2
             },
             act3: {
               title: 'Act III - Climax & Resolution',
-              time: '85-110m',
+              time: isSeries ? '34:00 – 45:00' : '90:00 – 120:00',
               beats: generated.act3
             }
           }
@@ -93,7 +119,7 @@ export const StructureScreen: React.FC = () => {
             Story Structure & Dramatic Beats
           </h1>
           <p className="text-sm text-white/60 mt-1 max-w-2xl">
-            {structure.templateName || 'Three-Act Classical Structure'} • {structure.estimatedDurationMins || 110} Mins • 3 Acts • {allBeats.length} Cardinal Beats
+            {structure.templateName || currentProject.template || 'Three-Act Classical Structure'} • {isSeries ? `${episodeDuration} Mins / Episode • ${episodeCount} Episodes` : `${configuredDuration} Mins`} • 3 Acts • {allBeats.length} Cardinal Beats
           </p>
         </div>
 
@@ -104,7 +130,7 @@ export const StructureScreen: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span>{isGenerating ? 'Synthesizing Beats...' : 'Synthesize 3-Act Beats (AI)'}</span>
+            <span>{isGenerating ? 'Synthesizing Beats...' : '{isSeries ? `Synthesize Episode ${activeEpisode} Structure (AI)` : 'Synthesize 3-Act Beats (AI)'}'}</span>
           </button>
 
           {allBeats.length > 0 && (
@@ -128,6 +154,22 @@ export const StructureScreen: React.FC = () => {
         </div>
       </div>
 
+      {structure.isSynthesisStale && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-4">
+          <div>
+            <div className="font-semibold">{isSeries ? 'Format changed: episode structure needs synthesis' : 'Structure configuration changed'}</div>
+            <div className="mt-1 text-white/50">
+              {isSeries
+                ? `The project is configured as ${episodeCount} × ${episodeDuration}-minute episodes using “${currentProject.template || structure.templateName}”. The previous beat sheet belonged to another runtime.`
+                : 'The beat sheet was created under a different format/template. Re-synthesize before treating it as canonical.'}
+            </div>
+          </div>
+          <button onClick={handleGenerateStructure} disabled={isGenerating} className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 font-semibold text-black hover:bg-amber-400 disabled:opacity-50">
+            {isGenerating ? 'Synthesizing…' : 'Update Structure'}
+          </button>
+        </div>
+      )}
+
       {/* Error alert banner */}
       {structureError && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
@@ -145,7 +187,7 @@ export const StructureScreen: React.FC = () => {
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-amber-400" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-              Dynamic Runtime Timeline & Tension Arc (0 – 125 Mins)
+              {isSeries ? `Episode ${activeEpisode} Runtime Timeline & Tension Arc (0 – ${episodeDuration} Mins)` : `Dynamic Runtime Timeline & Tension Arc (0 – ${configuredDuration} Mins)`}
             </h3>
           </div>
           <span className="text-xs font-mono text-white/40">Target Pace: High Octane Procedural</span>
@@ -263,7 +305,7 @@ export const StructureScreen: React.FC = () => {
 
                     <div className="absolute bottom-2.5 right-3">
                       <span className="text-xs font-mono text-amber-300 px-2 py-0.5 rounded bg-black/70 border border-white/10">
-                        {beat.timeRange}
+                        {formatBeatTime(beat.timeRange)}
                       </span>
                     </div>
                   </div>
