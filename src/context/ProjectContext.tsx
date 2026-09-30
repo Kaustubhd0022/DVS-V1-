@@ -2580,17 +2580,28 @@ Format: ${currentProject.format}
   };
 
   const updateScreenplayLine = (lineId: string, content: string) => {
-    updateCurrentProject(prev => ({
-      ...prev,
-      screenplay: prev.screenplay.map(l => l.id === lineId ? { ...l, content, candidateState: 'HUMAN_EDITED' } : l)
-    }));
+    updateCurrentProject(prev => {
+      const updateLine = (l: ScreenplayLine) => l.id === lineId
+        ? { ...l, content, candidateState: 'HUMAN_EDITED' as const, isSynthesisStale: false }
+        : l;
+      const screenplay = prev.screenplay.map(updateLine);
+      return {
+        ...prev,
+        screenplay,
+        screenplayLines: screenplay
+      };
+    });
   };
 
-  const addScreenplayLine = (line: any) => {
-    updateCurrentProject(prev => ({
-      ...prev,
-      screenplay: [...prev.screenplay, line]
-    }));
+  const addScreenplayLine = (line: ScreenplayLine) => {
+    updateCurrentProject(prev => {
+      const screenplay = [...prev.screenplay, line];
+      return {
+        ...prev,
+        screenplay,
+        screenplayLines: screenplay
+      };
+    });
   };
 
   const swapDialogueSuggestion = (_sugId: string, text: string) => {
