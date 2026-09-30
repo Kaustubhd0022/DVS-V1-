@@ -2182,7 +2182,7 @@ export const generateTreatmentData = async (
   const episodeCount = isSeries ? (project.structure?.episodeCount || 6) : undefined;
   const episodeNumber = project.structure?.activeEpisodeNumber || 1;
   const template = project.template || project.templates?.find(t => t.isSelected)?.title || project.structure?.templateName || 'Three-Act Classical Structure';
-  const configurationFingerprint = `${project.format || 'Feature Film'}|${template}`;
+  const configurationFingerprint = getCanonicalConfiguration(project).configurationFingerprint;
 
   const prompt = `${context}
 
