@@ -336,7 +336,18 @@ export interface StoryDependency {
   sourceName: string;
   targetEntityId: string;
   targetName: string;
-  dependencyType: 'Character -> Scene' | 'Canon -> Motivation' | 'Research -> Plot' | 'Beat -> Dialogue';
+  dependencyType:
+    | 'Character -> Scene'
+    | 'Canon -> Motivation'
+    | 'Research -> Plot'
+    | 'Beat -> Dialogue'
+    | 'Structure -> Treatment'
+    | 'Treatment -> Scene'
+    | 'Scene -> Screenplay'
+    | 'Screenplay -> Dialogue'
+    | 'Character -> Screenplay'
+    | 'Canon -> Screenplay'
+    | 'Research -> Treatment';
   description: string;
   isStale: boolean;
   staleReason?: string;
@@ -480,6 +491,8 @@ export interface StoryEvaluation {
   actionItems: string[];
   evaluatorModel: string;
   evaluatedAt: string;
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   humanSignOff?: {
     approvedBy: string;
     role: string;
@@ -547,7 +560,7 @@ export interface PilotMetrics {
 
 export interface ImpactChangeItem {
   id: string;
-  category: 'Characters' | 'Story' | 'Scenes' | 'Dialogue' | 'Visuals' | 'Production';
+  category: 'Characters' | 'Story' | 'Scenes' | 'Screenplay' | 'Dialogue' | 'Visuals' | 'Production';
   objectName: string;
   field: string;
   oldValue: string;
@@ -559,12 +572,14 @@ export interface ImpactChangeItem {
 
 export interface ImpactAnalysisState {
   isOpen: boolean;
+  sourceEntityId?: string;
   sourceTrigger: string;
   totalAffected: number;
   summary: {
     characters: number;
     story: number;
     scenes: number;
+    screenplay: number;
     dialogue: number;
     visuals: number;
     production: number;
@@ -768,6 +783,8 @@ export interface ArtifactApprovalRecord {
 }
 
 export interface PackageData {
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   stepsCompleted: number;
   totalSteps: number;
   deliverablesCount: number;

@@ -266,6 +266,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       characters: 0,
       story: 0,
       scenes: 0,
+      screenplay: 0,
       dialogue: 0,
       visuals: 0,
       production: 0
@@ -634,6 +635,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           readinessStatus: evalRes.readinessStatus,
           evaluatorModel: 'openai/gpt-oss-120b (Groq LPU)',
           evaluatedAt: new Date().toLocaleDateString() + ' (tattvaCo Evaluator v1.0)',
+          configurationFingerprint: getCanonicalConfiguration(prev).configurationFingerprint,
+          isSynthesisStale: false,
           dimensions: fullDimensions,
           keyStrengths: evalRes.keyStrengths?.length > 0 ? evalRes.keyStrengths : (evalRes.strengths?.length ? evalRes.strengths : ['Original premise hook', 'Grounded dramatic conflict']),
           criticalRisks: evalRes.criticalRisks?.length > 0 ? evalRes.criticalRisks : ['Ensure third-act escalation matches initial stakes.'],
@@ -2082,8 +2085,24 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         next = { ...next, scenes: next.scenes.map(a => a.id === proposal.artifactId ? { ...(proposal.content as SceneItem), candidateState: 'CANONICAL' } : a) };
       } else if (proposal.artifactType === 'direction') {
         next = { ...next, storyDirections: next.storyDirections.map(a => a.id === proposal.artifactId ? { ...(proposal.content as StoryDirection), candidateState: 'CANONICAL' } : a), selectedDirectionId: proposal.artifactId };
-      } else {
-        next = { ...next, dialogueSuggestions: next.dialogueSuggestions.map(a => a.id === proposal.artifactId ? { ...(proposal.content as any), candidateState: 'CANONICAL' } : a) };
+      } else if (proposal.artifactType === 'screenplay') {
+        const generated = proposal.content as ScreenplayLine[];
+        const sceneNumber = generated[0]?.sceneNumber;
+        const screenplay = sceneNumber
+          ? [...next.screenplay.filter(line => line.sceneNumber !== sceneNumber), ...generated.map(line => ({ ...line, candidateState: 'CANONICAL' as const }))]
+          : generated.map(line => ({ ...line, candidateState: 'CANONICAL' as const }));
+        next = { ...next, screenplay, screenplayLines: screenplay };
+      } else if (proposal.artifactType === 'dialogue') {
+        const generated = proposal.content as DialogueSuggestion[];
+        const existingId = proposal.artifactId;
+        const suggestions = next.dialogueSuggestions.filter(a => a.id !== existingId);
+        next = {
+          ...next,
+          dialogueSuggestions: [
+            ...suggestions,
+            ...generated.map(suggestion => ({ ...suggestion, candidateState: 'CANONICAL' as const }))
+          ]
+        };
       }
       return next;
     });
@@ -2135,7 +2154,38 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
             return { ...prev, treatment: result.artifact, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
           }
           if (result.artifactType === 'scene') {
-            return { ...prev, scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s), artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
+            return {
+              ...prev,
+              scenes: prev.scenes.map(s => s.id === result.artifactId ? result.artifact : s),
+              artifactVersions: [proposal, ...(prev.artifactVersions || [])]
+            };
+          }
+          if (result.artifactType === 'screenplay') {
+            const generated = result.artifact as ScreenplayLine[];
+            const sceneNumber = generated[0]?.sceneNumber;
+            const screenplay = sceneNumber
+              ? [
+                  ...(prev.screenplay || []).filter(line => line.sceneNumber !== sceneNumber),
+                  ...generated
+                ]
+              : [...(prev.screenplay || []), ...generated];
+            return {
+              ...prev,
+              screenplay,
+              screenplayLines: screenplay,
+              artifactVersions: [proposal, ...(prev.artifactVersions || [])]
+            };
+          }
+          if (result.artifactType === 'dialogue') {
+            const generated = result.artifact as any[];
+            return {
+              ...prev,
+              dialogueSuggestions: [
+                ...(prev.dialogueSuggestions || []).filter(d => d.id !== result.artifactId),
+                ...generated
+              ],
+              artifactVersions: [proposal, ...(prev.artifactVersions || [])]
+            };
           }
           return { ...prev, artifactVersions: [proposal, ...(prev.artifactVersions || [])] };
         });
@@ -2182,6 +2232,62 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return plan;
   };
 
+  const markDownstreamArtifactsStale = (project: TattavaProject, impact: ImpactAnalysisState): TattavaProject => {
+    const reason = impact.sourceTrigger || 'Upstream canonical state changed.';
+    const impactedSceneNumbers = new Set<number>();
+    const impactedCharacterNames = new Set<string>();
+
+    impact.items.forEach(item => {
+      if (item.category === 'Scenes') {
+        const match = item.objectName.match(/Scene (\\d+)/i);
+        if (match) impactedSceneNumbers.add(Number(match[1]));
+      }
+      if (item.category === 'Characters') {
+        const character = project.characters.find(c => item.objectName.includes(c.name));
+        if (character) impactedCharacterNames.add(character.name);
+      }
+    });
+
+    const screenplay = project.screenplay.map(line => ({
+      ...line,
+      isSynthesisStale: impactedSceneNumbers.size === 0 || impactedSceneNumbers.has(line.sceneNumber) || impactedCharacterNames.has(line.characterName || '') ? true : line.isSynthesisStale,
+      generationStatus: (impactedSceneNumbers.size === 0 || impactedSceneNumbers.has(line.sceneNumber) || impactedCharacterNames.has(line.characterName || '')) ? 'STALE' as const : undefined
+    }));
+    const screenplayLines = project.screenplayLines.map(line => ({
+      ...line,
+      isSynthesisStale: impactedSceneNumbers.size === 0 || impactedSceneNumbers.has(line.sceneNumber) || impactedCharacterNames.has(line.characterName || '') ? true : line.isSynthesisStale
+    }));
+
+    return {
+      ...project,
+      characters: project.characters.map(character =>
+        impactedCharacterNames.has(character.name) ? { ...character, candidateState: character.candidateState === 'CANONICAL' ? 'CANONICAL' : character.candidateState } : character
+      ),
+      scenes: project.scenes.map(scene =>
+        impactedSceneNumbers.has(scene.sceneNumber) || impactedCharacterNames.has(scene.characters.find(name => impactedCharacterNames.has(name)) || '')
+          ? { ...scene, isSynthesisStale: true, candidateState: scene.candidateState }
+          : scene
+      ),
+      screenplay,
+      screenplayLines,
+      dialogueSuggestions: project.dialogueSuggestions.map(dialogue =>
+        impactedCharacterNames.has(dialogue.character) ? { ...dialogue, isSynthesisStale: true } : dialogue
+      ),
+      treatment: { ...project.treatment, isSynthesisStale: true },
+      evaluation: project.evaluation ? { ...project.evaluation, isSynthesisStale: true } : null,
+      package: { ...project.package, isSynthesisStale: true, isGreenlit: false },
+      storyBrain: {
+        ...project.storyBrain,
+        dependencies: project.storyBrain.dependencies.map(dep =>
+          impact.items.some(item => item.objectName === dep.targetName || item.field === dep.dependencyType)
+            ? { ...dep, isStale: true, staleReason: reason }
+            : dep
+        ),
+        lastUpdated: new Date().toISOString()
+      }
+    };
+  };
+
   const approveAndPropagateImpact = () => {
     const approvedImpact = { ...impactState, items: impactState.items.map(item => ({ ...item, approved: true })) };
     const plan = buildRegenerationPlan(currentProject, approvedImpact);
@@ -2199,7 +2305,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         impactedAreas: [...new Set(impactState.items.map(item => item.category))]
       };
 
-      return {
+      return markDownstreamArtifactsStale({
         ...prev,
         regenerationPlans: [plan, ...(prev.regenerationPlans || [])],
         storyBrain: {
@@ -2208,7 +2314,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           decisionLog: [decision, ...(prev.storyBrain.decisionLog || [])],
           lastUpdated: now
         }
-      };
+      }, approvedImpact);
     });
 
     setImpactState(prev => ({
@@ -2416,6 +2522,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       status: 'APPROVED',
       package: {
         ...prev.package,
+        configurationFingerprint: getCanonicalConfiguration(prev).configurationFingerprint,
+        isSynthesisStale: false,
         isGreenlit: true,
         stakeholders: prev.package.stakeholders.map(s => ({
           ...s,

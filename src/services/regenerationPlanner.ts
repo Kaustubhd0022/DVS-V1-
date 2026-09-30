@@ -4,6 +4,7 @@ const artifactTypeFromCategory = (category: string): ArtifactVersionRecord['arti
   if (category === 'Characters') return 'character';
   if (category === 'Dialogue') return 'dialogue';
   if (category === 'Scenes') return 'scene';
+  if (category === 'Screenplay') return 'screenplay';
   if (category === 'Story') return 'treatment';
   return 'scene';
 };
@@ -21,6 +22,10 @@ const resolveArtifact = (project: TattavaProject, category: string, objectName: 
   if (type === 'scene') {
     const found = project.scenes.find(s => objectName.includes('Scene ' + s.sceneNumber) || objectName.includes(s.slugline));
     return { artifactType: type, artifactId: found?.id || impactId, artifactName: found ? 'Scene ' + found.sceneNumber + ': ' + found.slugline : objectName };
+  }
+  if (type === 'screenplay') {
+    const match = objectName.match(/Scene (\\d+)/i);
+    return { artifactType: type, artifactId: 'screenplay:scene:' + (match?.[1] || '1'), artifactName: objectName };
   }
   if (type === 'dialogue') {
     const found = project.dialogueSuggestions.find(d => objectName === d.label || objectName === d.character);
