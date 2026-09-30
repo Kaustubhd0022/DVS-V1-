@@ -214,6 +214,44 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 const STORAGE_KEY = 'tattava_copilot_pilot_v1';
 const LEGACY_STORAGE_KEY = 'tattvaco_projects_v1';
 
+const normalizePersistedProjectForConfiguration = (project: TattvaCoProject): TattvaCoProject => {
+  const format = project.format || project.formats?.find(f => f.isSelected)?.title || 'Feature Film';
+  const template = project.template || project.templates?.find(t => t.isSelected)?.title || 'Three-Act Classical Thriller';
+  const isSeries = /series/i.test(format);
+  const duration = isSeries ? 45 : 120;
+  const fingerprint = format + '|' + template;
+  const structureAligned = project.structure?.configurationFingerprint === fingerprint
+    && project.structure?.estimatedDurationMins === duration
+    && (!isSeries || project.structure?.structureScope === 'EPISODE');
+  const treatmentAligned = project.treatment?.configurationFingerprint === fingerprint && !project.treatment?.isSynthesisStale;
+  const scenesAligned = Array.isArray(project.scenes) && project.scenes.length > 0
+    && project.scenes.every(s => s.configurationFingerprint === fingerprint && !s.isSynthesisStale);
+  return {
+    ...project,
+    format,
+    template,
+    structure: {
+      ...project.structure,
+      estimatedDurationMins: duration,
+      episodeCount: isSeries ? (project.structure?.episodeCount || 6) : undefined,
+      episodeDurationMins: isSeries ? (project.structure?.episodeDurationMins || 45) : undefined,
+      activeEpisodeNumber: isSeries ? (project.structure?.activeEpisodeNumber || 1) : undefined,
+      structureScope: isSeries ? 'EPISODE' : 'FEATURE',
+      configurationFingerprint: fingerprint,
+      isSynthesisStale: !structureAligned
+    },
+    treatment: {
+      ...project.treatment,
+      configurationFingerprint: fingerprint,
+      isSynthesisStale: !treatmentAligned
+    },
+    scenes: (project.scenes || []).map(scene => ({
+      ...scene,
+      isSynthesisStale: !scenesAligned || scene.configurationFingerprint !== fingerprint
+    }))
+  };
+};
+
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<TattavaProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -221,7 +259,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return parsed.map(normalizePersistedProjectForConfiguration);
         }
       } catch (e) {
         console.error('Failed to parse saved projects', e);
@@ -2510,7 +2548,20 @@ Format: ${currentProject.format}
                 { label: 'Episode Climax', timeMin: 41, act: 'Act III Climax' }
               ]
             : prev.structure.timeline
-        }
+        },
+        treatment: {
+          ...prev.treatment,
+          configurationFingerprint: fingerprint,
+          isSynthesisStale: true
+        },
+        scenes: (prev.scenes || []).map(scene => ({
+          ...scene,
+          configurationFingerprint: fingerprint,
+          isSynthesisStale: true
+        })),
+        screenplay: isSeries ? [] : prev.screenplay,
+        screenplayLines: isSeries ? [] : prev.screenplayLines,
+        dialogueSuggestions: isSeries ? [] : prev.dialogueSuggestions
       };
     });
   };
@@ -2525,7 +2576,17 @@ Format: ${currentProject.format}
         templateName: templateTitle,
         configurationFingerprint: `${prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film'}|${templateTitle}`,
         isSynthesisStale: true
-      }
+      },
+      treatment: {
+        ...prev.treatment,
+        configurationFingerprint: (prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film') + '|' + templateTitle,
+        isSynthesisStale: true
+      },
+      scenes: (prev.scenes || []).map(scene => ({
+        ...scene,
+        configurationFingerprint: (prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film') + '|' + templateTitle,
+        isSynthesisStale: true
+      }))
     }));
   };
 
