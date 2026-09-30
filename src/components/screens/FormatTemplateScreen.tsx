@@ -79,7 +79,7 @@ export const FormatTemplateScreen: React.FC = () => {
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [showRationale, setShowRationale] = useState(true);
   const [aiRationaleText, setAiRationaleText] = useState(
-    `Based on "${currentProject.title}"'s core dramatic conflict and target pacing, a focused Feature Film structure provides the tightest escalation and maximum cinematic payoff.`
+    `Based on the current project configuration, Tattava will structure the story using the selected format and template rather than a fixed feature-film assumption.`
   );
 
   const handleSelectFormat = (id: string, title: string) => {
@@ -165,7 +165,7 @@ export const FormatTemplateScreen: React.FC = () => {
                 </span>
               </div>
               <h2 className="text-lg font-bold text-white mt-1">
-                Recommended Format: <span className="text-amber-400">Feature Film (120 Mins)</span> with Three-Act Classical Arc
+                Current Configuration: <span className="text-amber-400">{currentProject.format} • {currentProject.format?.toLowerCase().includes('series') ? '45 min / episode' : 'feature runtime'} • {currentProject.template || 'Three-Act Classical Thriller'}</span>
               </h2>
               <p className="text-xs text-white/70 mt-1 max-w-3xl leading-relaxed">
                 {aiRationaleText}
@@ -195,7 +195,7 @@ export const FormatTemplateScreen: React.FC = () => {
             </div>
             <div className="p-3.5 rounded-xl bg-black/40 border border-white/5">
               <div className="text-[11px] font-bold uppercase text-white/40 tracking-wider">Runtime & Cadence</div>
-              <div className="text-sm font-semibold text-white mt-1">115 – 125 Minutes</div>
+              <div className="text-sm font-semibold text-white mt-1">{currentProject.format?.toLowerCase().includes('series') ? '45 min / episode' : '110 – 140 Minutes'}</div>
               <div className="text-xs text-white/60 mt-1">Perfect fit for 32 tightly orchestrated sequence scenes.</div>
             </div>
             <div className="p-3.5 rounded-xl bg-black/40 border border-white/5">
