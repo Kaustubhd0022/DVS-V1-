@@ -2215,6 +2215,62 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return plan;
   };
 
+  const markDownstreamArtifactsStale = (project: TattavaProject, impact: ImpactAnalysisState): TattavaProject => {
+    const reason = impact.sourceTrigger || 'Upstream canonical state changed.';
+    const impactedSceneNumbers = new Set<number>();
+    const impactedCharacterNames = new Set<string>();
+
+    impact.items.forEach(item => {
+      if (item.category === 'Scenes') {
+        const match = item.objectName.match(/Scene (\\d+)/i);
+        if (match) impactedSceneNumbers.add(Number(match[1]));
+      }
+      if (item.category === 'Characters') {
+        const character = project.characters.find(c => item.objectName.includes(c.name));
+        if (character) impactedCharacterNames.add(character.name);
+      }
+    });
+
+    const screenplay = project.screenplay.map(line => ({
+      ...line,
+      isSynthesisStale: impactedSceneNumbers.size === 0 || impactedSceneNumbers.has(line.sceneNumber) || impactedCharacterNames.has(line.characterName || '') ? true : line.isSynthesisStale,
+      generationStatus: (impactedSceneNumbers.size === 0 || impactedSceneNumbers.has(line.sceneNumber) || impactedCharacterNames.has(line.characterName || '')) ? 'STALE' as const : undefined
+    }));
+    const screenplayLines = project.screenplayLines.map(line => ({
+      ...line,
+      isSynthesisStale: impactedSceneNumbers.size === 0 || impactedSceneNumbers.has(line.sceneNumber) || impactedCharacterNames.has(line.characterName || '') ? true : line.isSynthesisStale
+    }));
+
+    return {
+      ...project,
+      characters: project.characters.map(character =>
+        impactedCharacterNames.has(character.name) ? { ...character, candidateState: character.candidateState === 'CANONICAL' ? 'CANONICAL' : character.candidateState } : character
+      ),
+      scenes: project.scenes.map(scene =>
+        impactedSceneNumbers.has(scene.sceneNumber) || impactedCharacterNames.has(scene.characters.find(name => impactedCharacterNames.has(name)) || '')
+          ? { ...scene, isSynthesisStale: true, candidateState: scene.candidateState }
+          : scene
+      ),
+      screenplay,
+      screenplayLines,
+      dialogueSuggestions: project.dialogueSuggestions.map(dialogue =>
+        impactedCharacterNames.has(dialogue.character) ? { ...dialogue, isSynthesisStale: true } : dialogue
+      ),
+      treatment: { ...project.treatment, isSynthesisStale: true },
+      evaluation: project.evaluation ? { ...project.evaluation, isSynthesisStale: true } : null,
+      package: { ...project.package, isSynthesisStale: true, isGreenlit: false },
+      storyBrain: {
+        ...project.storyBrain,
+        dependencies: project.storyBrain.dependencies.map(dep =>
+          impact.items.some(item => item.objectName === dep.targetName || item.field === dep.dependencyType)
+            ? { ...dep, isStale: true, staleReason: reason }
+            : dep
+        ),
+        lastUpdated: new Date().toISOString()
+      }
+    };
+  };
+
   const approveAndPropagateImpact = () => {
     const approvedImpact = { ...impactState, items: impactState.items.map(item => ({ ...item, approved: true })) };
     const plan = buildRegenerationPlan(currentProject, approvedImpact);
@@ -2232,7 +2288,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         impactedAreas: [...new Set(impactState.items.map(item => item.category))]
       };
 
-      return {
+      return markDownstreamArtifactsStale({
         ...prev,
         regenerationPlans: [plan, ...(prev.regenerationPlans || [])],
         storyBrain: {
@@ -2241,7 +2297,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           decisionLog: [decision, ...(prev.storyBrain.decisionLog || [])],
           lastUpdated: now
         }
-      };
+      }, approvedImpact);
     });
 
     setImpactState(prev => ({
