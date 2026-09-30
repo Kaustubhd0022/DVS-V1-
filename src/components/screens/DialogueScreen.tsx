@@ -62,7 +62,7 @@ export const DialogueScreen: React.FC = () => {
       const mapped: DialogueSuggestion[] = [
         {
           id: 'sug-gen-' + (suggestions.length + 1),
-          character: charName,
+          character: speaker,
           text: alt1,
           tone: 'Clinical Procedural',
           label: 'Option A: Procedural Restraint',
@@ -73,7 +73,7 @@ export const DialogueScreen: React.FC = () => {
         },
         {
           id: 'sug-gen-' + (suggestions.length + 2),
-          character: charName,
+          character: speaker,
           text: alt2,
           tone: 'Urgent Direct',
           label: 'Option B: Moral Ultimatum',
