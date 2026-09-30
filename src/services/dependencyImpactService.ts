@@ -87,6 +87,20 @@ export const resolveDependencyImpact = (
           approved: false
         }));
 
+      project.screenplay
+        .filter(line => project.scenes.some(scene => scene.sceneNumber === line.sceneNumber && (scene.characterIds.includes(character.id) || scene.characters.includes(character.name))))
+        .forEach((line, index) => items.push({
+          id: 'inferred-screenplay-' + line.id + '-' + index,
+          category: 'Screenplay',
+          objectName: 'Screenplay Scene ' + line.sceneNumber,
+          field: trigger.field || 'Character dependency',
+          oldValue: String(trigger.oldValue ?? 'Current approved screenplay'),
+          newValue: String(trigger.newValue ?? 'Requires regeneration'),
+          reason: 'Screenplay line belongs to a scene affected by the changed character.',
+          severity: 'High',
+          approved: false
+        }));
+
       project.dialogueSuggestions
         .filter(dialogue => dialogue.character === character.name)
         .forEach((dialogue, index) => items.push({
@@ -134,6 +148,7 @@ export const resolveDependencyImpact = (
       characters: deduped.filter(i => i.category === 'Characters').length,
       story: deduped.filter(i => i.category === 'Story').length,
       scenes: deduped.filter(i => i.category === 'Scenes').length,
+      screenplay: deduped.filter(i => i.category === 'Screenplay').length,
       dialogue: deduped.filter(i => i.category === 'Dialogue').length,
       visuals: deduped.filter(i => i.category === 'Visuals').length,
       production: deduped.filter(i => i.category === 'Production').length
