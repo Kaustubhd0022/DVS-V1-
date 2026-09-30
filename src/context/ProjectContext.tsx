@@ -266,6 +266,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       characters: 0,
       story: 0,
       scenes: 0,
+      screenplay: 0,
       dialogue: 0,
       visuals: 0,
       production: 0
