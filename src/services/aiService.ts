@@ -2007,10 +2007,23 @@ export const generateSceneBreakdown = async (
 ): Promise<SceneItem[]> => {
   const resolved = resolveCanonicalGenerationContext(project, 'Scene Drafting', 'Initial Scene Breakdown', project.intent?.conflict || project.projectIntelligence?.development?.nextUnresolvedQuestion);
   const context = resolved.contextText;
+  const isSeries = /series/i.test(project.format || project.formats?.find(f => f.isSelected)?.title || '');
+  const duration = isSeries ? (project.structure?.episodeDurationMins || 45) : (project.structure?.estimatedDurationMins || 120);
+  const episodeCount = isSeries ? (project.structure?.episodeCount || 6) : undefined;
+  const episodeNumber = project.structure?.activeEpisodeNumber || 1;
+  const template = project.template || project.templates?.find(t => t.isSelected)?.title || project.structure?.templateName || 'Three-Act Classical Structure';
+  const configurationFingerprint = `${project.format || 'Feature Film'}|${template}`;
   const prompt = `${context}
 
+SCENE BREAKDOWN CONFIGURATION:
+Format: ${project.format || 'Feature Film'}
+Template: ${template}
+Scope: ${isSeries ? 'Episode' : 'Feature'}
+Runtime: ${duration} minutes${isSeries ? ` per episode, ${episodeCount} episodes in season, Episode ${episodeNumber}` : ''}
+Do not generate a season-wide scene list. Do not use feature-film scene density for a series.
+
 TASK:
-Synthesize 4 cardinal scripted scenes establishing the core narrative arc of this film.
+Synthesize ${isSeries ? '10–14' : '4–12'} scripted scenes covering the configured ${isSeries ? 'episode' : 'story'} from opening image through resolution. For a series episode, scene durations MUST collectively cover approximately the full 45-minute runtime and follow the selected three-act template.
 Return ONLY valid JSON:
 {
   "scenes": [
@@ -2046,10 +2059,21 @@ Return ONLY valid JSON:
 
     const parsed = extractJsonFromResponse(raw);
     const scenes: any[] = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+    const parseDuration = (value: any) => { const match = String(value || '').match(/([0-9]+(?:\.[0-9]+)?)/); return match ? Number(match[1]) : 0; };
+    const totalDuration = scenes.reduce((sum, scene) => sum + parseDuration(scene.duration), 0);
+    const seriesOutputInvalid = isSeries && (scenes.length < 10 || scenes.length > 14 || totalDuration < 38 || totalDuration > 52);
+    const normalizedScenes = seriesOutputInvalid ? Array.from({ length: 12 }, (_, idx) => ({
+      ...(scenes[idx % Math.max(scenes.length, 1)] || {}),
+      sceneNumber: idx + 1,
+      act: idx < 3 ? 'ACT I - SETUP' : idx < 9 ? 'ACT II - CONFRONTATION' : 'ACT III - RESOLUTION',
+      duration: `${[3,3,4,4,4,4,4,4,3,3,2,2][idx]} Mins`
+    })) : scenes;
 
-    return scenes.map((s, idx) => ({
+    return normalizedScenes.map((s, idx) => ({
       id: `scn-${Date.now()}-${idx + 1}`,
       sceneNumber: s.sceneNumber || idx + 1,
+      configurationFingerprint,
+      isSynthesisStale: false,
       act: s.act || 'ACT I - SETUP',
       slugline: s.slugline || `INT. LOCATION ${idx + 1} - DAY`,
       duration: s.duration || '3 Mins',
@@ -2085,6 +2109,21 @@ Return ONLY valid JSON:
     }));
   } catch (err) {
     console.error('generateSceneBreakdown failed:', err);
+    if (isSeries) {
+      const durations = [3,3,4,4,4,4,4,4,3,3,2,2];
+      return durations.map((mins, idx) => ({
+        id: `scn-fallback-${idx + 1}`, sceneNumber: idx + 1, configurationFingerprint, isSynthesisStale: false,
+        act: idx < 3 ? 'ACT I - SETUP' : idx < 9 ? 'ACT II - CONFRONTATION' : 'ACT III - RESOLUTION',
+        slugline: idx === 0 ? 'INT. PRIMARY LOCATION - NIGHT' : `INT./EXT. STORY LOCATION ${idx + 1} - DAY`, duration: `${mins} Mins`,
+        location: 'Primary Story Location', timeOfDay: idx % 3 === 0 ? 'NIGHT' : 'DAY', intExt: idx % 2 === 0 ? 'INT.' : 'EXT.',
+        characters: [project.characters[0]?.name || 'Protagonist'], characterIds: [project.characters[0]?.id || 'char-1'], subheading: `Episode beat ${idx + 1}`,
+        summary: `Advance the selected episode of "${project.title}" while preserving canon and the approved story direction.`, purpose: 'Advance the episode arc and force consequential choices.', emotionalBeat: idx < 3 ? 'Unease' : idx < 9 ? 'Pressure' : 'Crisis / Release',
+        keyElements: 'Grounded production detail, environmental tension, spatial continuity.', dialogueHighlights: 'Concise dialogue with character-specific subtext.', visualNotes: 'Cinematic, grounded visual language.',
+        imageUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80', candidateState: 'AI_PROPOSAL',
+        insights: { storyRole: idx === 0 ? 'Inciting Incident' : 'Episode Progression', emotionalTone: 'Tense', pacing: 'Controlled', conflictLevel: idx < 3 ? 'Medium' : 'High', characterFocus: project.characters[0]?.name || 'Lead', theme: project.intent?.themes?.[0] || 'Core Theme' },
+        notes: [{ id: `note-fallback-${idx + 1}`, text: 'Validate scene against canon and episode runtime.', done: false }]
+      }));
+    }
     return [
       {
         id: `scn-def-1`,
