@@ -1333,7 +1333,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isDemo: false
     };
 
-    setProjects(prev => [finalized, ...prev]);
+    const canonicalized = applyCanonicalConfiguration(finalized);
+    setProjects(prev => [canonicalized, ...prev]);
     setCurrentProjectId(newId);
     setActiveScreen('discovery');
     return newId;
