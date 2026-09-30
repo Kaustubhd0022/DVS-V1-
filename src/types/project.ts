@@ -336,7 +336,18 @@ export interface StoryDependency {
   sourceName: string;
   targetEntityId: string;
   targetName: string;
-  dependencyType: 'Character -> Scene' | 'Canon -> Motivation' | 'Research -> Plot' | 'Beat -> Dialogue';
+  dependencyType:
+    | 'Character -> Scene'
+    | 'Canon -> Motivation'
+    | 'Research -> Plot'
+    | 'Beat -> Dialogue'
+    | 'Structure -> Treatment'
+    | 'Treatment -> Scene'
+    | 'Scene -> Screenplay'
+    | 'Screenplay -> Dialogue'
+    | 'Character -> Screenplay'
+    | 'Canon -> Screenplay'
+    | 'Research -> Treatment';
   description: string;
   isStale: boolean;
   staleReason?: string;
