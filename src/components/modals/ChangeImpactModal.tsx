@@ -61,6 +61,7 @@ export const ChangeImpactModal: React.FC = () => {
     { name: 'Characters', count: impactState.summary.characters, icon: <Users className="w-3.5 h-3.5" /> },
     { name: 'Story', count: impactState.summary.story, icon: <BookOpen className="w-3.5 h-3.5" /> },
     { name: 'Scenes', count: impactState.summary.scenes, icon: <Clapperboard className="w-3.5 h-3.5" /> },
+    { name: 'Screenplay', count: impactState.summary.screenplay, icon: <Clapperboard className="w-3.5 h-3.5" /> },
     { name: 'Dialogue', count: impactState.summary.dialogue, icon: <MessageSquare className="w-3.5 h-3.5" /> },
     { name: 'Visuals', count: impactState.summary.visuals, icon: <Palette className="w-3.5 h-3.5" /> },
     { name: 'Production', count: impactState.summary.production, icon: <Briefcase className="w-3.5 h-3.5" /> },
