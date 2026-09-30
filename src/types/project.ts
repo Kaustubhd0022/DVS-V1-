@@ -561,6 +561,7 @@ export interface ImpactChangeItem {
 
 export interface ImpactAnalysisState {
   isOpen: boolean;
+  sourceEntityId?: string;
   sourceTrigger: string;
   totalAffected: number;
   summary: {
