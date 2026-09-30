@@ -2455,18 +2455,43 @@ Format: ${currentProject.format}
   };
 
   const setProjectFormat = (formatTitle: string) => {
-    updateCurrentProject(prev => ({
-      ...prev,
-      format: formatTitle,
-      formats: prev.formats.map(f => ({ ...f, isSelected: f.title === formatTitle }))
-    }));
+    updateCurrentProject(prev => {
+      const isSeries = /series/i.test(formatTitle);
+      const episodeCount = isSeries ? 6 : undefined;
+      const episodeDurationMins = isSeries ? 45 : undefined;
+      const estimatedDurationMins = isSeries ? 45 : 120;
+      const scope = isSeries ? 'EPISODE' : 'FEATURE';
+      const fingerprint = `${formatTitle}|${prev.template}`;
+      return {
+        ...prev,
+        format: formatTitle,
+        formats: prev.formats.map(f => ({ ...f, isSelected: f.title === formatTitle || (formatTitle === 'Limited Series' && /Limited Web Series/i.test(f.title)) })),
+        structure: {
+          ...prev.structure,
+          templateName: prev.template || prev.structure.templateName,
+          estimatedDurationMins,
+          episodeCount,
+          episodeDurationMins,
+          activeEpisodeNumber: isSeries ? (prev.structure.activeEpisodeNumber || 1) : undefined,
+          structureScope: scope,
+          configurationFingerprint: fingerprint,
+          isSynthesisStale: true
+        }
+      };
+    });
   };
 
   const setProjectTemplate = (templateTitle: string) => {
     updateCurrentProject(prev => ({
       ...prev,
       template: templateTitle,
-      templates: prev.templates.map(t => ({ ...t, isSelected: t.title === templateTitle }))
+      templates: prev.templates.map(t => ({ ...t, isSelected: t.title === templateTitle })),
+      structure: {
+        ...prev.structure,
+        templateName: templateTitle,
+        configurationFingerprint: `${prev.format || prev.formats?.find(f => f.isSelected)?.title || 'Feature Film'}|${templateTitle}`,
+        isSynthesisStale: true
+      }
     }));
   };
 
