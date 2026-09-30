@@ -12,7 +12,7 @@ import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const ScreenplayScreen: React.FC = () => {
   const { currentProject, updateScreenplayLine, addScreenplayLine, updateCurrentProject, nextStep, openContextResolver } = useProject();
-  const scriptLines = currentProject.screenplayLines || currentProject.screenplay || [];
+  const scriptLines = currentProject.screenplay?.length ? currentProject.screenplay : (currentProject.screenplayLines || []);
 
   const [activeSceneNumber, setActiveSceneNumber] = useState<number>(1);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
@@ -44,7 +44,6 @@ export const ScreenplayScreen: React.FC = () => {
     setIsDraftingScene(true);
     setDraftError(null);
     try {
-      const canonicalConfig = getCanonicalConfiguration(currentProject);
       const generated = await generateScreenplayDraft(currentProject, activeSceneNumber);
       if (!generated.length) throw new Error('AI returned no screenplay lines.');
 
