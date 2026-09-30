@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useProject } from '../../context/ProjectContext';
 import { 
   Clapperboard, Play, Pause, Volume2, Sparkles, CheckCircle2, 
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { SceneItem } from '../../types/project';
 import { generateSceneBreakdown } from '../../services/aiService';
+import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const SceneOutlineScreen: React.FC = () => {
   const { currentProject, updateCurrentProject, updateScene, nextStep, openContextResolver } = useProject();
@@ -18,15 +19,29 @@ export const SceneOutlineScreen: React.FC = () => {
   const [sceneError, setSceneError] = useState<string | null>(null);
 
   const selectedScene = scenes.find(s => s.id === selectedSceneId) || scenes[0] || null;
+  const canonicalConfig = getCanonicalConfiguration(currentProject);
+  const hasStaleScenes = scenes.some(scene => scene.isSynthesisStale || scene.configurationFingerprint !== canonicalConfig.configurationFingerprint);
+
+  useEffect(() => {
+    if (!hasStaleScenes || isGenerating) return;
+    void handleGenerateScenes();
+  }, [canonicalConfig.configurationFingerprint, hasStaleScenes]);
 
   const handleGenerateScenes = async () => {
     setIsGenerating(true);
     setSceneError(null);
     try {
       const generated = await generateSceneBreakdown(currentProject);
+      const stampedScenes = generated.map(scene => ({
+        ...scene,
+        configurationFingerprint: canonicalConfig.configurationFingerprint,
+        isSynthesisStale: false,
+        candidateState: scene.candidateState || 'AI_PROPOSAL'
+      }));
       updateCurrentProject(prev => ({
         ...prev,
-        scenes: generated,
+        scenes: stampedScenes,
+        selectedSceneId: stampedScenes[0]?.id || prev.selectedSceneId,
         pilotMetrics: {
           ...prev.pilotMetrics,
           totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1
