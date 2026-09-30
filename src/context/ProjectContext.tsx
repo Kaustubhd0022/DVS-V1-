@@ -215,7 +215,7 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 const STORAGE_KEY = 'tattava_copilot_pilot_v1';
 const LEGACY_STORAGE_KEY = 'tattvaco_projects_v1';
 
-const normalizePersistedProjectForConfiguration = (project: TattvaCoProject): TattvaCoProject => {
+const normalizePersistedProjectForConfiguration = (project: TattavaProject): TattavaProject => {
   return applyCanonicalConfiguration(project);
 };
 
