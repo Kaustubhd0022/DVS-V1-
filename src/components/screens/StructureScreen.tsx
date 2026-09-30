@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { StructureBeat } from '../../types/project';
 import { generateStructureBeats } from '../../services/aiService';
+import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const StructureScreen: React.FC = () => {
   const { currentProject, updateCurrentProject, nextStep } = useProject();
@@ -56,7 +57,7 @@ export const StructureScreen: React.FC = () => {
           activeEpisodeNumber: isSeries ? activeEpisode : undefined,
           estimatedDurationMins: configuredDuration,
           templateName: currentProject.template || prev.structure.templateName,
-          configurationFingerprint: `${currentProject.format || 'Feature Film'}|${currentProject.template || prev.structure.templateName}`,
+          configurationFingerprint: getCanonicalConfiguration(prev).configurationFingerprint,
           isSynthesisStale: false,
           acts: {
             act1: {
