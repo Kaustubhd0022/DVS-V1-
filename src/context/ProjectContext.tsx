@@ -634,6 +634,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           readinessStatus: evalRes.readinessStatus,
           evaluatorModel: 'openai/gpt-oss-120b (Groq LPU)',
           evaluatedAt: new Date().toLocaleDateString() + ' (tattvaCo Evaluator v1.0)',
+          configurationFingerprint: getCanonicalConfiguration(prev).configurationFingerprint,
+          isSynthesisStale: false,
           dimensions: fullDimensions,
           keyStrengths: evalRes.keyStrengths?.length > 0 ? evalRes.keyStrengths : (evalRes.strengths?.length ? evalRes.strengths : ['Original premise hook', 'Grounded dramatic conflict']),
           criticalRisks: evalRes.criticalRisks?.length > 0 ? evalRes.criticalRisks : ['Ensure third-act escalation matches initial stakes.'],
