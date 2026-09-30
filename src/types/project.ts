@@ -218,6 +218,8 @@ export interface StoryStructure {
 
 export interface PlotBeatItem {
   id: string;
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   number: number;
   title: string;
   act: 'ACT I' | 'ACT II' | 'ACT III';
@@ -226,6 +228,9 @@ export interface PlotBeatItem {
 }
 
 export interface TreatmentData {
+  /** Configuration that produced this treatment artifact. */
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   version: string;
   wordCount: number;
   logline: string;
@@ -274,6 +279,9 @@ export interface SceneItem {
 
 export interface ScreenplayLine {
   id: string;
+  /** Configuration that produced this screenplay line. */
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   sceneNumber: number;
   type: 'scene_heading' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition';
   characterName?: string;
@@ -283,6 +291,9 @@ export interface ScreenplayLine {
 
 export interface DialogueSuggestion {
   id: string;
+  /** Configuration that produced this dialogue suggestion. */
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
   character: string;
   label: string;
   text: string;
@@ -663,7 +674,7 @@ export interface StakeholderApproval {
 
 export interface ArtifactVersionRecord {
   id: string;
-  artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue';
+  artifactType: 'direction' | 'character' | 'structure' | 'treatment' | 'scene' | 'screenplay' | 'dialogue' | 'continuity' | 'evaluation' | 'package';
   artifactId: string;
   version: string;
   state: CanonicalState;
@@ -677,6 +688,9 @@ export interface ArtifactVersionRecord {
   sourcePlanItemId?: string;
   parentVersionIds?: string[];
   repairCycleId?: string;
+  configurationFingerprint?: string;
+  isSynthesisStale?: boolean;
+  generationStatus?: 'AI_GENERATED' | 'AI_FALLBACK' | 'SEEDED_DEMO' | 'HUMAN_EDITED' | 'CANONICAL' | 'STALE';
 }
 
 export interface ProjectBranch {
@@ -743,7 +757,7 @@ export interface BranchMergeRecord {
 
 export interface ArtifactApprovalRecord {
   id: string;
-  artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue';
+  artifactType: ArtifactVersionRecord['artifactType'];
   artifactId: string;
   versionId: string;
   status: 'APPROVED' | 'REJECTED' | 'SUPERSEDED';

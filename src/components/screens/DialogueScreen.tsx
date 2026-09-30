@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { DialogueSuggestion } from '../../types/project';
 import { punchUpDialogue } from '../../services/aiService';
+import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const DialogueScreen: React.FC = () => {
   const { currentProject, swapDialogueSuggestion, nextStep, openContextResolver, updateCurrentProject } = useProject();
@@ -35,32 +36,51 @@ export const DialogueScreen: React.FC = () => {
     setIsPunchingUp(true);
     setPunchUpError(null);
     try {
-      const baseLine = `I need you to tell me what actually happened out there. No corporate evasions, no half-truths.`;
-      const sceneCtx = `High tension dramatic confrontation. ${charName} is seeking the truth under immense stakes.`;
+      const canonicalConfig = getCanonicalConfiguration(currentProject);
+      const activeScene = currentProject.scenes?.find(s => s.sceneNumber === 1) || currentProject.scenes?.[0];
+      const screenplayLines = (currentProject.screenplay || currentProject.screenplayLines || [])
+        .filter(line => !activeScene || line.sceneNumber === activeScene.sceneNumber);
+      const sourceDialogue = screenplayLines.find(line => line.type === 'dialogue');
+
+      if (!sourceDialogue) {
+        throw new Error('DIALOGUE_SOURCE_MISSING: Generate or open a screenplay scene before creating dialogue variations.');
+      }
+
+      const speaker = sourceDialogue.characterName || charName;
+      const sceneCtx = [
+        activeScene ? `Scene ${activeScene.sceneNumber}: ${activeScene.slugline}` : 'Current screenplay scene',
+        activeScene?.summary || '',
+        activeScene?.emotionalBeat || '',
+        `Existing screenplay line: ${sourceDialogue.content}`
+      ].filter(Boolean).join(' | ');
 
       const [alt1, alt2] = await Promise.all([
-        punchUpDialogue(baseLine, charName, sceneCtx, currentProject, 'Procedural precision, suppressed fear, clinical tone'),
-        punchUpDialogue(baseLine, charName, sceneCtx, currentProject, 'Urgent subtext, veiled threat, moral clarity')
+        punchUpDialogue(sourceDialogue.content, speaker, sceneCtx, currentProject, 'Procedural precision, suppressed fear, clinical tone'),
+        punchUpDialogue(sourceDialogue.content, speaker, sceneCtx, currentProject, 'Urgent subtext, veiled threat, moral clarity')
       ]);
 
       const mapped: DialogueSuggestion[] = [
         {
           id: 'sug-gen-' + (suggestions.length + 1),
-          character: charName,
+          character: speaker,
           text: alt1,
           tone: 'Clinical Procedural',
           label: 'Option A: Procedural Restraint',
           subtext: 'Masks vulnerability behind forensic terminology.',
-          candidateState: 'AI_PROPOSAL'
+          candidateState: 'AI_PROPOSAL',
+          configurationFingerprint: canonicalConfig.configurationFingerprint,
+          isSynthesisStale: false
         },
         {
           id: 'sug-gen-' + (suggestions.length + 2),
-          character: charName,
+          character: speaker,
           text: alt2,
           tone: 'Urgent Direct',
           label: 'Option B: Moral Ultimatum',
           subtext: 'Directly challenges the interlocutor with high emotional velocity.',
-          candidateState: 'AI_PROPOSAL'
+          candidateState: 'AI_PROPOSAL',
+          configurationFingerprint: canonicalConfig.configurationFingerprint,
+          isSynthesisStale: false
         }
       ];
 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { PlotBeatItem } from '../../types/project';
 import { generateTreatmentData } from '../../services/aiService';
+import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const TreatmentScreen: React.FC = () => {
   const { currentProject, updateTreatment, nextStep, openContextResolver } = useProject();
@@ -14,7 +15,8 @@ export const TreatmentScreen: React.FC = () => {
   const episodeDuration = currentProject.structure?.episodeDurationMins || (isSeries ? 45 : currentProject.structure?.estimatedDurationMins || 120);
   const episodeCount = currentProject.structure?.episodeCount || (isSeries ? 6 : undefined);
   const activeEpisode = currentProject.structure?.activeEpisodeNumber || 1;
-  const configurationFingerprint = (currentProject.format || 'Feature Film') + '|' + (currentProject.template || 'Three-Act Classical Thriller');
+  const canonicalConfig = getCanonicalConfiguration(currentProject);
+  const configurationFingerprint = canonicalConfig.configurationFingerprint;
 
   const treatment = currentProject.treatment || {
     version: 'v0.1',

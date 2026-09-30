@@ -1,4 +1,4 @@
-import { TattavaProject } from '../types/project';
+import { TattavaProject, ArtifactVersionRecord } from '../types/project';
 
 export type NextActionMode = 'ASK' | 'RESEARCH' | 'EXPLORE' | 'GENERATE' | 'REVIEW' | 'REGENERATE';
 
@@ -6,7 +6,7 @@ export interface NextActionPlan {
   mode: NextActionMode;
   reason: string;
   question?: string;
-  targetArtifact?: 'research' | 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue' | 'evaluation';
+  targetArtifact?: 'research' | ArtifactVersionRecord['artifactType'];
   sourcePlanId?: string;
   sourceItemId?: string;
   requiresHumanApproval: boolean;

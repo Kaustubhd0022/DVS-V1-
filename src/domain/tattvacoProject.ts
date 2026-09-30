@@ -47,6 +47,16 @@ export interface ProjectConfiguration {
   vertical: TattavaVertical;
   mediaFormat: MediaFormat;
   contentMode: ContentMode;
+  /** Canonical creator-facing format label, e.g. Limited Series. */
+  formatLabel?: string;
+  /** Canonical structural template selected by the creator. */
+  templateName?: string;
+  /** Series runtime configuration; omitted for non-series formats. */
+  episodeCount?: number;
+  episodeDurationMins?: number;
+  activeEpisodeNumber?: number;
+  /** Fingerprint of the configuration that downstream artifacts were generated from. */
+  configurationFingerprint?: string;
   primaryDomain: string;
   secondaryDomains: string[];
   subject: string;

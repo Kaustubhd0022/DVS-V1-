@@ -22,9 +22,11 @@ import {
   StructureBeat,
   SceneItem,
   PlotBeatItem,
-  EvaluationRepairPlan
+  EvaluationRepairPlan,
+  ScreenplayLine
 } from '../types/project';
 import { resolveProjectContext } from './contextResolver';
+import { getCanonicalConfiguration } from './projectConfiguration';
 
 const DEFAULT_GROQ_KEY = '';
 const ENV_KEY = (import.meta as any).env?.VITE_GROQ_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
@@ -169,6 +171,16 @@ export function buildProjectContext(
   parts.push(`Canonical Version: ${project.canonicalVersion || 'v0.1'}`);
   parts.push(`Vertical: ${project.projectConfig?.vertical || 'TATTVACO_PROJECT'}`);
   parts.push(`Media Format: ${project.projectConfig?.mediaFormat || project.contentType || 'OTHER'}`);
+  parts.push(`Canonical Format: ${project.projectConfig?.formatLabel || project.format || project.contentType || 'Feature Film'}`);
+  parts.push(`Development Template: ${project.projectConfig?.templateName || project.template || project.structure?.templateName || 'Three-Act Classical Thriller'}`);
+  if (project.projectConfig?.episodeDurationMins) {
+    parts.push(`Episode Runtime: ${project.projectConfig.episodeDurationMins} minutes`);
+    parts.push(`Episode Count: ${project.projectConfig.episodeCount || 6}`);
+    parts.push(`Active Episode: ${project.projectConfig.activeEpisodeNumber || 1}`);
+  } else if (project.structure?.estimatedDurationMins) {
+    parts.push(`Current Runtime: ${project.structure.estimatedDurationMins} minutes`);
+  }
+  parts.push(`Configuration Fingerprint: ${project.projectConfig?.configurationFingerprint || 'unresolved'}`);
   parts.push(`Content Mode: ${project.projectConfig?.contentMode || 'HYBRID'}`);
   parts.push(`Primary Domain: ${project.projectConfig?.primaryDomain || 'Not yet confirmed'}`);
   if (project.projectConfig?.secondaryDomains?.length) {
@@ -300,6 +312,12 @@ export const buildContextPackagePrompt = (pkg: ContextResolverPackage): string =
     lines.push('', '=== PROJECT CONFIGURATION ===',
       'Vertical: ' + c.vertical,
       'Media Format: ' + c.mediaFormat,
+      'Canonical Format: ' + (c.formatLabel || 'Not specified'),
+      'Development Template: ' + (c.templateName || 'Not specified'),
+      'Episode Runtime: ' + (c.episodeDurationMins ? c.episodeDurationMins + ' minutes' : 'Not applicable'),
+      'Episode Count: ' + (c.episodeCount || 'Not applicable'),
+      'Active Episode: ' + (c.activeEpisodeNumber || 'Not applicable'),
+      'Configuration Fingerprint: ' + (c.configurationFingerprint || 'unresolved'),
       'Content Mode: ' + c.contentMode,
       'Primary Domain: ' + (c.primaryDomain || 'Not confirmed'),
       'Secondary Domains: ' + (c.secondaryDomains.join(', ') || 'None'),
@@ -1907,6 +1925,7 @@ Return ONLY valid JSON matching:
     { "number": 8, "act": "ACT III - RESOLUTION", "timeRange": "34:00 - 45:00", "title": "Climax & Resolution", "description": "Detailed description." }
   ]
 }
+`;
   try {
     const raw = await callGroq([
       { role: 'system', content: 'You are an elite narrative dramaturge. Return valid JSON only.' },
@@ -2012,7 +2031,7 @@ export const generateSceneBreakdown = async (
   const episodeCount = isSeries ? (project.structure?.episodeCount || 6) : undefined;
   const episodeNumber = project.structure?.activeEpisodeNumber || 1;
   const template = project.template || project.templates?.find(t => t.isSelected)?.title || project.structure?.templateName || 'Three-Act Classical Structure';
-  const configurationFingerprint = `${project.format || 'Feature Film'}|${template}`;
+  const configurationFingerprint = getCanonicalConfiguration(project).configurationFingerprint;
   const prompt = `${context}
 
 SCENE BREAKDOWN CONFIGURATION:
@@ -2171,7 +2190,7 @@ export const generateTreatmentData = async (
   const episodeCount = isSeries ? (project.structure?.episodeCount || 6) : undefined;
   const episodeNumber = project.structure?.activeEpisodeNumber || 1;
   const template = project.template || project.templates?.find(t => t.isSelected)?.title || project.structure?.templateName || 'Three-Act Classical Structure';
-  const configurationFingerprint = `${project.format || 'Feature Film'}|${template}`;
+  const configurationFingerprint = getCanonicalConfiguration(project).configurationFingerprint;
 
   const prompt = `${context}
 
@@ -2367,4 +2386,91 @@ export const generateProjectDirections = async (project: TattavaProject): Promis
       openQuestions: Array.isArray(x.openQuestions) ? x.openQuestions : []
     })) : []
   };
+};
+
+
+/**
+ * Generate a screenplay draft directly from the current scene artifact.
+ * This is intentionally scene-scoped: screenplay text must inherit the active
+ * project configuration, canon, character voice, and the selected scene rather
+ * than using UI sample lines.
+ */
+export const generateScreenplayDraft = async (
+  project: TattavaProject,
+  sceneNumber: number
+): Promise<ScreenplayLine[]> => {
+  const scene = (project.scenes || []).find(s => s.sceneNumber === sceneNumber);
+  if (!scene) throw new Error(`SCREENPLAY_SOURCE_MISSING: Scene ${sceneNumber} does not exist in the current project.`);
+
+  const resolved = resolveProjectContext(project, {
+    taskType: 'Scene Drafting',
+    targetArtifact: `Screenplay Scene ${sceneNumber}`,
+    query: [scene.slugline, scene.subheading, scene.summary, scene.purpose].join(' '),
+    includeDrafts: false
+  });
+
+  const context = buildContextPackagePrompt(resolved.pkg);
+  const config = project.projectConfig;
+  const prompt = [
+    'Generate a production-ready screenplay draft for exactly one current Tattava scene.',
+    'The scene is downstream of the canonical project configuration and Story Brain.',
+    'Do not invent characters, locations, chronology, institutions, or facts outside the supplied context.',
+    'Return JSON only with an array named "lines".',
+    'Each line must contain: type, content, and optional characterName.',
+    'Allowed type values: scene_heading, action, character, dialogue, parenthetical, transition.',
+    'Write 8-20 concise screenplay lines that cover the full scene objective.',
+    '',
+    `Canonical configuration fingerprint: ${config?.configurationFingerprint || 'unresolved'}`,
+    `Format: ${config?.formatLabel || project.format || project.contentType}`,
+    `Template: ${config?.templateName || project.template}`,
+    `Episode: ${config?.activeEpisodeNumber || 1} / ${config?.episodeCount || 'n/a'}`,
+    `Episode runtime: ${config?.episodeDurationMins || project.structure?.estimatedDurationMins || 120} minutes`,
+    '',
+    '=== SOURCE SCENE ===',
+    `Scene ${scene.sceneNumber}: ${scene.slugline}`,
+    `Duration: ${scene.duration}`,
+    `Characters: ${scene.characters.join(', ')}`,
+    `Purpose: ${scene.purpose}`,
+    `Emotional beat: ${scene.emotionalBeat}`,
+    `Summary: ${scene.summary}`,
+    `Key elements: ${scene.keyElements}`,
+    `Visual notes: ${scene.visualNotes}`,
+    '',
+    context
+  ].join('\n');
+
+  const raw = await callGroq(
+    [
+      {
+        role: 'system',
+        content: 'You are Tattava Screenplay Engine. You transform an approved scene artifact into screenplay lines while preserving project canon and configuration. Never use generic sample scenes.'
+      },
+      { role: 'user', content: prompt }
+    ],
+    {
+      temperature: 0.55,
+      max_tokens: 3500,
+      jsonMode: true,
+      taskName: 'Screenplay Scene Draft',
+      contextSnapshot: context
+    }
+  );
+
+  const parsed = extractJsonFromResponse(raw);
+  const lines = Array.isArray(parsed?.lines) ? parsed.lines : [];
+  if (!lines.length) throw new Error('AI_VALIDATION_FAILED: Screenplay engine returned no lines.');
+
+  const fingerprint = config?.configurationFingerprint || '';
+  return lines.map((line: any, index: number) => ({
+    id: `scr-ai-${sceneNumber}-${Date.now()}-${index + 1}`,
+    sceneNumber,
+    type: ['scene_heading', 'action', 'character', 'dialogue', 'parenthetical', 'transition'].includes(line.type)
+      ? line.type
+      : 'action',
+    characterName: line.characterName,
+    content: String(line.content || '').trim(),
+    candidateState: 'AI_PROPOSAL',
+    configurationFingerprint: fingerprint,
+    isSynthesisStale: false
+  })).filter((line: ScreenplayLine) => line.content.length > 0);
 };
