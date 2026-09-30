@@ -549,7 +549,7 @@ export interface PilotMetrics {
 
 export interface ImpactChangeItem {
   id: string;
-  category: 'Characters' | 'Story' | 'Scenes' | 'Dialogue' | 'Visuals' | 'Production';
+  category: 'Characters' | 'Story' | 'Scenes' | 'Screenplay' | 'Dialogue' | 'Visuals' | 'Production';
   objectName: string;
   field: string;
   oldValue: string;
@@ -568,6 +568,7 @@ export interface ImpactAnalysisState {
     characters: number;
     story: number;
     scenes: number;
+    screenplay: number;
     dialogue: number;
     visuals: number;
     production: number;
