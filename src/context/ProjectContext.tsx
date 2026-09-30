@@ -33,7 +33,7 @@ import {
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
-import { inferMediaFormat, inferContentMode } from '../domain/tattvacoProject';
+import { inferMediaFormat, inferContentMode, DEFAULT_PROJECT_CONFIGURATION } from '../domain/tattvacoProject';
 import { applyCanonicalConfiguration, getCanonicalConfiguration, isSeriesFormat, invalidateDownstreamArtifacts } from '../services/projectConfiguration';
 import { evaluateProjectNarrative, generateEvaluationRepairPlan, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
@@ -182,7 +182,7 @@ interface ProjectContextType {
   abandonProjectBranch: (branchId: string) => void;
 
   // Canonical State Lifecycle
-  setArtifactCandidateState: (artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue', id: string, state: CanonicalState) => void;
+  setArtifactCandidateState: (artifactType: ArtifactVersionRecord['artifactType'], id: string, state: CanonicalState) => void;
   approveArtifact: (artifactType: ArtifactVersionRecord['artifactType'], artifactId: string, approvedBy: string, role: string, rationale?: string) => void;
 
   // Impact Engine
@@ -2480,7 +2480,7 @@ Format: ${currentProject.format}
         format: formatTitle,
         formats: prev.formats.map(f => ({ ...f, isSelected: f.title === formatTitle || (formatTitle === 'Limited Series' && /Limited Web Series/i.test(f.title)) })),
         projectConfig: {
-          ...(prev.projectConfig || {}),
+          ...(prev.projectConfig || DEFAULT_PROJECT_CONFIGURATION),
           formatLabel: formatTitle,
           templateName: templateTitle,
           mediaFormat: inferMediaFormat(formatTitle),
