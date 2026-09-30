@@ -2368,3 +2368,90 @@ export const generateProjectDirections = async (project: TattavaProject): Promis
     })) : []
   };
 };
+
+
+/**
+ * Generate a screenplay draft directly from the current scene artifact.
+ * This is intentionally scene-scoped: screenplay text must inherit the active
+ * project configuration, canon, character voice, and the selected scene rather
+ * than using UI sample lines.
+ */
+export const generateScreenplayDraft = async (
+  project: TattavaProject,
+  sceneNumber: number
+): Promise<ScreenplayLine[]> => {
+  const scene = (project.scenes || []).find(s => s.sceneNumber === sceneNumber);
+  if (!scene) throw new Error(`SCREENPLAY_SOURCE_MISSING: Scene ${sceneNumber} does not exist in the current project.`);
+
+  const resolved = resolveProjectContext(project, {
+    taskType: 'Scene Drafting',
+    targetArtifact: `Screenplay Scene ${sceneNumber}`,
+    query: [scene.slugline, scene.subheading, scene.summary, scene.purpose].join(' '),
+    includeDrafts: false
+  });
+
+  const context = buildContextPackagePrompt(resolved.pkg);
+  const config = project.projectConfig;
+  const prompt = [
+    'Generate a production-ready screenplay draft for exactly one current Tattava scene.',
+    'The scene is downstream of the canonical project configuration and Story Brain.',
+    'Do not invent characters, locations, chronology, institutions, or facts outside the supplied context.',
+    'Return JSON only with an array named "lines".',
+    'Each line must contain: type, content, and optional characterName.',
+    'Allowed type values: scene_heading, action, character, dialogue, parenthetical, transition.',
+    'Write 8-20 concise screenplay lines that cover the full scene objective.',
+    '',
+    `Canonical configuration fingerprint: ${config?.configurationFingerprint || 'unresolved'}`,
+    `Format: ${config?.formatLabel || project.format || project.contentType}`,
+    `Template: ${config?.templateName || project.template}`,
+    `Episode: ${config?.activeEpisodeNumber || 1} / ${config?.episodeCount || 'n/a'}`,
+    `Episode runtime: ${config?.episodeDurationMins || project.structure?.estimatedDurationMins || 120} minutes`,
+    '',
+    '=== SOURCE SCENE ===',
+    `Scene ${scene.sceneNumber}: ${scene.slugline}`,
+    `Duration: ${scene.duration}`,
+    `Characters: ${scene.characters.join(', ')}`,
+    `Purpose: ${scene.purpose}`,
+    `Emotional beat: ${scene.emotionalBeat}`,
+    `Summary: ${scene.summary}`,
+    `Key elements: ${scene.keyElements}`,
+    `Visual notes: ${scene.visualNotes}`,
+    '',
+    context
+  ].join('\n');
+
+  const raw = await callGroq(
+    [
+      {
+        role: 'system',
+        content: 'You are Tattava Screenplay Engine. You transform an approved scene artifact into screenplay lines while preserving project canon and configuration. Never use generic sample scenes.'
+      },
+      { role: 'user', content: prompt }
+    ],
+    {
+      temperature: 0.55,
+      max_tokens: 3500,
+      jsonMode: true,
+      taskName: 'Screenplay Scene Draft',
+      contextSnapshot: context
+    }
+  );
+
+  const parsed = extractJsonFromResponse(raw);
+  const lines = Array.isArray(parsed?.lines) ? parsed.lines : [];
+  if (!lines.length) throw new Error('AI_VALIDATION_FAILED: Screenplay engine returned no lines.');
+
+  const fingerprint = config?.configurationFingerprint || '';
+  return lines.map((line: any, index: number) => ({
+    id: `scr-ai-${sceneNumber}-${Date.now()}-${index + 1}`,
+    sceneNumber,
+    type: ['scene_heading', 'action', 'character', 'dialogue', 'parenthetical', 'transition'].includes(line.type)
+      ? line.type
+      : 'action',
+    characterName: line.characterName,
+    content: String(line.content || '').trim(),
+    candidateState: 'AI_PROPOSAL',
+    configurationFingerprint: fingerprint,
+    isSynthesisStale: false
+  })).filter((line: ScreenplayLine) => line.content.length > 0);
+};
