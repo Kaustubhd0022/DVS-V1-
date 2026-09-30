@@ -169,6 +169,16 @@ export function buildProjectContext(
   parts.push(`Canonical Version: ${project.canonicalVersion || 'v0.1'}`);
   parts.push(`Vertical: ${project.projectConfig?.vertical || 'TATTVACO_PROJECT'}`);
   parts.push(`Media Format: ${project.projectConfig?.mediaFormat || project.contentType || 'OTHER'}`);
+  parts.push(`Canonical Format: ${project.projectConfig?.formatLabel || project.format || project.contentType || 'Feature Film'}`);
+  parts.push(`Development Template: ${project.projectConfig?.templateName || project.template || project.structure?.templateName || 'Three-Act Classical Thriller'}`);
+  if (project.projectConfig?.episodeDurationMins) {
+    parts.push(`Episode Runtime: ${project.projectConfig.episodeDurationMins} minutes`);
+    parts.push(`Episode Count: ${project.projectConfig.episodeCount || 6}`);
+    parts.push(`Active Episode: ${project.projectConfig.activeEpisodeNumber || 1}`);
+  } else if (project.structure?.estimatedDurationMins) {
+    parts.push(`Current Runtime: ${project.structure.estimatedDurationMins} minutes`);
+  }
+  parts.push(`Configuration Fingerprint: ${project.projectConfig?.configurationFingerprint || 'unresolved'}`);
   parts.push(`Content Mode: ${project.projectConfig?.contentMode || 'HYBRID'}`);
   parts.push(`Primary Domain: ${project.projectConfig?.primaryDomain || 'Not yet confirmed'}`);
   if (project.projectConfig?.secondaryDomains?.length) {
