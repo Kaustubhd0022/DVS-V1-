@@ -182,7 +182,7 @@ interface ProjectContextType {
   abandonProjectBranch: (branchId: string) => void;
 
   // Canonical State Lifecycle
-  setArtifactCandidateState: (artifactType: ArtifactVersionRecord['artifactType'], id: string, state: CanonicalState) => void;
+  setArtifactCandidateState: (artifactType: 'direction' | 'character' | 'treatment' | 'scene' | 'dialogue', id: string, state: CanonicalState) => void;
   approveArtifact: (artifactType: ArtifactVersionRecord['artifactType'], artifactId: string, approvedBy: string, role: string, rationale?: string) => void;
 
   // Impact Engine
@@ -2553,7 +2553,7 @@ Format: ${currentProject.format}
         template: templateTitle,
         templates: prev.templates.map(t => ({ ...t, isSelected: t.title === templateTitle })),
         projectConfig: {
-          ...(prev.projectConfig || {}),
+          ...(prev.projectConfig || DEFAULT_PROJECT_CONFIGURATION),
           formatLabel: formatTitle,
           templateName: templateTitle,
           mediaFormat: inferMediaFormat(formatTitle),
