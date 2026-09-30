@@ -67,6 +67,7 @@ export const applyCanonicalConfiguration = (project: TattavaProject): TattavaPro
   const config = getCanonicalConfiguration(project);
   const previousFingerprint = project.projectConfig?.configurationFingerprint;
   const changed = Boolean(previousFingerprint && previousFingerprint !== config.configurationFingerprint);
+  const demoWorkspace = Boolean(project.isDemo);
 
   return {
     ...project,
@@ -83,21 +84,21 @@ export const applyCanonicalConfiguration = (project: TattavaProject): TattavaPro
       episodeDurationMins: config.episodeDurationMins,
       activeEpisodeNumber: config.activeEpisodeNumber,
       configurationFingerprint: config.configurationFingerprint,
-      isSynthesisStale: changed || project.structure?.configurationFingerprint !== config.configurationFingerprint
+      isSynthesisStale: demoWorkspace ? false : changed || project.structure?.configurationFingerprint !== config.configurationFingerprint
     },
     treatment: {
       ...project.treatment,
       configurationFingerprint: config.configurationFingerprint,
-      isSynthesisStale: changed || project.treatment?.configurationFingerprint !== config.configurationFingerprint
+      isSynthesisStale: demoWorkspace ? false : changed || project.treatment?.configurationFingerprint !== config.configurationFingerprint
     },
     scenes: (project.scenes || []).map(scene => ({
       ...scene,
       configurationFingerprint: scene.configurationFingerprint || previousFingerprint,
-      isSynthesisStale: changed || scene.configurationFingerprint !== config.configurationFingerprint
+      isSynthesisStale: demoWorkspace ? false : changed || scene.configurationFingerprint !== config.configurationFingerprint
     })),
     screenplay: (project.screenplay || []).map(line => ({
       ...line,
-      isSynthesisStale: changed || line.configurationFingerprint !== config.configurationFingerprint
+      isSynthesisStale: demoWorkspace ? false : changed || line.configurationFingerprint !== config.configurationFingerprint
     })),
     screenplayLines: (project.screenplayLines || project.screenplay || []).map(line => ({
       ...line,
