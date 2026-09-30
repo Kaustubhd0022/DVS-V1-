@@ -22,7 +22,8 @@ import {
   StructureBeat,
   SceneItem,
   PlotBeatItem,
-  EvaluationRepairPlan
+  EvaluationRepairPlan,
+  ScreenplayLine
 } from '../types/project';
 import { resolveProjectContext } from './contextResolver';
 import { getCanonicalConfiguration } from './projectConfiguration';
