@@ -41,6 +41,8 @@ import { resolveProjectContext } from '../services/contextResolver';
 import { resolveDependencyImpact } from '../services/dependencyImpactService';
 import { buildRegenerationPlan } from '../services/regenerationPlanner';
 import { executeRegenerationItem, RegenerationResult } from '../services/regenerationExecutor';
+import { syncDirectionStores, withoutUnapprovedStoryDirections } from '../services/directionSync';
+import { getResumeScreen } from '../services/projectProgress';
 
 export type ScreenId = 
   | 'home' 
@@ -77,22 +79,22 @@ export interface StepMeta {
  * UNDERSTAND -> EXPLORE -> DECIDE -> REMEMBER -> DEVELOP
  */
 export const PIPELINE_STEPS: StepMeta[] = [
-  { step: 1, id: 'discovery', label: 'Conversational Discovery & Studio', shortLabel: 'Discovery' },
-  { step: 2, id: 'story-brain', label: 'Story Brain (System of Record)', shortLabel: 'Story Brain' },
-  { step: 3, id: 'intake', label: 'Intake & Ambiguity Dossier', shortLabel: 'Intake' },
-  { step: 4, id: 'research', label: 'Traceable Research & Evidence', shortLabel: 'Research' },
-  { step: 5, id: 'story-exploration', label: 'Story Exploration & Directions', shortLabel: 'Story' },
-  { step: 6, id: 'format-template', label: 'Format & Development Framework', shortLabel: 'Format' },
-  { step: 7, id: 'characters', label: 'Character Intelligence & Arcs', shortLabel: 'Characters' },
-  { step: 8, id: 'world', label: 'World Building & Canon Rules', shortLabel: 'World' },
-  { step: 9, id: 'structure', label: 'Story Structure & Beat Sheet', shortLabel: 'Structure' },
-  { step: 10, id: 'treatment', label: 'Treatment & Grounded Writing', shortLabel: 'Treatment' },
-  { step: 11, id: 'scene-outline', label: 'Scene Breakdown & Conflict', shortLabel: 'Scenes' },
-  { step: 12, id: 'screenplay', label: 'Screenplay Drafting', shortLabel: 'Script' },
-  { step: 13, id: 'dialogue', label: 'Dialogue & Voice Intelligence', shortLabel: 'Dialogue' },
-  { step: 14, id: 'continuity', label: 'Canon & Continuity Engine', shortLabel: 'Continuity' },
-  { step: 15, id: 'evaluation', label: 'AI Story Evaluation Harness', shortLabel: 'Evaluation' },
-  { step: 16, id: 'package', label: 'Story Development Package', shortLabel: 'Package' }
+  { step: 1, id: 'discovery', label: 'Discovery: explore your idea', shortLabel: 'Discovery' },
+  { step: 2, id: 'story-brain', label: 'Story Brain: approved facts and decisions', shortLabel: 'Story Brain' },
+  { step: 3, id: 'intake', label: 'Intake: gaps to resolve', shortLabel: 'Intake' },
+  { step: 4, id: 'research', label: 'Research: sourced facts', shortLabel: 'Research' },
+  { step: 5, id: 'story-exploration', label: 'Story directions', shortLabel: 'Directions' },
+  { step: 6, id: 'format-template', label: 'Format and structure template', shortLabel: 'Format' },
+  { step: 7, id: 'characters', label: 'Characters', shortLabel: 'Characters' },
+  { step: 8, id: 'world', label: 'World and setting', shortLabel: 'World' },
+  { step: 9, id: 'structure', label: 'Story structure and beats', shortLabel: 'Structure' },
+  { step: 10, id: 'treatment', label: 'Treatment', shortLabel: 'Treatment' },
+  { step: 11, id: 'scene-outline', label: 'Scene outline', shortLabel: 'Scenes' },
+  { step: 12, id: 'screenplay', label: 'Screenplay', shortLabel: 'Script' },
+  { step: 13, id: 'dialogue', label: 'Dialogue', shortLabel: 'Dialogue' },
+  { step: 14, id: 'continuity', label: 'Continuity check', shortLabel: 'Continuity' },
+  { step: 15, id: 'evaluation', label: 'Story evaluation', shortLabel: 'Evaluation' },
+  { step: 16, id: 'package', label: 'Development package', shortLabel: 'Package' }
 ];
 
 interface ProjectContextType {
@@ -328,13 +330,18 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateCurrentProject = (updater: (prev: TattavaProject) => TattavaProject) => {
     setProjects(prevProjects =>
-      prevProjects.map(p => (p.id === currentProjectId ? updater(p) : p))
+      prevProjects.map(p => (p.id === currentProjectId ? syncDirectionStores(updater(p)) : p))
     );
   };
 
-  const openProject = (projectId: string, targetScreen: ScreenId = 'story-brain') => {
+  // Without an explicit screen, reopen where the writer left off: the next step with no content.
+  // Demo projects are fully populated, so they open on the Story Brain overview.
+  const openProject = (projectId: string, targetScreen?: ScreenId) => {
+    const project = projects.find(p => p.id === projectId);
+    const screen = targetScreen
+      ?? (project && !project.isDemo ? getResumeScreen(project, PIPELINE_STEPS) : 'story-brain');
     setCurrentProjectId(projectId);
-    setActiveScreen(targetScreen);
+    setActiveScreen(screen);
   };
 
   const goToStep = (stepNumber: number) => {
@@ -1423,9 +1430,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }));
       return {
         ...prev,
+        // Approved directions stay; stale unapproved candidates on the Directions screen are replaced.
+        storyDirections: withoutUnapprovedStoryDirections(prev),
         projectIntelligence: {
           ...intelligence,
-          directions,
+          directions: [...intelligence.directions.filter(d => d.status === 'SELECTED'), ...directions],
           development: {
             ...intelligence.development,
             directionCount: directions.length,

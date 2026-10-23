@@ -1,19 +1,38 @@
 # Dependencies
 node_modules
+client/node_modules
+server/node_modules
 /.pnp
 .pnp.js
 
 # Production build
 dist
 dist-ssr
+client/dist
+client/dist-ssr
+server/dist
+server/build
+
+# Python / Backend
+server/.venv/
+server/__pycache__/
+server/*.pyc
+server/.pytest_cache/
+server/.mypy_cache/
 
 # Environment / local
 *.local
 .env
-.env.*
+.env.local
+.env.*.local
+client/.env
+client/.env.local
+server/.env
+server/.env.local
 
 # TypeScript
 tsconfig.tsbuildinfo
+client/tsconfig.tsbuildinfo
 
 # OS / Editor
 .DS_Store

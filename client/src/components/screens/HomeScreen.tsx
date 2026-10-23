@@ -92,38 +92,11 @@ export const HomeScreen: React.FC = () => {
               <span>Tattava Copilot • V1 Pilot</span>
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight font-display leading-tight">
-              Turn ideas into <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">governed narrative intelligence.</span>
+              Start with your <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">story idea.</span>
             </h1>
             <p className="text-[#a0aec0] text-sm md:text-base leading-relaxed">
-              An AI-native story development operating system for entertainment teams. Project intelligence is derived strictly from your input, research, and approved Story Brain canon.
+              Describe a film, series or documentary in your own words. Tattava helps you develop it step by step, and only uses facts you have approved or sourced.
             </p>
-
-            {/* Feature badges */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 text-xs text-white/90 border border-white/10">
-                <Brain className="w-3 h-3 text-amber-400" />
-                Persistent Story Brain
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 text-xs text-white/90 border border-white/10">
-                <Shield className="w-3 h-3 text-blue-400" />
-                Traceable Evidence
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 text-xs text-white/90 border border-white/10">
-                <ShieldAlert className="w-3 h-3 text-rose-400" />
-                Continuity Engine
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/50 text-xs text-white/90 border border-white/10">
-                <Award className="w-3 h-3 text-emerald-400" />
-                Narrative Evaluation
-              </span>
-            </div>
-          </div>
-
-          <div className="hidden lg:block text-right pr-4">
-            <p className="font-serif text-3xl text-amber-300 -rotate-3 select-none">
-              Stories for a<br />Brighter Tomorrow
-            </p>
-            <p className="text-[11px] text-white/40 mt-2 font-mono">Don Vanzara Showbiz LLP</p>
           </div>
         </div>
       </div>
@@ -378,7 +351,7 @@ export const HomeScreen: React.FC = () => {
                     {/* Poster Banner */}
                     <div 
                       className="relative h-40 overflow-hidden bg-slate-900 cursor-pointer" 
-                      onClick={() => openProject(proj.id, 'story-brain')}
+                      onClick={() => openProject(proj.id)}
                     >
                       <img
                         src={proj.posterUrl}
@@ -424,7 +397,7 @@ export const HomeScreen: React.FC = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              openProject(proj.id, 'story-brain');
+                              openProject(proj.id);
                               setActiveMenuId(null);
                             }}
                             className="w-full text-left px-2.5 py-1.5 text-white hover:bg-white/10 rounded-lg font-medium"
@@ -462,7 +435,7 @@ export const HomeScreen: React.FC = () => {
                       <div>
                         <div className="flex items-center justify-between">
                           <h3 
-                            onClick={() => openProject(proj.id, 'story-brain')}
+                            onClick={() => openProject(proj.id)}
                             className="text-base font-bold text-white group-hover:text-amber-400 cursor-pointer transition-colors truncate"
                           >
                             {proj.title}
@@ -493,7 +466,7 @@ export const HomeScreen: React.FC = () => {
                         <div className="flex items-center justify-between pt-1 text-[10px] text-white/40">
                           <span>{proj.lastUpdated}</span>
                           <button
-                            onClick={() => openProject(proj.id, 'story-brain')}
+                            onClick={() => openProject(proj.id)}
                             className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
                           >
                             <span>Open Workspace</span>

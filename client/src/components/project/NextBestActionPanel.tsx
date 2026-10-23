@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Search, Sparkles, MessageCircleQuestion, GitBranch } from 'lucide-react';
-import { useProject } from '../../context/ProjectContext';
+import { useProject, PIPELINE_STEPS } from '../../context/ProjectContext';
+import { getNextStep } from '../../services/projectProgress';
 
 type ActionKind = 'ASK' | 'RESEARCH' | 'EXPLORE' | 'GENERATE';
 
@@ -42,9 +43,12 @@ const deriveNextBestAction = (project: any): NextBestAction => {
 };
 
 export const NextBestActionPanel: React.FC = () => {
-  const { currentProject, setActiveScreen, generateProjectInsights, generateProjectDirections } = useProject();
+  const { currentProject, activeScreen, setActiveScreen, generateProjectInsights, generateProjectDirections } = useProject();
   const [working, setWorking] = React.useState(false);
   const action = deriveNextBestAction(currentProject);
+
+  // A question for the creator is answered in the Discovery chat; repeating it here would duplicate the prompt.
+  if (activeScreen === 'discovery' && action.kind === 'ASK') return null;
 
   const icon = action.kind === 'RESEARCH' ? Search : action.kind === 'ASK' ? MessageCircleQuestion : action.kind === 'EXPLORE' ? GitBranch : Sparkles;
   const Icon = icon;
@@ -57,11 +61,25 @@ export const NextBestActionPanel: React.FC = () => {
       else if (action.kind === 'ASK' || action.kind === 'EXPLORE') setActiveScreen('discovery');
       else if (action.target === 'Story Directions') await generateProjectDirections();
       else if (action.target === 'Insights') await generateProjectInsights();
-      else setActiveScreen('story-brain');
+      else setActiveScreen(getNextStep(currentProject, PIPELINE_STEPS)?.id || 'story-brain');
     } finally {
       setWorking(false);
     }
   };
+
+  const kindLabel: Record<ActionKind, string> = {
+    RESEARCH: 'Needs research',
+    ASK: 'Needs your decision',
+    EXPLORE: 'Compare options',
+    GENERATE: 'Ready to draft'
+  };
+
+  const buttonLabel = working
+    ? 'Working…'
+    : action.kind === 'ASK' ? 'Decide in Discovery'
+    : action.kind === 'RESEARCH' ? 'Open Research'
+    : action.kind === 'EXPLORE' ? 'Compare options'
+    : 'Continue';
 
   return (
     <section className="mt-4 rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-500/5 to-transparent p-4">
@@ -69,24 +87,15 @@ export const NextBestActionPanel: React.FC = () => {
         <div className="flex gap-3">
           <div className="w-8 h-8 rounded-xl bg-cyan-400/10 flex items-center justify-center"><Icon className="w-4 h-4 text-cyan-300" /></div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider font-bold text-cyan-300">Next Best Action</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-cyan-300">Suggested next step · {kindLabel[action.kind]}</p>
             <h3 className="text-sm font-semibold text-white mt-1">{action.question}</h3>
-            <p className="text-[11px] text-white/50 mt-1 max-w-2xl">{action.reason}</p>
+            <p className="text-xs text-white/55 mt-1 max-w-2xl">{action.reason}</p>
           </div>
         </div>
-        <button onClick={execute} disabled={working} className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-400/10 border border-cyan-400/20 text-cyan-200 text-[10px] font-semibold disabled:opacity-50">
-          {working ? 'Working…' : action.kind === 'ASK' ? 'Resolve in Discovery' : action.kind === 'RESEARCH' ? 'Open Research' : action.kind === 'EXPLORE' ? 'Explore' : 'Develop'}
+        <button onClick={execute} disabled={working} className="shrink-0 px-3 py-2 rounded-lg bg-cyan-400/10 border border-cyan-400/20 text-cyan-200 text-xs font-semibold disabled:opacity-50">
+          {buttonLabel}
           {!working && <ArrowRight className="inline w-3 h-3 ml-1" />}
         </button>
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-[9px] text-white/35">
-        <span className="uppercase tracking-wider">Decision policy</span>
-        <span>•</span>
-        <span>Creator intent before assumption</span>
-        <span>•</span>
-        <span>Evidence before factual confidence</span>
-        <span>•</span>
-        <span>AI proposes, human approves</span>
       </div>
     </section>
   );

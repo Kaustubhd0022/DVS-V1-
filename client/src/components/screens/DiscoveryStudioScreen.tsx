@@ -29,7 +29,8 @@ import {
   Sliders,
   Plus
 } from 'lucide-react';
-import { useProject } from '../../context/ProjectContext';
+import { useProject, PIPELINE_STEPS } from '../../context/ProjectContext';
+import { isOptionalStep, isStepComplete } from '../../services/projectProgress';
 import { DiscoveryCandidateOption, DiscoveryTurn } from '../../types/project';
 import { ProjectIntelligenceSummary } from '../project/ProjectIntelligenceSummary';
 import { NextBestActionPanel } from '../project/NextBestActionPanel';
@@ -59,6 +60,9 @@ export const DiscoveryStudioScreen: React.FC = () => {
 
   const turns = discoverySession?.turns || [];
   const ambiguityLevel = discoverySession?.ambiguityLevel ?? 80;
+  // The next required step after Discovery, and whether the idea is settled enough to suggest moving on.
+  const forwardStep = PIPELINE_STEPS.find(s => s.step > 1 && !isOptionalStep(s.id) && !isStepComplete(currentProject, s.id)) || PIPELINE_STEPS[1];
+  const isReadyToContinue = turns.length >= 2 && ambiguityLevel <= 40;
   const canonFacts = currentProject.storyBrain?.canonFacts || [];
   const decisions = currentProject.storyBrain?.creativeDecisions || currentProject.storyBrain?.decisionLog || [];
   const researchFindings = currentProject.researchFindings || [];
@@ -108,7 +112,7 @@ export const DiscoveryStudioScreen: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn max-w-[1700px] mx-auto pb-16">
+    <div className="flex flex-col gap-6 animate-fadeIn max-w-[1700px] mx-auto pb-16">
       {/* Studio Header & Dynamic Ambiguity Bar */}
       <div className="bg-gradient-to-r from-[#12151c] via-[#161a24] to-[#141722] border border-white/10 rounded-3xl p-5 lg:p-6 shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div className="space-y-2 max-w-2xl">
@@ -177,30 +181,27 @@ export const DiscoveryStudioScreen: React.FC = () => {
             </span>
           </div>
 
-          {/* Quick Context Inspector Button */}
+          {/* Forward navigation: primary once the idea is settled, otherwise a quiet skip */}
           <button
-            onClick={() => openContextResolver('Story Direction', 'Conversational Discovery')}
-            className="px-4 py-3 rounded-2xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
-            title="Inspect Scoped Context Package"
+            onClick={() => setActiveScreen(forwardStep.id)}
+            className={`px-5 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer whitespace-nowrap ${
+              isReadyToContinue
+                ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20'
+                : 'bg-white/5 hover:bg-white/10 text-white/70 border border-white/10'
+            }`}
+            title={isReadyToContinue ? 'Your idea is taking shape' : 'Your idea is still open. You can move on and come back.'}
           >
-            <Compass className="w-4 h-4 text-cyan-400" />
-            <span className="hidden sm:inline">Context Inspector</span>
-          </button>
-
-          {/* Next -> Story Brain Forward Navigation */}
-          <button
-            onClick={() => setActiveScreen('story-brain')}
-            className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer whitespace-nowrap"
-            title="Proceed to Story Brain (System of Record)"
-          >
-            <span>Next: Story Brain</span>
+            <span>{isReadyToContinue ? `Continue: ${forwardStep.shortLabel}` : `Skip ahead: ${forwardStep.shortLabel}`}</span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
       </div>
 
-      <ProjectIntelligenceSummary />
-      <NextBestActionPanel />
+      {/* Configuration and suggestions render after the chat; they support the conversation, not lead it */}
+      <div className="order-last">
+        <ProjectIntelligenceSummary />
+        <NextBestActionPanel />
+      </div>
 
       {/* Main Studio Grid: Left Conversational Feed (8 cols) vs Right Project Intelligence Drawer (4 cols) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
@@ -644,24 +645,24 @@ export const DiscoveryStudioScreen: React.FC = () => {
               )}
 
               {/* Stage Forward Navigation Banner when discovery has active turns */}
-              {turns.length > 0 && (
+              {isReadyToContinue && (
                 <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#181c26] to-amber-500/5 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
                       <Brain className="w-4 h-4" />
-                      <span>Ready to review authoritative canon?</span>
+                      <span>Your idea is taking shape. Ready to continue?</span>
                     </div>
                     <p className="text-[11px] text-white/70">
-                      Decisions and facts established in Discovery are locked into Story Brain.
+                      Decisions you made here are saved to Story Brain. You can return to Discovery at any time.
                     </p>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() => setActiveScreen('story-brain')}
+                    onClick={() => setActiveScreen(forwardStep.id)}
                     className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md shadow-amber-500/20 active:scale-95 whitespace-nowrap cursor-pointer"
                   >
-                    <span>Next: Story Brain</span>
+                    <span>Continue: {forwardStep.shortLabel}</span>
                     <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                   </button>
                 </div>

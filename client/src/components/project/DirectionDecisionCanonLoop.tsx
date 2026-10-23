@@ -180,18 +180,6 @@ export const DirectionDecisionCanonLoop: React.FC = () => {
         </div>
       )}
 
-      {nextQuestion && (
-        <div className="mt-4 rounded-xl border border-cyan-400/15 bg-cyan-500/5 p-3">
-          <div className="flex items-center gap-2">
-            <MessageCircleQuestion className="w-3.5 h-3.5 text-cyan-300" />
-            <span className="text-[10px] uppercase tracking-wider font-bold text-cyan-300">Next unresolved question</span>
-          </div>
-          <p className="text-xs text-white mt-1">{nextQuestion}</p>
-          <button onClick={() => setActiveScreen('discovery')} className="mt-2 text-[9px] text-cyan-300 hover:text-cyan-200 flex items-center gap-1">
-            Continue in Discovery <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
-      )}
     </section>
   );
 };

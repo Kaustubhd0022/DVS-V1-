@@ -1,21 +1,20 @@
 import React from 'react';
-import { 
-  Check, 
-  ChevronDown, 
-  Sparkles, 
-  Download, 
-  Layers,
+import {
+  Check,
+  ChevronDown,
+  Sparkles,
+  Package,
   Database,
-  ShieldCheck,
-  Brain
+  ArrowRight
 } from 'lucide-react';
 import { useProject, PIPELINE_STEPS } from '../../context/ProjectContext';
+import { getNextStep, isOptionalStep } from '../../services/projectProgress';
 
 export const ProjectSubheader: React.FC = () => {
-  const { 
-    currentProject, 
-    activeScreen, 
-    goToStep, 
+  const {
+    currentProject,
+    activeScreen,
+    goToStep,
     toggleCopilot,
     openContextResolver,
     projects,
@@ -33,6 +32,11 @@ export const ProjectSubheader: React.FC = () => {
     const found = PIPELINE_STEPS.find(s => s.id === normalizedScreen);
     return found ? found.step : 1;
   })();
+  const currentStep = PIPELINE_STEPS.find(s => s.step === currentStepIndex);
+  const nextStepToWorkOn = getNextStep(currentProject, PIPELINE_STEPS);
+
+  // Only show a score that has actually been computed; never display a placeholder as a result.
+  const evaluationScore = currentProject.evaluation?.overallScore;
 
   return (
     <div className="bg-[#12151c] border-b border-[#222834] px-6 pt-3.5 pb-2.5 select-none sticky top-16 z-10">
@@ -40,26 +44,28 @@ export const ProjectSubheader: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
         {/* Project Selector / Info */}
         <div className="relative flex items-center gap-3">
-          <img 
-            src={currentProject.posterUrl} 
-            alt={currentProject.title} 
-            className="w-8 h-11 object-cover rounded-md border border-[#323b4e] shadow-sm flex-shrink-0" 
+          <img
+            src={currentProject.posterUrl}
+            alt={currentProject.title}
+            className="w-8 h-11 object-cover rounded-md border border-[#323b4e] shadow-sm flex-shrink-0"
           />
           <div>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => setShowProjectPicker(!showProjectPicker)}
                 className="flex items-center gap-1.5 text-base font-bold text-white hover:text-amber-400 transition-colors"
               >
                 <span>{currentProject.title}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-[#8b96a8]" />
               </button>
-              <span className="px-2 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                {currentProject.canonicalVersion || 'v1.2-canonical'}
-              </span>
+              {currentProject.canonicalVersion && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {currentProject.canonicalVersion}
+                </span>
+              )}
             </div>
-            
-            <div className="flex items-center gap-2 text-xs text-[#8b96a8]">
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#8b96a8]">
               <span>{currentProject.projectConfig?.mediaFormat || currentProject.contentType}</span>
               <span>•</span>
               <span>{currentProject.projectConfig?.contentMode || currentProject.genre}</span>
@@ -70,9 +76,15 @@ export const ProjectSubheader: React.FC = () => {
                 </>
               )}
               <span>•</span>
-              <span className="inline-flex items-center px-2 py-0.2 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 {currentProject.stage}
               </span>
+              {currentStep && (
+                <>
+                  <span>•</span>
+                  <span className="text-white/70">Step {currentStep.step} of {PIPELINE_STEPS.length}: {currentStep.label}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -102,49 +114,49 @@ export const ProjectSubheader: React.FC = () => {
           )}
         </div>
 
-        {/* Action buttons & Pilot Telemetry on the right */}
+        {/* Actions on the right */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Discovery Loop Status */}
-          <div className="hidden md:flex items-center gap-2 bg-black/40 border border-amber-500/25 rounded-xl px-3 py-1 text-[11px] text-white/80">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-semibold text-amber-300">Discovery Loop:</span>
-            <span className="text-white/60">Understand → Explore → Decide → Remember → Develop</span>
-            <span className="text-white/30">•</span>
-            <span className="font-mono text-cyan-300">Ambiguity: {currentProject.discovery?.ambiguityLevel ?? 80}%</span>
-          </div>
+          {evaluationScore !== undefined && (
+            <span className="hidden md:inline-flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-[11px] text-white/70">
+              Evaluation score <span className="text-amber-400 font-bold">{Math.round(evaluationScore)}%</span>
+            </span>
+          )}
 
-          {/* Pilot Telemetry Quick Tag */}
-          <div className="hidden xl:flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 py-1 text-[11px] text-white/70">
-            <span className="text-amber-400 font-bold">Pilot Score: {Math.round(currentProject.evaluation?.overallScore || 87)}%</span>
-            <span className="text-white/30">•</span>
-            <span className="text-cyan-300">Verified: {currentProject.pilotMetrics.verificationRate}%</span>
-          </div>
-
-          {/* Clickable Context Resolver Inspector */}
-          <button 
+          <button
             onClick={() => openContextResolver()}
             className="flex items-center gap-1.5 bg-[#171b24] hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-400/50 rounded-xl px-3 py-1.5 text-xs text-cyan-300 font-semibold transition-all shadow-sm"
-            title="Inspect Scoped Context Package"
+            title="See what the AI is given for this project"
           >
             <Database className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="font-medium">Context Resolver</span>
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span className="font-medium">Context</span>
           </button>
 
-          <button 
+          {nextStepToWorkOn && nextStepToWorkOn.id !== normalizedScreen && (
+            <button
+              onClick={() => goToStep(nextStepToWorkOn.step)}
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition-all"
+              title="Go to the next step that has no content yet"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Continue: {nextStepToWorkOn.shortLabel}</span>
+            </button>
+          )}
+
+          <button
             onClick={() => goToStep(16)}
             className="flex items-center gap-1.5 bg-[#171b24] hover:bg-[#202532] border border-[#272e3d] text-xs text-[#cad3e0] px-3 py-1.5 rounded-xl transition-colors"
+            title="Review the development package"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Package</span>
+            <Package className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Review package</span>
           </button>
 
-          <button 
+          <button
             onClick={toggleCopilot}
             className="flex items-center gap-1.5 bg-[#1f2533] hover:bg-[#2a3245] border border-[#37435b] text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm transition-all active:scale-95"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>AI Copilot</span>
+            <span>Copilot</span>
           </button>
         </div>
       </div>
@@ -167,7 +179,7 @@ export const ProjectSubheader: React.FC = () => {
                       ? 'text-[#8b96a8] hover:text-white hover:bg-[#1a1f2b]'
                       : 'text-[#586375] hover:text-[#8b96a8] hover:bg-[#151922]'
                   }`}
-                  title={stepItem.label}
+                  title={isOptionalStep(stepItem.id) ? `${stepItem.label} (optional)` : stepItem.label}
                 >
                   <div
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
@@ -180,16 +192,17 @@ export const ProjectSubheader: React.FC = () => {
                   >
                     {isCompleted ? <Check className="w-3 h-3 stroke-[2.5]" /> : stepItem.step}
                   </div>
-                  <span className="whitespace-nowrap tracking-tight">
+                  <span className={`whitespace-nowrap tracking-tight ${isOptionalStep(stepItem.id) ? 'italic' : ''}`}>
                     {stepItem.shortLabel}
+                    {isOptionalStep(stepItem.id) && <span className="ml-1 text-[9px] font-normal not-italic opacity-60">optional</span>}
                   </span>
                 </button>
 
                 {index < PIPELINE_STEPS.length - 1 && (
-                  <div 
+                  <div
                     className={`w-2.5 h-[1px] ${
                       isCompleted ? 'bg-emerald-500/40' : 'bg-[#242b3a]'
-                    }`} 
+                    }`}
                   />
                 )}
               </React.Fragment>

@@ -37,7 +37,8 @@ import { ProductionPlanningScreen } from './components/screens/ProductionPlannin
 
 export const App: React.FC = () => {
   const { activeScreen, setActiveScreen, impactState, isContextResolverOpen } = useProject();
-  const [showProduct, setShowProduct] = useState(() => new URLSearchParams(window.location.search).get('studio') === '1');
+  // The product opens directly; the marketing page is kept at ?landing=1.
+  const [showProduct, setShowProduct] = useState(() => new URLSearchParams(window.location.search).get('landing') !== '1');
 
   if (!showProduct) {
     return <LandingScreen onEnterProduct={() => setShowProduct(true)} />;

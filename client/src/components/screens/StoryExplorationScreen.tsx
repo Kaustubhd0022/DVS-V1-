@@ -106,6 +106,10 @@ export const StoryExplorationScreen: React.FC = () => {
         ...prev,
         storyDirections: mapped,
         selectedDirectionId: mapped[0]?.id || '',
+        // Drop stale unapproved candidates from Discovery too, so both screens show the same set.
+        projectIntelligence: prev.projectIntelligence
+          ? { ...prev.projectIntelligence, directions: prev.projectIntelligence.directions.filter(d => d.status === 'SELECTED') }
+          : prev.projectIntelligence,
         pilotMetrics: {
           ...prev.pilotMetrics,
           totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1
@@ -239,6 +243,55 @@ export const StoryExplorationScreen: React.FC = () => {
 
   const handleApproveAsCanon = (dirId: string) => {
     setArtifactCandidateState('direction', dirId, 'CANONICAL');
+
+    // Record the approval in the Story Brain, as approving in Discovery does (once per direction).
+    const dir = directions.find(d => d.id === dirId);
+    if (!dir) return;
+    updateCurrentProject(prev => {
+      const title = dir.title;
+      const alreadyCanonical = prev.storyBrain.canonFacts.some(f =>
+        (f.tags?.includes('PROJECT_DIRECTION') || f.tags?.includes('Story Direction')) && f.statement.includes(title)
+      );
+      const alreadyDecided = prev.storyBrain.creativeDecisions.some(d =>
+        d.title === `Direction Decision: ${title}` || d.title === `Authoritative Direction: ${title}`
+      );
+      if (alreadyCanonical && alreadyDecided) return prev;
+
+      const now = new Date().toLocaleDateString();
+      const canonFact = alreadyCanonical ? null : {
+        id: 'cf-direction-' + Date.now(),
+        statement: `Approved Story Direction: ${title}. ${dir.logline}`,
+        category: 'Plot Anchor' as const,
+        entityIds: [],
+        source: 'TATTAVACO_DIRECTION_DECISION',
+        dateEstablished: now,
+        isLocked: true,
+        version: `v1.${prev.storyBrain.canonFacts.length + 1}`,
+        tags: ['PROJECT_DIRECTION', 'AUTHOR_APPROVED']
+      };
+      const decision = alreadyDecided ? null : {
+        id: 'cd-direction-' + Date.now(),
+        title: `Direction Decision: ${title}`,
+        decision: dir.logline,
+        rationale: 'Approved by the creator after reviewing the candidate direction, its strengths, risks and open questions.',
+        author: prev.owner || 'Project Creator',
+        role: 'Creator / Decision Maker',
+        date: now,
+        status: 'ACCEPTED' as const,
+        impactedAreas: ['Story Spine', 'Research', 'Characters', 'World', 'Structure']
+      };
+
+      return {
+        ...prev,
+        storyBrain: {
+          ...prev.storyBrain,
+          canonFacts: canonFact ? [canonFact, ...prev.storyBrain.canonFacts] : prev.storyBrain.canonFacts,
+          creativeDecisions: decision ? [decision, ...prev.storyBrain.creativeDecisions] : prev.storyBrain.creativeDecisions,
+          decisionLog: decision ? [decision, ...(prev.storyBrain.decisionLog || [])] : prev.storyBrain.decisionLog,
+          lastUpdated: 'Just now'
+        }
+      };
+    });
   };
 
   return (
