@@ -958,6 +958,59 @@ export interface PackageData {
 }
 
 // -------------------------------------------------------------
+// UNIVERSAL RESEARCH FOUNDRY & STORY INCUBATION ENGINE
+// -------------------------------------------------------------
+
+export interface ResearchStorySeed {
+  id: string;
+  seedTitle: string;
+  dramaticCore: string;
+  conflictType: 'Conscience vs Loyalty' | 'Empire vs Rebellion' | 'Duty vs Morality' | 'Historical Tragedy' | 'Mythic Reckoning' | 'Underground Resistance';
+  logline: string;
+  recommendedFormat: 'Feature Film' | 'Limited Series (8-10 Episodes)' | 'Serialized Epic';
+  protagonist: {
+    name: string;
+    role: string;
+    want: string;
+    need: string;
+    flaw: string;
+    historicalBasis: string;
+  };
+  antagonist: {
+    name: string;
+    role: string;
+    opposingIdeology: string;
+  };
+  anchorCanonFacts: Array<{
+    statement: string;
+    category: 'Historical Fact' | 'Mythic Rule' | 'Geopolitical Law' | 'Creative License';
+    sourceEvidence: string;
+    provenanceTier: 'Tier 1 (Primary Archive)' | 'Tier 2 (Historiography)' | 'Tier 3 (Tradition / Lore)';
+  }>;
+  unresolvedDebate: string;
+}
+
+export interface ResearchFoundryResult {
+  rootTopic: string;
+  eraDomain: string;
+  historicalContext: string;
+  chronologyTimeline: Array<{
+    date: string;
+    event: string;
+    significance: string;
+    provenanceTier: 'Tier 1' | 'Tier 2' | 'Tier 3';
+  }>;
+  keyPersonae: Array<{
+    name: string;
+    role: string;
+    allegiance: string;
+    dramaticPotential: string;
+  }>;
+  evidenceFindings: ResearchFinding[];
+  dramaticStorySeeds: ResearchStorySeed[];
+}
+
+// -------------------------------------------------------------
 // CORE PROJECT MODEL (Tattava V1 Pilot)
 // -------------------------------------------------------------
 

@@ -115,51 +115,51 @@ export const DirectionDecisionCanonLoop: React.FC = () => {
 
   if (!directions.length) {
     return (
-      <section className="mt-4 rounded-2xl border border-white/10 bg-[#10131a] p-4">
-        <p className="text-[10px] uppercase tracking-wider font-bold text-white/40">Decision Loop</p>
-        <p className="text-xs text-white/55 mt-1">Generate and accept an insight before generating candidate directions.</p>
+      <section className="mt-4 rounded-3xl border border-white/[0.08] bg-[#0e1119]/80 p-5 shadow-xl">
+        <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">Decision Loop</p>
+        <p className="text-xs text-stone-400 mt-1">Generate and accept an insight before generating candidate directions.</p>
       </section>
     );
   }
 
   return (
-    <section className="mt-4 rounded-2xl border border-white/10 bg-[#10131a] p-4">
+    <section className="mt-4 rounded-3xl border border-white/[0.08] bg-[#0e1119]/85 p-5 lg:p-6 shadow-xl relative overflow-hidden backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <ArrowRight className="w-4 h-4 text-amber-300" />
-            <h3 className="text-sm font-bold text-white">Direction → Decision → Canon</h3>
+            <ArrowRight className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-bold text-[#fbf8f3] tracking-tight">Direction → Decision → Canon</h3>
           </div>
-          <p className="text-[11px] text-white/45 mt-1">
-            A selected direction becomes authoritative only after an explicit creator decision.
+          <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+            A candidate direction becomes authoritative only after an explicit human creative gate.
           </p>
         </div>
-        <span className="text-[9px] uppercase tracking-wider px-2 py-1 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+        <span className="text-[9px] uppercase tracking-[0.18em] font-bold px-3 py-1 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20">
           Human Gate
         </span>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-2.5">
         {directions.map(direction => (
-          <div key={direction.id} className={`rounded-xl border p-3 ${direction.status === 'SELECTED' ? 'border-emerald-400/30 bg-emerald-500/5' : 'border-white/5 bg-black/20'}`}>
+          <div key={direction.id} className={`rounded-2xl border p-4 transition ${direction.status === 'SELECTED' ? 'border-emerald-400/30 bg-emerald-500/10 shadow-sm' : 'border-white/[0.08] bg-[#141824]/60 hover:bg-[#141824]/90'}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-white">{direction.title}</span>
-                  <span className="text-[9px] uppercase tracking-wider text-white/35">{direction.status}</span>
+                  <span className="text-xs font-bold text-[#fbf8f3]">{direction.title}</span>
+                  <span className="text-[9px] uppercase tracking-wider font-semibold rounded-full px-2 py-0.5 bg-white/[0.05] text-stone-400 border border-white/[0.06]">{direction.status}</span>
                 </div>
-                <p className="text-[11px] text-white/60 mt-1">{direction.statement}</p>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {direction.strengths.slice(0, 2).map((x, i) => <span key={i} className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/5 text-emerald-300/70">{x}</span>)}
-                  {direction.risks.slice(0, 1).map((x, i) => <span key={i} className="text-[9px] px-2 py-0.5 rounded bg-red-500/5 text-red-300/70">{x}</span>)}
+                <p className="text-xs text-stone-300 mt-1.5 leading-relaxed">{direction.statement}</p>
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {direction.strengths.slice(0, 2).map((x, i) => <span key={i} className="text-[9px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">{x}</span>)}
+                  {direction.risks.slice(0, 1).map((x, i) => <span key={i} className="text-[9px] px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 font-medium">{x}</span>)}
                 </div>
               </div>
               {direction.status !== 'DISMISSED' && direction.status !== 'SELECTED' && (
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => decide(direction.id, 'ACCEPTED')} className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-300 text-[9px] flex items-center gap-1">
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => decide(direction.id, 'ACCEPTED')} className="px-3 py-1.5 rounded-full bg-emerald-400 hover:bg-emerald-300 text-stone-950 font-bold text-[10px] flex items-center gap-1 transition shadow-sm">
                     <Check className="w-3 h-3" /> Accept
                   </button>
-                  <button onClick={() => decide(direction.id, 'DISMISSED')} className="px-2 py-1 rounded bg-red-500/10 text-red-300 text-[9px] flex items-center gap-1">
+                  <button onClick={() => decide(direction.id, 'DISMISSED')} className="px-3 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-medium text-[10px] flex items-center gap-1 transition">
                     <X className="w-3 h-3" /> Dismiss
                   </button>
                 </div>
@@ -170,16 +170,15 @@ export const DirectionDecisionCanonLoop: React.FC = () => {
       </div>
 
       {selected && (
-        <div className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-500/5 p-3">
+        <div className="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
           <div className="flex items-center gap-2">
             <Lock className="w-3.5 h-3.5 text-emerald-300" />
-            <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-300">Approved direction</span>
+            <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-emerald-300">Approved Authoritative Direction</span>
           </div>
-          <p className="text-xs text-white mt-1">{selected.title}</p>
-          <p className="text-[10px] text-white/45 mt-1">Decision and canon record created. Existing canon is never silently overwritten.</p>
+          <p className="text-xs text-[#fbf8f3] font-semibold mt-1.5">{selected.title}</p>
+          <p className="text-[11px] text-stone-400 mt-1">Decision and canon record created. Existing canon is protected from silent overwrites.</p>
         </div>
       )}
-
     </section>
   );
 };

@@ -109,7 +109,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0e12] text-white flex overflow-x-hidden font-sans selection:bg-amber-500/30 selection:text-white">
+    <div className="min-h-screen bg-[#0a0c12] text-[#fbf8f3] flex overflow-x-hidden font-sans selection:bg-amber-500/30 selection:text-white">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">

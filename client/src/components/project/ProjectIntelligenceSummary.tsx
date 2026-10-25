@@ -27,66 +27,160 @@ export const ProjectIntelligenceSummary: React.FC = () => {
 
   return (
     <>
-      <section className="bg-[#12151c] border border-white/10 rounded-2xl p-4 lg:p-5 shadow-xl">
+      <section className="bg-[#0e1119]/85 border border-white/[0.08] rounded-3xl p-5 lg:p-6 shadow-xl backdrop-blur-xl relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <h2 className="text-sm font-bold text-white">Project Configuration</h2>
-              <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+              <h2 className="text-sm font-bold text-[#fbf8f3] tracking-tight">Project Configuration</h2>
+              <span className="text-[9px] uppercase tracking-[0.18em] font-semibold px-2.5 py-0.5 rounded-full bg-cyan-400/10 text-cyan-300 border border-cyan-400/20">
                 {config.configurationStatus === 'USER_CONFIRMED' ? 'Confirmed' : 'AI Proposed'}
               </span>
             </div>
-            <p className="text-[11px] text-white/50 mt-1">The format, content type and subject area of this project.</p>
+            <p className="text-xs text-stone-400 mt-1">The format, narrative mode, and subject area of this project.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] font-semibold flex items-center gap-1.5"><Film className="w-3 h-3" /> {labels[config.mediaFormat] || config.mediaFormat}</span>
-            <span className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-semibold">{labels[config.contentMode] || config.contentMode}</span>
-            {config.primaryDomain && <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-[11px] font-semibold flex items-center gap-1.5"><Compass className="w-3 h-3" /> {config.primaryDomain}</span>}
+            <span className="px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+              <Film className="w-3.5 h-3.5" /> {labels[config.mediaFormat] || config.mediaFormat}
+            </span>
+            <span className="px-3 py-1 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-300 text-xs font-semibold">
+              {labels[config.contentMode] || config.contentMode}
+            </span>
+            {config.primaryDomain && (
+              <span className="px-3 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-300 text-xs font-semibold flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5" /> {config.primaryDomain}
+              </span>
+            )}
           </div>
         </div>
 
         {(config.subject || config.secondaryDomains.length > 0) && (
-          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div><span className="text-[9px] uppercase tracking-wider font-bold text-white/35">Subject</span><p className="text-xs text-white/80 mt-1">{config.subject || 'Not yet confirmed'}</p></div>
-            <div><span className="text-[9px] uppercase tracking-wider font-bold text-white/35">Connected Domains</span><div className="flex flex-wrap gap-1.5 mt-1">{config.secondaryDomains.length > 0 ? config.secondaryDomains.map(domain => <span key={domain} className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/65">{domain}</span>) : <span className="text-[10px] text-white/40">None confirmed yet</span>}</div></div>
+          <div className="mt-4 pt-4 border-t border-white/[0.06] grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-stone-400">Subject</span>
+              <p className="text-xs text-[#fbf8f3] mt-1">{config.subject || 'Not yet confirmed'}</p>
+            </div>
+            <div>
+              <span className="text-[9px] uppercase tracking-[0.18em] font-bold text-stone-400">Connected Domains</span>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {config.secondaryDomains.length > 0 ? (
+                  config.secondaryDomains.map(domain => (
+                    <span key={domain} className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-stone-300">
+                      {domain}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-stone-500">None confirmed yet</span>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
         {!hasKnowledge && (
-          <p className="mt-4 pt-4 border-t border-white/5 text-xs text-white/50">
+          <p className="mt-4 pt-4 border-t border-white/[0.06] text-xs text-stone-400">
             Research topics, insights and story directions will appear here once you have described your idea in Discovery.
           </p>
         )}
 
         {hasKnowledge && (
           <>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-black/20 border border-white/5 p-2.5"><p className="text-lg font-bold text-white">{dimensions.length}</p><p className="text-[9px] uppercase tracking-wider text-white/35">Research Topics</p></div>
-              <div className="rounded-xl bg-black/20 border border-white/5 p-2.5"><p className="text-lg font-bold text-white">{insights.length}</p><p className="text-[9px] uppercase tracking-wider text-white/35">Insights</p></div>
-              <div className="rounded-xl bg-black/20 border border-white/5 p-2.5"><p className="text-lg font-bold text-white">{directions.length}</p><p className="text-[9px] uppercase tracking-wider text-white/35">Directions</p></div>
+            <div className="mt-4 grid grid-cols-3 gap-2.5">
+              <div className="rounded-2xl bg-[#141824]/60 border border-white/[0.06] p-3 text-center">
+                <p className="text-xl font-bold text-[#fbf8f3]">{dimensions.length}</p>
+                <p className="text-[9px] uppercase tracking-[0.18em] text-stone-400 mt-0.5">Research Topics</p>
+              </div>
+              <div className="rounded-2xl bg-[#141824]/60 border border-white/[0.06] p-3 text-center">
+                <p className="text-xl font-bold text-[#fbf8f3]">{insights.length}</p>
+                <p className="text-[9px] uppercase tracking-[0.18em] text-stone-400 mt-0.5">Insights</p>
+              </div>
+              <div className="rounded-2xl bg-[#141824]/60 border border-white/[0.06] p-3 text-center">
+                <p className="text-xl font-bold text-[#fbf8f3]">{directions.length}</p>
+                <p className="text-[9px] uppercase tracking-[0.18em] text-stone-400 mt-0.5">Directions</p>
+              </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/5">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 mb-3">
-                <div><p className="text-[10px] uppercase tracking-wider font-bold text-white/40">Insights and directions</p><p className="text-[11px] text-white/45 mt-1">The AI suggests; you decide what becomes part of the story.</p></div>
+            <div className="mt-5 pt-4 border-t border-white/[0.06]">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3.5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-stone-400">Insights and directions</p>
+                  <p className="text-xs text-stone-400 mt-0.5">The AI proposes; you decide what becomes part of the canon.</p>
+                </div>
                 <div className="flex gap-2">
-                  <button disabled={working !== null} onClick={async () => { setWorking('insights'); try { await generateProjectInsights(); } finally { setWorking(null); } }} className="px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-semibold disabled:opacity-50">{working === 'insights' ? 'Generating…' : 'Generate insights'}</button>
-                  <button disabled={working !== null || !hasAcceptedInsight} onClick={async () => { setWorking('directions'); try { await generateProjectDirections(); } finally { setWorking(null); } }} className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold disabled:opacity-40" title={hasAcceptedInsight ? undefined : 'Accept at least one insight first'}>{working === 'directions' ? 'Generating…' : 'Generate directions'}</button>
+                  <button
+                    disabled={working !== null}
+                    onClick={async () => {
+                      setWorking('insights');
+                      try { await generateProjectInsights(); } finally { setWorking(null); }
+                    }}
+                    className="px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/25 text-cyan-300 hover:bg-cyan-400/20 text-xs font-semibold disabled:opacity-50 transition flex items-center gap-1.5"
+                  >
+                    {working === 'insights' ? (
+                      <>
+                        <div className="linea-btn-wave h-2.5 text-cyan-300">
+                          <span className="h-1" />
+                          <span className="h-2.5" />
+                          <span className="h-1.5" />
+                        </div>
+                        <span>Generating…</span>
+                      </>
+                    ) : (
+                      'Generate insights'
+                    )}
+                  </button>
+                  <button
+                    disabled={working !== null || !hasAcceptedInsight}
+                    onClick={async () => {
+                      setWorking('directions');
+                      try { await generateProjectDirections(); } finally { setWorking(null); }
+                    }}
+                    className="px-4 py-2 rounded-full bg-amber-400/10 border border-amber-400/25 text-amber-300 hover:bg-amber-400/20 text-xs font-semibold disabled:opacity-40 transition flex items-center gap-1.5"
+                    title={hasAcceptedInsight ? undefined : 'Accept at least one insight first'}
+                  >
+                    {working === 'directions' ? (
+                      <>
+                        <div className="linea-btn-wave h-2.5 text-amber-300">
+                          <span className="h-1" />
+                          <span className="h-2.5" />
+                          <span className="h-1.5" />
+                        </div>
+                        <span>Generating…</span>
+                      </>
+                    ) : (
+                      'Generate directions'
+                    )}
+                  </button>
                 </div>
               </div>
               {insights.slice(0, 4).map(insight => (
-                <div key={insight.id} className="rounded-xl bg-black/20 border border-white/5 p-3 mb-2">
+                <div key={insight.id} className="rounded-2xl bg-[#141824]/60 border border-white/[0.06] p-3.5 mb-2.5 hover:bg-[#141824]/90 transition">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2"><span className="text-[10px] uppercase tracking-wider text-cyan-300/70">{insight.type.replace('_', ' ').toLowerCase()}</span><span className="text-[10px] text-white/40">{insight.status === 'ACCEPTED' ? 'Accepted' : insight.status === 'DISMISSED' ? 'Dismissed' : 'Needs your decision'}</span></div>
-                      <p className="text-xs font-semibold text-white mt-1">{insight.title}</p>
-                      <p className="text-xs text-white/60 mt-1 leading-relaxed">{insight.statement}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] uppercase tracking-wider font-semibold rounded-full px-2 py-0.5 bg-cyan-400/10 text-cyan-300 border border-cyan-400/20">
+                          {insight.type.replace('_', ' ').toLowerCase()}
+                        </span>
+                        <span className="text-[10px] text-stone-400">
+                          {insight.status === 'ACCEPTED' ? 'Accepted' : insight.status === 'DISMISSED' ? 'Dismissed' : 'Needs your decision'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-[#fbf8f3] mt-1.5">{insight.title}</p>
+                      <p className="text-xs text-stone-300 mt-1 leading-relaxed">{insight.statement}</p>
                     </div>
                     {insight.status === 'CANDIDATE' ? (
                       <div className="flex gap-1.5 shrink-0">
-                        <button onClick={() => setProjectInsightStatus(insight.id, 'ACCEPTED')} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">Accept</button>
-                        <button onClick={() => setProjectInsightStatus(insight.id, 'DISMISSED')} className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-semibold">Dismiss</button>
+                        <button
+                          onClick={() => setProjectInsightStatus(insight.id, 'ACCEPTED')}
+                          className="px-3 py-1.5 rounded-full bg-emerald-400 hover:bg-emerald-300 text-stone-950 text-xs font-bold transition shadow-sm"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => setProjectInsightStatus(insight.id, 'DISMISSED')}
+                          className="px-3 py-1.5 rounded-full bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-medium transition"
+                        >
+                          Dismiss
+                        </button>
                       </div>
                     ) : null}
                   </div>

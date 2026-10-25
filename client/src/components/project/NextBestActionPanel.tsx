@@ -82,19 +82,46 @@ export const NextBestActionPanel: React.FC = () => {
     : 'Continue';
 
   return (
-    <section className="mt-4 rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-500/5 to-transparent p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-xl bg-cyan-400/10 flex items-center justify-center"><Icon className="w-4 h-4 text-cyan-300" /></div>
+    <section className="mt-4 rounded-3xl border border-cyan-400/20 bg-gradient-to-br from-cyan-950/20 via-[#0e1119] to-[#0a0c12] p-5 lg:p-6 shadow-xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 rounded-full bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center shrink-0">
+            <Icon className="w-4 h-4 text-cyan-300" />
+          </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider font-bold text-cyan-300">Suggested next step · {kindLabel[action.kind]}</p>
-            <h3 className="text-sm font-semibold text-white mt-1">{action.question}</h3>
-            <p className="text-xs text-white/55 mt-1 max-w-2xl">{action.reason}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-cyan-300">
+                Suggested Next Step
+              </span>
+              <span className="rounded-full bg-cyan-400/10 px-2 py-0.5 text-[9px] uppercase tracking-wider text-cyan-200 border border-cyan-400/20 font-semibold">
+                {kindLabel[action.kind]}
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-[#fbf8f3] mt-1 tracking-tight">{action.question}</h3>
+            <p className="text-xs text-stone-400 mt-1 max-w-2xl leading-relaxed">{action.reason}</p>
           </div>
         </div>
-        <button onClick={execute} disabled={working} className="shrink-0 px-3 py-2 rounded-lg bg-cyan-400/10 border border-cyan-400/20 text-cyan-200 text-xs font-semibold disabled:opacity-50">
-          {buttonLabel}
-          {!working && <ArrowRight className="inline w-3 h-3 ml-1" />}
+        <button
+          onClick={execute}
+          disabled={working}
+          className="shrink-0 px-5 py-2.5 rounded-full bg-cyan-400/15 border border-cyan-400/30 text-cyan-200 hover:bg-cyan-400/25 transition text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-2 self-start sm:self-center shadow-md shadow-cyan-400/10"
+        >
+          {working ? (
+            <>
+              <div className="linea-btn-wave h-3 text-cyan-200">
+                <span className="h-1.5" />
+                <span className="h-3" />
+                <span className="h-2" />
+              </div>
+              <span>Processing…</span>
+            </>
+          ) : (
+            <>
+              <span>{buttonLabel}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </>
+          )}
         </button>
       </div>
     </section>

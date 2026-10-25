@@ -77,7 +77,7 @@ export const Sidebar: React.FC = () => {
     <aside
       className={`${
         isCollapsed ? 'w-[72px]' : 'w-64'
-      } bg-[#0d0f14] border-r border-[#222834] flex flex-col justify-between flex-shrink-0 min-h-screen select-none z-30 transition-[width] duration-300 ease-in-out relative`}
+      } bg-[#0a0c12] border-r border-white/[0.08] flex flex-col justify-between flex-shrink-0 min-h-screen select-none z-30 transition-[width] duration-300 ease-in-out relative`}
     >
       {/* Top branding & controls */}
       <div className={`${isCollapsed ? 'p-3' : 'p-5'}`}>
@@ -87,7 +87,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={() => setActiveScreen('home')}
               title="Tattava Copilot • Home"
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 border border-amber-500/40 flex items-center justify-center font-bold text-amber-300 text-sm shadow-md hover:scale-105 transition-transform"
+              className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 border border-amber-500/40 flex items-center justify-center font-bold text-amber-300 text-sm shadow-md hover:scale-105 transition-transform"
             >
               T
             </button>
@@ -95,7 +95,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={toggleCollapse}
               title="Expand Sidebar"
-              className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
             >
               <ChevronRight className="w-4 h-4 text-amber-400" />
             </button>
@@ -110,9 +110,10 @@ export const Sidebar: React.FC = () => {
                 <img
                   src="/tattvaCo-logo.png"
                   alt="Tattava Copilot"
-                  className="h-8 w-auto max-w-[165px] object-contain object-left brightness-110 group-hover:brightness-125 transition-all drop-shadow-[0_2px_12px_rgba(164,75,50,0.25)]"
+                  className="h-8 w-auto max-w-[165px] object-contain object-left brightness-110 group-hover:brightness-125 transition-all drop-shadow-[0_2px_12px_rgba(245,158,11,0.2)]"
                 />
-                <span className="block text-[9px] uppercase font-bold tracking-[0.25em] text-amber-500/80 mt-1 pl-0.5">
+                <span className="inline-flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-[0.25em] text-amber-400/90 mt-1 pl-0.5 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   V1 Pilot
                 </span>
               </div>
@@ -122,7 +123,7 @@ export const Sidebar: React.FC = () => {
             <button
               onClick={toggleCollapse}
               title="Collapse Sidebar"
-              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors mt-0.5"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors mt-0.5"
             >
               <ChevronLeft className="w-4 h-4 text-white/60 hover:text-amber-400" />
             </button>
@@ -134,7 +135,7 @@ export const Sidebar: React.FC = () => {
           {navGroups.map(group => (
             <div key={group.title} className="space-y-1">
               {!isCollapsed && (
-                <span className="text-[10px] uppercase font-bold tracking-wider text-white/30 px-3 py-1 block">
+                <span className="text-[10px] uppercase font-bold tracking-[0.14em] text-stone-400/70 px-3 py-1 block font-mono">
                   {group.title}
                 </span>
               )}
@@ -148,13 +149,13 @@ export const Sidebar: React.FC = () => {
                       key={item.id}
                       onClick={() => setActiveScreen(item.id)}
                       title={item.label}
-                      className={`w-full flex items-center justify-center p-2.5 rounded-xl transition-all relative group ${
+                      className={`w-full flex items-center justify-center p-2.5 rounded-full transition-all relative group ${
                         isSelected
-                          ? 'bg-[#1e2330] text-amber-400 shadow-sm border border-amber-500/40'
-                          : 'text-[#8b96a8] hover:text-white hover:bg-[#151922]'
+                          ? 'bg-amber-500/15 text-amber-300 shadow-[0_2px_10px_rgba(245,158,11,0.2)] border border-amber-500/40'
+                          : 'text-stone-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      <span className={isSelected ? 'text-amber-400' : 'text-[#8b96a8] group-hover:text-white'}>
+                      <span className={isSelected ? 'text-amber-300' : 'text-stone-400 group-hover:text-white'}>
                         {item.icon}
                       </span>
                     </button>
@@ -165,55 +166,68 @@ export const Sidebar: React.FC = () => {
                   <button
                     key={item.id}
                     onClick={() => setActiveScreen(item.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
                       isSelected
-                        ? 'bg-[#1e2330] text-amber-400 shadow-sm border border-amber-500/40'
-                        : 'text-[#8b96a8] hover:text-white hover:bg-[#151922]'
+                        ? 'bg-amber-500/15 text-amber-200 shadow-[0_2px_12px_rgba(245,158,11,0.18)] border border-amber-500/40'
+                        : 'text-stone-300 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    <span className={isSelected ? 'text-amber-400' : 'text-[#8b96a8]'}>
+                    <span className={isSelected ? 'text-amber-400' : 'text-stone-400'}>
                       {item.icon}
                     </span>
                     <span>{item.label}</span>
-                    {isOptionalStep(item.id) && <span className="ml-auto text-[9px] font-normal text-white/30">optional</span>}
+                    {isOptionalStep(item.id) && (
+                      <span className="ml-auto text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-white/5 text-stone-400 border border-white/5">
+                        opt
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
           ))}
 
-          <div className="pt-3 border-t border-white/5 space-y-1">
+          <div className="pt-3 border-t border-white/[0.08] space-y-1">
             <button
               onClick={() => setCopilotOpen(true)}
               title="Copilot"
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-xl text-xs font-semibold text-amber-300 hover:text-white hover:bg-amber-500/10 transition-all border border-amber-500/20`}
+              className={`w-full flex items-center ${
+                isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2'
+              } rounded-full text-xs font-semibold text-amber-300 hover:text-white hover:bg-amber-500/15 transition-all border border-amber-500/30 shadow-[0_2px_8px_rgba(245,158,11,0.1)]`}
             >
               <div className="flex items-center gap-2.5">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                {!isCollapsed && <span>Copilot</span>}
+                {!isCollapsed && <span>Tattava Copilot</span>}
               </div>
+              {!isCollapsed && (
+                <span className="linea-btn-wave" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              )}
             </button>
           </div>
         </nav>
       </div>
 
       {/* Footer */}
-      <div className={`${isCollapsed ? 'p-2.5 text-center' : 'p-4'} border-t border-[#202532] bg-[#0b0d11]/80`}>
+      <div className={`${isCollapsed ? 'p-2.5 text-center' : 'p-4'} border-t border-white/[0.08] bg-[#080a0f]/80 backdrop-blur-md`}>
         {isCollapsed ? (
           <div
             title="Tattava Copilot • V1 Pilot Release"
-            className="w-9 h-9 mx-auto rounded-lg bg-[#252c3c] border border-[#374158] flex items-center justify-center text-[10px] font-bold text-white shadow-sm cursor-pointer"
+            className="w-9 h-9 mx-auto rounded-full bg-[#181d2a] border border-white/10 flex items-center justify-center text-[10px] font-bold text-white shadow-sm cursor-pointer"
           >
             DV
           </div>
         ) : (
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#252c3c] border border-[#374158] flex items-center justify-center text-[10px] font-bold text-white">
+            <div className="w-7 h-7 rounded-full bg-[#181d2a] border border-white/10 flex items-center justify-center text-[10px] font-bold text-amber-300 shadow-sm">
               DV
             </div>
             <div className="truncate">
-              <p className="text-xs font-semibold text-white truncate">Tattava Copilot</p>
-              <p className="text-[9px] text-amber-400/80 truncate">V1 Pilot Release</p>
+              <p className="text-xs font-semibold text-[#fbf8f3] truncate">Tattava Copilot</p>
+              <p className="text-[10px] text-amber-400/80 font-mono truncate">v1.2 Epistemic Pilot</p>
             </div>
           </div>
         )}

@@ -34,7 +34,9 @@ import {
   BranchMergeRecord,
   BranchMergePreview,
   BranchMergeConflict,
-  BranchMergeDiff
+  BranchMergeDiff,
+  ResearchStorySeed,
+  ResearchFoundryResult
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
@@ -223,7 +225,7 @@ interface ProjectContextType {
   approveRegenerationProposal: (versionId: string, approvedBy: string, role: string, rationale?: string) => void;
   
   // Specific Screen Helper Methods
-  setProjectFormat: (format: string) => void;
+  setProjectFormat: (format: string, customEpisodeCount?: number) => void;
   setProjectTemplate: (template: string) => void;
   updateTreatment: (updates: Partial<TreatmentData>) => void;
   updateScreenplayLine: (lineId: string, content: string) => void;
@@ -241,6 +243,7 @@ interface ProjectContextType {
   resolveCanonConflict: (conflictId: string, resolution: CanonConflict['status'], notes?: string) => void;
   analyzeIntentAndSetFormat: (input: string, attachment?: { name: string; content: string }) => Promise<void>;
   evaluateGreenlight: () => GreenlightGateState;
+  startProjectFromResearchSeed: (seed: ResearchStorySeed, rawTopic: string, rawResearch: ResearchFoundryResult) => string;
 
   // UI Helpers
   toggleCopilot: () => void;
@@ -1864,6 +1867,182 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return newProjId;
   };
 
+  const startProjectFromResearchSeed = (
+    seed: ResearchStorySeed,
+    rawTopic: string,
+    rawResearch: ResearchFoundryResult
+  ): string => {
+    const newProjId = 'proj-' + Date.now();
+    const isSeries = seed.recommendedFormat.toLowerCase().includes('series') || seed.recommendedFormat.toLowerCase().includes('epic');
+    const contentType = isSeries ? 'Series / OTT' : 'Feature Film';
+
+    const newProj = createEmptyProject(newProjId, seed.seedTitle, seed.logline, {
+      contentType,
+      genre: seed.conflictType
+    });
+
+    const protagonistId = 'char-protagonist-' + Date.now();
+    const antagonistId = 'char-antagonist-' + Date.now();
+
+    const protagonistChar: Character = {
+      id: protagonistId,
+      name: seed.protagonist.name,
+      age: 36,
+      gender: 'Specified',
+      occupation: seed.protagonist.role,
+      location: rawResearch.eraDomain,
+      tags: ['Lead', 'Canon', 'Provenance-Backed'],
+      quote: `My conscience is bound to the truth, not the decree.`,
+      photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop',
+      status: 'APPROVED',
+      role: 'Protagonist',
+      archetype: seed.protagonist.role,
+      want: seed.protagonist.want,
+      need: seed.protagonist.need,
+      flaw: seed.protagonist.flaw,
+      fear: 'Public exposure and destruction of personal integrity',
+      strength: 'Forensic perception and moral courage',
+      secret: 'Guards an unshared piece of the central conspiracy',
+      arc: 'From obedient officer to self-actualized catalyst',
+      voiceStyle: 'Direct, disciplined, and urgent',
+      contradictions: 'Sworn to preserve the regime yet actively sheltering rebels',
+      moralDilemma: seed.dramaticCore,
+      backstory: seed.protagonist.historicalBasis,
+      psychometrics: {
+        openness: 82,
+        conscientiousness: 90,
+        extraversion: 58,
+        agreeableness: 62,
+        neuroticism: 70
+      },
+      relationships: [
+        {
+          targetCharacterId: antagonistId,
+          targetCharacterName: seed.antagonist.name,
+          relationType: 'Adversary',
+          dynamic: 'Subjugation vs Defiance'
+        }
+      ],
+      scenesAppeared: [1, 2, 3, 5, 6]
+    };
+
+    const antagonistChar: Character = {
+      id: antagonistId,
+      name: seed.antagonist.name,
+      age: 52,
+      gender: 'Specified',
+      occupation: seed.antagonist.role,
+      location: rawResearch.eraDomain,
+      tags: ['Adversary', 'Canon', 'Systemic'],
+      quote: 'Order must be preserved, regardless of sentimentality.',
+      photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop',
+      status: 'APPROVED',
+      role: 'Antagonist',
+      archetype: 'Systemic Enforcer',
+      want: seed.antagonist.opposingIdeology,
+      need: 'Acknowledge the collapse of the imperial illusion',
+      flaw: 'Authoritarian ruthlessness and disdain for moral compromise',
+      fear: 'Loss of sovereign command and military chaos',
+      strength: 'Bureaucratic leverage and tactical ruthlessness',
+      secret: 'Authorized the secret orders triggering the crisis',
+      arc: 'From absolute imperial confidence to desperate containment',
+      voiceStyle: 'Cynical, commanding, and polished',
+      contradictions: 'Believes in the nobility of empire while executing war crimes',
+      moralDilemma: 'Willing to fire on his own dockyards to preserve face',
+      backstory: 'Decorated veteran of colonial campaigns across the subcontinent',
+      psychometrics: {
+        openness: 40,
+        conscientiousness: 95,
+        extraversion: 75,
+        agreeableness: 25,
+        neuroticism: 60
+      },
+      relationships: [
+        {
+          targetCharacterId: protagonistId,
+          targetCharacterName: seed.protagonist.name,
+          relationType: 'Subordinate / Target',
+          dynamic: 'Hierarchical coercion'
+        }
+      ],
+      scenesAppeared: [2, 3, 4, 6]
+    };
+
+    // Canon facts from seed
+    const canonFacts: CanonFact[] = seed.anchorCanonFacts.map((fact, idx) => ({
+      id: 'cf-seed-' + Date.now() + '-' + (idx + 1),
+      statement: fact.statement,
+      category: fact.category === 'Historical Fact' ? 'World Rule' : 'Plot Law',
+      canonType: 'factual_canon',
+      entityIds: [protagonistId, antagonistId],
+      source: `${fact.provenanceTier} — ${fact.sourceEvidence}`,
+      dateEstablished: new Date().toLocaleDateString(),
+      isLocked: true,
+      version: 'v1.0-canonical',
+      tags: ['Verified Canon', fact.provenanceTier, fact.category]
+    }));
+
+    // Creative decision
+    const decision: CreativeDecision = {
+      id: 'dec-seed-' + Date.now(),
+      title: `Incubated Story Spine: ${seed.seedTitle}`,
+      decision: `Authorized candidate seed "${seed.seedTitle}" based on research into "${rawTopic}".`,
+      rationale: `Drawn from primary archival and historical evidence. Dramatic core: ${seed.dramaticCore}.`,
+      author: 'Creative Lead',
+      role: 'Story Architect',
+      date: new Date().toLocaleDateString(),
+      status: 'ACCEPTED',
+      impactedAreas: ['Story Brain', 'Premise', 'Characters', 'Historical Canon']
+    };
+
+    const finalized: TattavaProject = {
+      ...newProj,
+      title: seed.seedTitle,
+      tagline: seed.logline,
+      contentType,
+      genre: seed.conflictType,
+      format: seed.recommendedFormat,
+      intent: {
+        ...newProj.intent,
+        premise: seed.logline,
+        rawConcept: seed.dramaticCore,
+        protagonist: `${seed.protagonist.name}, ${seed.protagonist.role}`,
+        conflict: seed.dramaticCore,
+        stakes: seed.logline,
+        domain: rawResearch.eraDomain,
+        knownFacts: seed.anchorCanonFacts.map(f => f.statement),
+        status: 'APPROVED',
+        intakeAnalysisStatus: 'APPROVED',
+        storyBrainProposed: true
+      },
+      characters: [protagonistChar, antagonistChar],
+      selectedCharacterId: protagonistId,
+      researchFindings: rawResearch.evidenceFindings || [],
+      researchQuestions: [
+        {
+          id: 'rq-seed-1',
+          title: seed.unresolvedDebate,
+          category: 'Central Dramatic Mystery',
+          completed: false
+        }
+      ],
+      storyBrain: {
+        lastUpdated: 'Just now',
+        activeEntitiesCount: 2,
+        canonFacts,
+        creativeDecisions: [decision],
+        decisionLog: [decision],
+        dependencies: []
+      }
+    };
+
+    const canonicalized = applyCanonicalConfiguration(finalized);
+    setProjects(prev => [canonicalized, ...prev]);
+    setCurrentProjectId(newProjId);
+    setActiveScreen('story-brain');
+    return newProjId;
+  };
+
   const initializeStoryBrainFromIntake = (breakdown: {
     premise: string;
     protagonist: string;
@@ -2829,10 +3008,14 @@ Format: ${currentProject.format}
     }
   };
 
-  const setProjectFormat = (formatTitle: string) => {
+  const setProjectFormat = (formatTitle: string, customEpisodeCount?: number) => {
     updateCurrentProject(prev => {
       const isSeries = isSeriesFormat(formatTitle);
-      const episodeCount = isSeries ? 6 : undefined;
+      const epMatch = formatTitle.match(/(\d+)\s*[- ]*(?:ep|episode)/i);
+      const detectedEpCount = epMatch ? parseInt(epMatch[1], 10) : undefined;
+      const episodeCount = isSeries 
+        ? (customEpisodeCount || detectedEpCount || prev.dynamicFormat?.episodeCount || prev.projectConfig?.episodeCount || 16) 
+        : undefined;
       const episodeDurationMins = isSeries ? 45 : undefined;
       const activeEpisodeNumber = isSeries ? (prev.projectConfig?.activeEpisodeNumber || prev.structure?.activeEpisodeNumber || 1) : undefined;
       const runtime = isSeries ? 45 : 120;
@@ -2844,6 +3027,16 @@ Format: ${currentProject.format}
         contentType: formatTitle,
         format: formatTitle,
         formats: prev.formats.map(f => ({ ...f, isSelected: f.title === formatTitle || (formatTitle === 'Limited Series' && /Limited Web Series/i.test(f.title)) })),
+        dynamicFormat: isSeries ? {
+          format: 'Series',
+          episodeCount: episodeCount || 16,
+          episodeDurationMins: 45,
+          domain: prev.intent?.domain || 'Historical Drama',
+          narrativeMode: 'Serialized Episodic',
+          episodeUnit: 'Episode',
+          arcStructure: `${episodeCount || 16}-Chapter Serialized Arc`,
+          isDynamicallyConstructed: true
+        } : undefined,
         projectConfig: {
           ...(prev.projectConfig || DEFAULT_PROJECT_CONFIGURATION),
           formatLabel: formatTitle,
@@ -3079,6 +3272,7 @@ Format: ${currentProject.format}
         resolveCanonConflict,
         analyzeIntentAndSetFormat,
         evaluateGreenlight,
+        startProjectFromResearchSeed,
         toggleCopilot,
         setCopilotOpen: setIsCopilotOpen,
         copilotMessages,

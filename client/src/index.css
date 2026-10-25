@@ -4,34 +4,185 @@
 
 @layer base {
   body {
-    background-color: #0c0e12;
-    color: #f1f3f7;
+    background-color: #0a0c12;
+    color: #fbf8f3;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Custom sleek dark scrollbars */
+  /* Linea Warm Obsidian Custom Scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #11141a;
+    background: #0e1119;
   }
   ::-webkit-scrollbar-thumb {
-    background: #252c3a;
+    background: #232a3b;
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #f59e0b;
   }
 
-  /* Accessible high-contrast focus rings (WCAG 2.4.7) */
+  /* Accessible high-contrast focus rings */
   :focus-visible {
     outline: 2px solid #f59e0b !important;
     outline-offset: 2px !important;
   }
 }
 
+/* ==========================================================================
+   LINEA DESIGN SYSTEM - CORE PRIMITIVES & MICRO-INTERACTIONS
+   ========================================================================== */
+
+/* Linea Audio Equalizer Wave (Signature 3-bar animated soundwave on buttons) */
+.linea-btn-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 12px;
+  margin-left: 7px;
+  vertical-align: middle;
+}
+
+.linea-btn-wave span {
+  display: inline-block;
+  width: 2px;
+  background-color: currentColor;
+  border-radius: 9999px;
+  transform-origin: bottom;
+}
+
+.linea-btn-wave span:nth-child(1) {
+  height: 5px;
+  animation: lineaWave1 1.2s ease-in-out infinite;
+}
+.linea-btn-wave span:nth-child(2) {
+  height: 12px;
+  animation: lineaWave2 1.2s ease-in-out infinite 0.18s;
+}
+.linea-btn-wave span:nth-child(3) {
+  height: 8px;
+  animation: lineaWave3 1.2s ease-in-out infinite 0.36s;
+}
+
+@keyframes lineaWave1 {
+  0%, 100% { height: 4px; }
+  50% { height: 11px; }
+}
+@keyframes lineaWave2 {
+  0%, 100% { height: 12px; }
+  50% { height: 5px; }
+}
+@keyframes lineaWave3 {
+  0%, 100% { height: 6px; }
+  50% { height: 12px; }
+}
+
+/* Linea Pill Buttons */
+.linea-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.linea-pill-btn:active {
+  transform: scale(0.97);
+}
+
+.linea-pill-primary {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 60%, #d97706 100%);
+  color: #0a0c12;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 4px 18px -4px rgba(245, 158, 11, 0.45);
+  border: 1px solid rgba(251, 191, 36, 0.6);
+}
+.linea-pill-primary:hover {
+  background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 60%, #f59e0b 100%);
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), 0 6px 24px -4px rgba(245, 158, 11, 0.6);
+  transform: translateY(-1px);
+}
+
+.linea-pill-mint {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 60%, #059669 100%);
+  color: #0a0c12;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), 0 4px 18px -4px rgba(16, 185, 129, 0.45);
+  border: 1px solid rgba(52, 211, 153, 0.6);
+}
+.linea-pill-mint:hover {
+  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 60%, #10b981 100%);
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), 0 6px 24px -4px rgba(16, 185, 129, 0.6);
+  transform: translateY(-1px);
+}
+
+.linea-pill-secondary {
+  background: rgba(22, 26, 38, 0.85);
+  color: #fbf8f3;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 2px 10px -2px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+.linea-pill-secondary:hover {
+  background: rgba(30, 36, 52, 0.95);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.linea-pill-ghost {
+  background: transparent;
+  color: #a6b0c2;
+  border: 1px solid transparent;
+}
+.linea-pill-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fbf8f3;
+}
+
+/* Linea Bento Cards (Heavy corner curves, layered borders, inset specular glow) */
+.linea-bento {
+  background: linear-gradient(180deg, rgba(20, 25, 36, 0.82) 0%, rgba(14, 18, 26, 0.92) 100%);
+  border-radius: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 16px 36px -12px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+}
+
+.linea-bento-interactive {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.linea-bento-interactive:hover {
+  border-color: rgba(245, 158, 11, 0.28);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 22px 48px -14px rgba(0, 0, 0, 0.75);
+}
+
+/* Linea Pill Chip / Caption Badge (.m-caption) */
+.linea-caption-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+/* Legacy / Domain-specific classes updated for Linea harmony */
 .font-script {
   font-family: 'Caveat', cursive;
 }
@@ -41,45 +192,49 @@
 }
 
 .screenplay-paper {
-  background: #0f1115;
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7);
-  border: 1px solid #252a35;
-  color: #e5e9f0;
+  background: #0f121a;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 14px 44px -10px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #fbf8f3;
+  border-radius: 1.5rem;
 }
 
 .glass-nav {
-  background: rgba(19, 22, 28, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid #232936;
+  background: rgba(12, 15, 22, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-panel {
-  background: rgba(24, 28, 36, 0.75);
+  background: rgba(18, 22, 32, 0.82);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
 }
 
 .glass-card {
-  background: #181c24;
-  border: 1px solid #262c3a;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(20, 25, 36, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 10px 30px -8px rgba(0, 0, 0, 0.5);
 }
 
 .glass-card:hover {
-  border-color: #384257;
+  border-color: rgba(245, 158, 11, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1), 0 16px 36px -8px rgba(0, 0, 0, 0.65);
 }
 
 /* Pulse animation for AI processing */
 @keyframes pulse-orange {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(242, 91, 42, 0.4);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(242, 91, 42, 0);
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
   }
 }
 

@@ -2,29 +2,24 @@ import React, { useState } from 'react';
 import { 
   Sparkles, 
   ArrowRight, 
-  ArrowLeft, 
   Check, 
-  CheckCircle2, 
   Eye, 
   GitMerge, 
-  Layers, 
-  BookOpen, 
-  TrendingUp, 
-  AlertTriangle,
-  Plus,
-  Compass,
-  Database,
-  Lock,
-  Shield,
-  FileCheck,
-  RefreshCw,
-  AlertCircle
+  Plus, 
+  Compass, 
+  Database, 
+  Shield, 
+  FileCheck, 
+  RefreshCw, 
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { generateStoryDirections, fleshOutStoryDirection } from '../../services/aiService';
 import { StoryDirection } from '../../types/project';
 import { BranchEvolutionPanel } from './BranchEvolutionPanel';
 import { RegenerationReviewPanel } from './RegenerationReviewPanel';
+import { LineaButton, BentoCard, LineaCaption, LineaEqualizerWave } from '../common/LineaUI';
 
 export const StoryExplorationScreen: React.FC = () => {
   const { 
@@ -35,11 +30,9 @@ export const StoryExplorationScreen: React.FC = () => {
     addCustomStoryDirection,
     setArtifactCandidateState,
     openContextResolver,
-    nextStep, 
-    prevStep 
+    nextStep 
   } = useProject();
 
-  const [activeTab, setActiveTab] = useState('Story Directions');
   const [showCombineModal, setShowCombineModal] = useState(false);
   const [selectedForCombine, setSelectedForCombine] = useState<string[]>(['', '']);
   const [combinedTitle, setCombinedTitle] = useState('Synthesized Narrative Engine');
@@ -106,7 +99,6 @@ export const StoryExplorationScreen: React.FC = () => {
         ...prev,
         storyDirections: mapped,
         selectedDirectionId: mapped[0]?.id || '',
-        // Drop stale unapproved candidates from Discovery too, so both screens show the same set.
         projectIntelligence: prev.projectIntelligence
           ? { ...prev.projectIntelligence, directions: prev.projectIntelligence.directions.filter(d => d.status === 'SELECTED') }
           : prev.projectIntelligence,
@@ -244,7 +236,6 @@ export const StoryExplorationScreen: React.FC = () => {
   const handleApproveAsCanon = (dirId: string) => {
     setArtifactCandidateState('direction', dirId, 'CANONICAL');
 
-    // Record the approval in the Story Brain, as approving in Discovery does (once per direction).
     const dir = directions.find(d => d.id === dirId);
     if (!dir) return;
     updateCurrentProject(prev => {
@@ -295,133 +286,148 @@ export const StoryExplorationScreen: React.FC = () => {
   };
 
   return (
-    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-white/10">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              Flow 3 • Story Development & Candidates
-            </span>
-            <span className="text-xs text-white/40">• Human Approval Boundary</span>
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fadeIn">
+      {/* Top Bento Hero Banner */}
+      <BentoCard className="relative overflow-hidden p-6 lg:p-8 border-white/[0.08]">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <LineaCaption variant="amber" icon={<Compass className="w-3.5 h-3.5" />}>
+                Flow 3 • Story Development & Candidates
+              </LineaCaption>
+              <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-white/[0.04] text-stone-400 border border-white/[0.08]">
+                Human Approval Boundary
+              </span>
+            </div>
+            
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#fbf8f3]">
+              Story Directions & Narrative Engines
+            </h1>
+            
+            <p className="text-xs sm:text-sm text-stone-300/80 max-w-3xl leading-relaxed">
+              Story alternatives are candidate proposals until explicitly reviewed and approved into authoritative canon. You can synthesize suggestions or specify your own authorial direction.
+            </p>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            Story Directions & Narrative Engines
-          </h1>
-          <p className="text-sm text-white/70 mt-1 max-w-2xl">
-            In accordance with Section 8 & 11: Story alternatives are candidate proposals until explicitly reviewed and approved into authoritative canon. You can synthesize suggestions or specify your own authorial direction.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* User Input: Specify your own direction */}
-          <button
-            onClick={() => setShowCustomModal(true)}
-            className="flex items-center gap-2 bg-[#1b212e] hover:bg-[#232b3c] border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
-          >
-            <Compass className="w-3.5 h-3.5 text-amber-400" />
-            <span>Specify Your Own Direction</span>
-          </button>
-
-          <button
-            onClick={handleGenerateDirections}
-            disabled={isGenerating}
-            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span>{isGenerating ? 'Synthesizing Directions...' : 'Synthesize Directions (AI)'}</span>
-          </button>
-
-          <button
-            onClick={() => openContextResolver()}
-            className="px-3.5 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Database className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Inspect Context</span>
-          </button>
-
-          {directions.length >= 2 && (
+          <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => setShowCombineModal(true)}
-              className="flex items-center gap-1.5 bg-[#1b212e] hover:bg-[#232b3c] border border-white/10 text-xs font-semibold text-white px-3.5 py-2 rounded-xl transition-all cursor-pointer"
+              onClick={() => setShowCustomModal(true)}
+              className="flex items-center gap-2 bg-white/[0.05] hover:bg-white/[0.1] border border-amber-500/30 text-amber-300 hover:text-amber-200 text-xs font-semibold px-4 py-2.5 rounded-full transition-all cursor-pointer"
             >
-              <GitMerge className="w-3.5 h-3.5 text-amber-400" />
-              <span>Synthesize Directions</span>
+              <Compass className="w-3.5 h-3.5 text-amber-400" />
+              <span>Specify Your Own Direction</span>
             </button>
-          )}
 
-          <button
-            onClick={nextStep}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
-          >
-            <span>Next: Format & Template</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+            <LineaButton
+              variant="primary"
+              size="md"
+              showWave={isGenerating}
+              onClick={handleGenerateDirections}
+              disabled={isGenerating}
+              icon={<RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />}
+            >
+              {isGenerating ? 'Synthesizing Directions...' : 'Synthesize Directions (AI)'}
+            </LineaButton>
+
+            <button
+              onClick={() => openContextResolver()}
+              className="px-4 py-2.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-sky-200 border border-white/[0.1] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Database className="w-3.5 h-3.5 text-sky-400" />
+              <span>Inspect Context</span>
+            </button>
+
+            {directions.length >= 2 && (
+              <button
+                onClick={() => setShowCombineModal(true)}
+                className="flex items-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-xs font-semibold text-stone-300 px-4 py-2.5 rounded-full transition-all cursor-pointer"
+              >
+                <GitMerge className="w-3.5 h-3.5 text-amber-400" />
+                <span>Synthesize Directions</span>
+              </button>
+            )}
+
+            <LineaButton
+              variant="ghost"
+              size="md"
+              onClick={nextStep}
+              icon={<ArrowRight className="w-4 h-4" />}
+              iconPosition="right"
+            >
+              Next: Format & Template
+            </LineaButton>
+          </div>
         </div>
-      </div>
+      </BentoCard>
 
       <BranchEvolutionPanel />
       <RegenerationReviewPanel />
 
       {/* Error alert banner */}
       {generationError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between backdrop-blur-md">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{generationError}</span>
           </div>
-          <button onClick={() => setGenerationError(null)} className="text-white/40 hover:text-white">✕</button>
+          <button onClick={() => setGenerationError(null)} className="text-stone-400 hover:text-white transition-colors">✕</button>
         </div>
       )}
 
       {directions.length === 0 ? (
-        <div className="p-12 text-center bg-[#141822] border border-dashed border-white/10 rounded-3xl space-y-5">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+        <BentoCard className="p-12 text-center border-dashed border-white/[0.12] space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
             <Compass className="w-8 h-8" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
-            <h3 className="text-lg font-bold text-white">No Story Directions Synthesized Yet</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
+            <h3 className="text-lg font-bold text-[#fbf8f3]">No Story Directions Synthesized Yet</h3>
+            <p className="text-xs text-stone-400 leading-relaxed">
               Explore alternative narrative engines derived from <span className="text-amber-300">"{currentProject.title}"</span>, or specify your own authorial direction.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <button
+            <LineaButton
+              variant="primary"
+              size="md"
               onClick={() => setShowCustomModal(true)}
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-105 cursor-pointer"
+              icon={<Compass className="w-4 h-4" />}
             >
-              <Compass className="w-4 h-4" />
-              <span>Enter Your Own Direction</span>
-            </button>
+              Enter Your Own Direction
+            </LineaButton>
 
-            <button
+            <LineaButton
+              variant="ghost"
+              size="md"
+              showWave={isGenerating}
               onClick={handleGenerateDirections}
               disabled={isGenerating}
-              className="px-5 py-2.5 rounded-xl bg-[#1b212e] hover:bg-[#232b3c] border border-white/20 text-white text-xs font-semibold flex items-center gap-2 transition-all hover:scale-105 cursor-pointer"
+              icon={<Sparkles className="w-4 h-4 text-amber-400" />}
             >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>{isGenerating ? 'Synthesizing Directions with AI...' : 'Synthesize 3 Story Directions (AI)'}</span>
-            </button>
+              {isGenerating ? 'Synthesizing Directions with AI...' : 'Synthesize 3 Story Directions (AI)'}
+            </LineaButton>
           </div>
-        </div>
+        </BentoCard>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (8.5 cols): Direction Cards */}
           <div className="lg:col-span-8 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {directions.map((dir) => {
                 const isSelected = dir.isSelected;
                 const isCanonical = dir.candidateState === 'CANONICAL';
                 const isCustom = dir.badgeLetter === '★' || dir.tags.includes('User Specified');
 
                 return (
-                  <div
+                  <BentoCard
                     key={dir.id}
-                    className={`rounded-2xl border overflow-hidden flex flex-col justify-between transition-all duration-300 ${
+                    className={`overflow-hidden flex flex-col justify-between transition-all duration-300 p-0 ${
                       isSelected
-                        ? 'bg-[#161a25] border-amber-500 shadow-xl shadow-black/50 ring-1 ring-amber-500/40'
-                        : 'bg-[#141822] border-white/10 hover:border-white/20'
+                        ? 'border-amber-500/60 shadow-xl shadow-black/60 ring-1 ring-amber-500/30'
+                        : 'hover:border-white/[0.16]'
                     }`}
                   >
                     {/* Visual Header */}
@@ -431,21 +437,21 @@ export const StoryExplorationScreen: React.FC = () => {
                         alt={dir.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#141822] via-[#141822]/40 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0e1119] via-[#0e1119]/40 to-transparent" />
 
                       <div className="absolute top-3 left-3 flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-lg backdrop-blur-sm border flex items-center justify-center font-bold text-xs ${
+                        <div className={`w-7 h-7 rounded-full backdrop-blur-sm border flex items-center justify-center font-bold text-xs ${
                           isCustom 
-                            ? 'bg-amber-500 text-black border-amber-400 font-black'
-                            : 'bg-black/70 text-white border-white/20'
+                            ? 'bg-amber-400 text-stone-950 border-amber-300 font-bold'
+                            : 'bg-black/70 text-[#fbf8f3] border-white/20'
                         }`}>
                           {dir.badgeLetter}
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border backdrop-blur-sm ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border backdrop-blur-sm ${
                           isCanonical
-                            ? 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50'
+                            ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/40'
                             : isCustom
-                            ? 'bg-amber-500/30 text-amber-200 border-amber-500/50'
+                            ? 'bg-amber-500/25 text-amber-200 border-amber-500/40'
                             : 'bg-black/60 text-amber-300 border-amber-500/40'
                         }`}>
                           {isCanonical ? 'CANONICAL' : isCustom ? 'USER SPECIFIED' : (dir.candidateState || 'CANDIDATE')}
@@ -454,7 +460,7 @@ export const StoryExplorationScreen: React.FC = () => {
 
                       <div className="absolute bottom-2.5 left-3 right-3 flex flex-wrap gap-1.5">
                         {dir.tags.map(t => (
-                          <span key={t} className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-[9px] font-semibold text-white">
+                          <span key={t} className="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[9px] font-semibold text-stone-300">
                             {t}
                           </span>
                         ))}
@@ -462,38 +468,38 @@ export const StoryExplorationScreen: React.FC = () => {
                     </div>
 
                     {/* Body Info */}
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3.5">
+                    <div className="p-5 flex-1 flex flex-col justify-between space-y-3.5">
                       <div>
-                        <h3 className="text-sm font-bold text-white leading-snug">
+                        <h3 className="text-sm font-bold text-[#fbf8f3] leading-snug">
                           {dir.title}
                         </h3>
-                        <p className="text-xs text-white/70 mt-1.5 line-clamp-3 leading-relaxed">
+                        <p className="text-xs text-stone-300 mt-1.5 line-clamp-3 leading-relaxed">
                           {dir.logline}
                         </p>
                       </div>
 
-                      <div className="space-y-1.5 pt-2 border-t border-white/5 text-[11px]">
-                        <div className="flex items-center justify-between text-white/60">
+                      <div className="space-y-1.5 pt-2 border-t border-white/[0.06] text-xs">
+                        <div className="flex items-center justify-between text-stone-400">
                           <span>Tone:</span>
-                          <span className="font-semibold text-white truncate max-w-[120px]">{dir.tone}</span>
+                          <span className="font-semibold text-stone-200 truncate max-w-[120px]">{dir.tone}</span>
                         </div>
-                        <div className="flex items-center justify-between text-white/60">
+                        <div className="flex items-center justify-between text-stone-400">
                           <span>Stakes:</span>
                           <span className="font-semibold text-amber-300 truncate max-w-[120px]">{dir.stakes}</span>
                         </div>
-                        <div className="flex items-center justify-between text-white/60">
-                          <span>Commercial Potential:</span>
+                        <div className="flex items-center justify-between text-stone-400">
+                          <span>Potential:</span>
                           <span className="font-semibold text-emerald-400 truncate max-w-[120px]">{dir.potential}</span>
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="space-y-2 pt-2 border-t border-white/5">
+                      <div className="space-y-2 pt-2 border-t border-white/[0.06]">
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             type="button"
                             onClick={() => setDetailedDirectionId(dir.id)}
-                            className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/80 hover:text-white py-2 rounded-xl border border-white/10 transition-colors"
+                            className="flex items-center justify-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.1] text-xs font-semibold text-stone-300 hover:text-white py-2 rounded-full border border-white/[0.08] transition-colors cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Rationale</span>
@@ -502,10 +508,10 @@ export const StoryExplorationScreen: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => selectStoryDirection(dir.id)}
-                            className={`flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                            className={`flex items-center justify-center gap-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                               isSelected
-                                ? 'bg-amber-500 text-black shadow-sm'
-                                : 'bg-white/10 hover:bg-white/20 text-white'
+                                ? 'bg-amber-400 text-stone-950 shadow-md shadow-amber-500/20'
+                                : 'bg-white/[0.08] hover:bg-white/[0.15] text-[#fbf8f3]'
                             }`}
                           >
                             {isSelected ? (
@@ -522,7 +528,7 @@ export const StoryExplorationScreen: React.FC = () => {
                         {isSelected && !isCanonical && (
                           <button
                             onClick={() => handleApproveAsCanon(dir.id)}
-                            className="w-full py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                            className="w-full py-2 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <FileCheck className="w-3.5 h-3.5" />
                             <span>Approve Direction as Canon</span>
@@ -530,27 +536,27 @@ export const StoryExplorationScreen: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </BentoCard>
                 );
               })}
 
               {/* Enter Custom Direction Tile */}
               <div 
                 onClick={() => setShowCustomModal(true)}
-                className="rounded-2xl border border-dashed border-amber-500/30 hover:border-amber-500/70 bg-[#141822]/60 hover:bg-[#161b27] p-6 flex flex-col items-center justify-center text-center space-y-3 cursor-pointer transition-all group min-h-[360px]"
+                className="rounded-3xl border border-dashed border-amber-500/30 hover:border-amber-500/60 bg-[#12141a]/60 hover:bg-[#141720] p-6 flex flex-col items-center justify-center text-center space-y-3 cursor-pointer transition-all group min-h-[360px]"
               >
-                <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
                   <Plus className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                  <h4 className="text-sm font-bold text-[#fbf8f3] group-hover:text-amber-300 transition-colors">
                     Specify Your Own Direction
                   </h4>
-                  <p className="text-xs text-white/50 max-w-[200px]">
+                  <p className="text-xs text-stone-400 max-w-[200px] leading-relaxed">
                     Define an original narrative engine or specific authorial concept.
                   </p>
                 </div>
-                <span className="px-3 py-1 rounded-lg bg-amber-500/15 text-amber-300 text-[11px] font-bold border border-amber-500/30">
+                <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-[11px] font-semibold border border-amber-500/30">
                   + Enter Direction
                 </span>
               </div>
@@ -558,17 +564,17 @@ export const StoryExplorationScreen: React.FC = () => {
 
             {/* Detailed Direction Deep-Dive Drawer */}
             {detailedDirectionId && (
-              <div className="bg-[#141822] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <BentoCard className="p-6 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
                   <div>
-                    <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">AI Rationale & Trade-Off Analysis</span>
-                    <h3 className="text-base font-bold text-white">
+                    <span className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">AI Rationale & Trade-Off Analysis</span>
+                    <h3 className="text-base font-bold text-[#fbf8f3]">
                       {directions.find(d => d.id === detailedDirectionId)?.title}
                     </h3>
                   </div>
                   <button
                     onClick={() => setDetailedDirectionId(null)}
-                    className="text-xs text-white/50 hover:text-white"
+                    className="text-xs text-stone-400 hover:text-white transition-colors"
                   >
                     Close
                   </button>
@@ -578,75 +584,75 @@ export const StoryExplorationScreen: React.FC = () => {
                   const target = directions.find(d => d.id === detailedDirectionId)!;
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                      <div className="space-y-2 text-white/80">
-                        <p><strong className="text-white">Narrative Engine:</strong> {target.narrativeEngine}</p>
-                        <p><strong className="text-white">Protagonist Arc:</strong> {target.protagonistArc}</p>
-                        <p><strong className="text-white">Core Conflict:</strong> {target.conflict}</p>
+                      <div className="space-y-2 text-stone-300">
+                        <p><strong className="text-[#fbf8f3]">Narrative Engine:</strong> {target.narrativeEngine}</p>
+                        <p><strong className="text-[#fbf8f3]">Protagonist Arc:</strong> {target.protagonistArc}</p>
+                        <p><strong className="text-[#fbf8f3]">Core Conflict:</strong> {target.conflict}</p>
                         {target.rationale && (
-                          <p className="p-2.5 rounded-lg bg-black/40 border border-white/5 text-amber-200/90">
+                          <div className="p-3 rounded-2xl bg-[#0a0c12]/80 border border-white/[0.06] text-amber-200/90 leading-relaxed">
                             <strong className="text-amber-300 block mb-0.5">Grounding Rationale:</strong>
                             {target.rationale}
-                          </p>
+                          </div>
                         )}
                       </div>
-                      <div className="space-y-2 text-white/80">
-                        <p><strong className="text-white">Stakes:</strong> {target.stakes}</p>
-                        <p><strong className="text-white">Strengths:</strong> <span className="text-emerald-400">{target.strengths}</span></p>
-                        <p><strong className="text-white">Identified Risk:</strong> <span className="text-amber-300">{target.risks}</span></p>
+                      <div className="space-y-2 text-stone-300">
+                        <p><strong className="text-[#fbf8f3]">Stakes:</strong> {target.stakes}</p>
+                        <p><strong className="text-[#fbf8f3]">Strengths:</strong> <span className="text-emerald-400">{target.strengths}</span></p>
+                        <p><strong className="text-[#fbf8f3]">Identified Risk:</strong> <span className="text-amber-300">{target.risks}</span></p>
                         {target.compTitles && (
-                          <p><strong className="text-white">Commercial Comps:</strong> {target.compTitles}</p>
+                          <p><strong className="text-[#fbf8f3]">Commercial Comps:</strong> {target.compTitles}</p>
                         )}
                       </div>
                     </div>
                   );
                 })()}
-              </div>
+              </BentoCard>
             )}
           </div>
 
           {/* Right Column (3.5 cols): Governance & Active Story Rationale */}
-          <div className="lg:col-span-4 space-y-5">
+          <div className="lg:col-span-4 space-y-4">
             {selectedDirection && (
-              <div className="bg-[#141822] border border-amber-500/30 rounded-2xl p-5 space-y-3.5 shadow-md">
-                <div className="flex items-center gap-2 text-white text-xs font-bold">
+              <BentoCard className="p-5 space-y-3.5 border-amber-500/30">
+                <div className="flex items-center gap-2 text-[#fbf8f3] text-xs font-bold">
                   <Shield className="w-4 h-4 text-amber-400" />
                   <span>Active Canonical Selection</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-2">
+                <div className="p-4 rounded-2xl bg-[#0a0c12]/80 border border-white/[0.06] space-y-2">
                   <span className="text-xs font-bold text-amber-300 block">{selectedDirection.title}</span>
-                  <p className="text-xs text-white/80 leading-relaxed">{selectedDirection.logline}</p>
-                  <div className="text-[10px] text-white/50 pt-1 border-t border-white/5">
+                  <p className="text-xs text-stone-300 leading-relaxed">{selectedDirection.logline}</p>
+                  <div className="text-[10px] text-stone-500 pt-1.5 border-t border-white/[0.06]">
                     Stakes: {selectedDirection.stakes}
                   </div>
                 </div>
 
-                <div className="text-xs text-white/70 space-y-1.5 pt-1">
+                <div className="text-xs text-stone-300 space-y-2 pt-1">
                   <div className="flex items-center justify-between">
                     <span>State:</span>
-                    <span className="font-bold text-emerald-400">{selectedDirection.candidateState || 'CANDIDATE'}</span>
+                    <span className="font-semibold text-emerald-400">{selectedDirection.candidateState || 'CANDIDATE'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Engine:</span>
-                    <span className="text-white font-medium truncate max-w-[180px]">{selectedDirection.narrativeEngine}</span>
+                    <span className="text-stone-200 font-medium truncate max-w-[180px]">{selectedDirection.narrativeEngine}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Downstream Gate:</span>
-                    <span className="text-white font-medium">Screenplay & Treatment Grounded</span>
+                    <span className="text-stone-200 font-medium">Screenplay & Treatment Grounded</span>
                   </div>
                 </div>
-              </div>
+              </BentoCard>
             )}
 
-            <div className="bg-[#141822] border border-white/10 rounded-2xl p-5 space-y-3 shadow-md text-xs text-white/70 leading-relaxed">
-              <h4 className="font-bold text-white flex items-center gap-2">
-                <Compass className="w-4 h-4 text-cyan-400" />
+            <BentoCard className="p-5 space-y-2.5 text-xs text-stone-300 leading-relaxed">
+              <h4 className="font-bold text-[#fbf8f3] flex items-center gap-2">
+                <Compass className="w-4 h-4 text-sky-400" />
                 Story Agent Operating Contract
               </h4>
-              <p>
+              <p className="text-stone-400 leading-relaxed">
                 The active Story Direction is injected as the authoritative structural spine into all downstream agents (Character Intelligence, Treatment, Scene Breakdown, Screenplay).
               </p>
-            </div>
+            </BentoCard>
           </div>
         </div>
       )}
@@ -654,32 +660,32 @@ export const StoryExplorationScreen: React.FC = () => {
       {/* CUSTOM DIRECTION MODAL */}
       {showCustomModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#141724] border border-amber-500/40 rounded-2xl w-full max-w-xl p-6 sm:p-7 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <BentoCard className="w-full max-w-xl p-6 sm:p-8 space-y-5 max-h-[90vh] overflow-y-auto bg-[#0e1119]/95 border-amber-500/40 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold">
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold">
                   ★
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">
+                  <h3 className="text-base font-bold text-[#fbf8f3]">
                     Specify Your Own Story Direction
                   </h3>
-                  <p className="text-[11px] text-white/50">
+                  <p className="text-[11px] text-stone-400">
                     Your specified direction will be treated as the authoritative primary spine.
                   </p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowCustomModal(false)}
-                className="text-white/40 hover:text-white cursor-pointer"
+                className="p-1 rounded-full text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCustomDirection} className="space-y-3.5 text-xs">
-              <div>
-                <label className="text-white/80 font-semibold block mb-1">
+            <form onSubmit={handleSaveCustomDirection} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="text-stone-200 font-semibold block">
                   Direction Title <span className="text-amber-400">*</span>
                 </label>
                 <input
@@ -688,88 +694,88 @@ export const StoryExplorationScreen: React.FC = () => {
                   placeholder="e.g. The Syndicate Broker: Financial Espionage"
                   value={customTitle}
                   onChange={e => setCustomTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:border-amber-500/60 focus:outline-none"
                 />
               </div>
 
-              <div>
-                <label className="text-white/80 font-semibold block mb-1">
+              <div className="space-y-1.5">
+                <label className="text-stone-200 font-semibold block">
                   Core Logline / Premise <span className="text-amber-400">*</span>
                 </label>
                 <textarea
                   required
                   rows={2}
-                  placeholder="e.g. A disgraced corporate auditor is forced to infiltrate a black-budget sovereign fund, only to uncover that his own family holds the controlling shares."
+                  placeholder="e.g. A disgraced corporate auditor is forced to infiltrate a black-budget sovereign fund..."
                   value={customLogline}
                   onChange={e => setCustomLogline(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  className="w-full p-3.5 rounded-2xl bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:border-amber-500/60 focus:outline-none resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-white/80 font-semibold block mb-1">
+                <div className="space-y-1.5">
+                  <label className="text-stone-200 font-semibold block">
                     Narrative Engine / Plot Propulsion
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. 72-hour countdown across 3 financial hubs"
+                    placeholder="e.g. 72-hour countdown across 3 hubs"
                     value={customNarrativeEngine}
                     onChange={e => setCustomNarrativeEngine(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:border-amber-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:border-amber-500/60 focus:outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="text-white/80 font-semibold block mb-1">
+                <div className="space-y-1.5">
+                  <label className="text-stone-200 font-semibold block">
                     Tone & Stylistic Reference
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Grounded Neo-Noir, Paranoia-Infused"
+                    placeholder="e.g. Grounded Neo-Noir"
                     value={customTone}
                     onChange={e => setCustomTone(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:border-amber-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:border-amber-500/60 focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-white/80 font-semibold block mb-1">
+                <div className="space-y-1.5">
+                  <label className="text-stone-200 font-semibold block">
                     Catastrophic Stakes
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Collapse of the domestic digital rupee + family execution"
+                    placeholder="e.g. Collapse of the domestic digital rupee"
                     value={customStakes}
                     onChange={e => setCustomStakes(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:border-amber-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:border-amber-500/60 focus:outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="text-white/80 font-semibold block mb-1">
+                <div className="space-y-1.5">
+                  <label className="text-stone-200 font-semibold block">
                     Primary Conflict / Antagonism
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Deep State syndicate vs whistle-blower conscience"
+                    placeholder="e.g. Deep State syndicate vs conscience"
                     value={customConflict}
                     onChange={e => setCustomConflict(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:border-amber-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:border-amber-500/60 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={handleFleshOutWithAi}
                   disabled={!customTitle.trim() || !customLogline.trim() || isFleshingOut}
-                  className="px-4 py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 disabled:opacity-40 transition-all cursor-pointer"
+                  className="px-4 py-2.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 font-semibold text-xs flex items-center justify-center gap-2 disabled:opacity-40 transition-all cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                   <span>{isFleshingOut ? 'Fleshing Out...' : 'Flesh Out Arcs with AI'}</span>
                 </button>
 
@@ -777,55 +783,67 @@ export const StoryExplorationScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowCustomModal(false)}
-                    className="px-3 py-2 rounded-xl text-xs text-white/60 hover:text-white cursor-pointer"
+                    className="px-4 py-2 rounded-full text-xs text-stone-400 hover:text-white cursor-pointer"
                   >
                     Cancel
                   </button>
-                  <button
+                  <LineaButton
                     type="submit"
+                    variant="primary"
+                    size="sm"
                     disabled={!customTitle.trim() || !customLogline.trim()}
-                    className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md shadow-amber-500/20 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                    icon={<Check className="w-4 h-4 stroke-[2.5]" />}
                   >
-                    <Check className="w-4 h-4 stroke-[2.5]" />
-                    <span>Adopt as Authoritative Canon</span>
-                  </button>
+                    Adopt as Authoritative Canon
+                  </LineaButton>
                 </div>
               </div>
             </form>
-          </div>
+          </BentoCard>
         </div>
       )}
 
       {/* SYNTHESIS MODAL */}
       {showCombineModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#141724] border border-amber-500/40 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <GitMerge className="w-4 h-4 text-amber-400" />
-              Synthesize Story Directions
-            </h3>
-            <p className="text-xs text-white/70">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <BentoCard className="w-full max-w-lg p-6 lg:p-8 space-y-5 bg-[#0e1119]/95 border-amber-500/40 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                <GitMerge className="w-4 h-4 text-amber-400" />
+                <h3 className="text-base font-bold text-[#fbf8f3]">
+                  Synthesize Story Directions
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowCombineModal(false)}
+                className="p-1 rounded-full text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <p className="text-xs text-stone-300">
               Combine the narrative engine of one direction with the emotional core of another to produce Direction D.
             </p>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-white/60 block mb-1">Combined Concept Title</label>
+            <div className="space-y-3.5">
+              <div className="space-y-1.5">
+                <label className="text-xs text-stone-300 font-semibold block">Combined Concept Title</label>
                 <input
                   type="text"
                   value={combinedTitle}
                   onChange={e => setCombinedTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white"
+                  className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:outline-none focus:border-amber-500/60"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-white/60 block mb-1">Direction A (Plot Engine)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-stone-300 font-semibold block">Direction A (Plot Engine)</label>
                   <select
                     value={selectedForCombine[0]}
                     onChange={e => setSelectedForCombine([e.target.value, selectedForCombine[1]])}
-                    className="w-full p-2 rounded-lg bg-black/40 border border-white/10 text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:outline-none"
                   >
                     {directions.map(d => (
                       <option key={d.id} value={d.id}>{d.title}</option>
@@ -833,12 +851,12 @@ export const StoryExplorationScreen: React.FC = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="text-xs text-white/60 block mb-1">Direction B (Emotional Core)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-stone-300 font-semibold block">Direction B (Emotional Core)</label>
                   <select
                     value={selectedForCombine[1]}
                     onChange={e => setSelectedForCombine([selectedForCombine[0], e.target.value])}
-                    className="w-full p-2 rounded-lg bg-black/40 border border-white/10 text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:outline-none"
                   >
                     {directions.map(d => (
                       <option key={d.id} value={d.id}>{d.title}</option>
@@ -848,21 +866,22 @@ export const StoryExplorationScreen: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.08]">
               <button
                 onClick={() => setShowCombineModal(false)}
-                className="px-3 py-1.5 rounded-lg text-xs text-white/60 hover:text-white"
+                className="px-4 py-2 rounded-full text-xs text-stone-400 hover:text-white"
               >
                 Cancel
               </button>
-              <button
+              <LineaButton
+                variant="primary"
+                size="sm"
                 onClick={handleExecuteCombine}
-                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold cursor-pointer"
               >
                 Generate Synthesis Candidate
-              </button>
+              </LineaButton>
             </div>
-          </div>
+          </BentoCard>
         </div>
       )}
     </div>

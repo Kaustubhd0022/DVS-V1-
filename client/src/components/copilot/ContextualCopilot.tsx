@@ -129,21 +129,21 @@ export const ContextualCopilot: React.FC = () => {
   const chips = getContextChips();
 
   return (
-    <aside className="fixed right-0 top-0 bottom-0 w-96 bg-[#10131a] border-l border-[#242b3a] shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-200">
+    <aside className="fixed right-0 top-0 bottom-0 w-96 bg-[#0c0f17]/95 border-l border-white/10 shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-200 backdrop-blur-2xl">
       {/* Header */}
-      <div className="p-4 border-b border-[#222836] flex items-center justify-between bg-[#121620]">
+      <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-[#111520]/80">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#f25b2a] to-amber-500 flex items-center justify-center shadow-glow-orange">
-            <Sparkles className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center shadow-[0_2px_12px_rgba(245,158,11,0.35)]">
+            <Sparkles className="w-4 h-4 text-black" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <span>tattvaCo Copilot</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 font-mono">
                 Beta
               </span>
             </h3>
-            <p className="text-[11px] text-[#7d8b9f]">
+            <p className="text-[11px] text-stone-400">
               {activeScreen === 'home' ? 'Global Film Intelligence' : `Context: ${currentProject.title}`}
             </p>
           </div>
@@ -151,27 +151,27 @@ export const ContextualCopilot: React.FC = () => {
 
         <button
           onClick={() => setCopilotOpen(false)}
-          className="p-1.5 rounded-lg text-[#7d8b9f] hover:text-white hover:bg-[#1f2533] transition-colors"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Next Action Intelligence */}
-      <div className="px-4 py-3 bg-[#151a24] border-b border-[#252d3b]">
+      {/* Next Action Intelligence (Linea Bento Card) */}
+      <div className="m-3 p-3.5 rounded-2xl bg-[#141824] border border-white/10 shadow-sm">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] uppercase tracking-wider font-bold text-[#7d8b9f]">Tattava's Next Action</span>
-          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f25b2a]/10 text-[#f25b2a] border border-[#f25b2a]/20">
+          <span className="text-[10px] uppercase tracking-wider font-bold text-stone-400 font-mono">Tattava's Next Action</span>
+          <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
             {nextAction.mode}
           </span>
         </div>
-        <p className="text-xs text-white font-medium">{nextAction.reason}</p>
+        <p className="text-xs text-[#fbf8f3] font-medium">{nextAction.reason}</p>
         {nextAction.question && (
-          <p className="text-[11px] text-[#9aa6b8] mt-1.5">Question: {nextAction.question}</p>
+          <p className="text-[11px] text-stone-300 mt-1.5">Question: {nextAction.question}</p>
         )}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-2.5">
           {nextAction.requiresHumanApproval && (
-            <span className="text-[9px] text-amber-300">Human approval required</span>
+            <span className="text-[9px] text-amber-300 font-medium">Human approval required</span>
           )}
           {nextAction.mode === 'REGENERATE' && nextAction.sourcePlanId && (
             <button
@@ -180,7 +180,7 @@ export const ContextualCopilot: React.FC = () => {
                 await executeRegenerationPlan(nextAction.sourcePlanId!);
                 setIsThinking(false);
               }}
-              className="ml-auto text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#f25b2a] text-white hover:bg-[#e04b1a]"
+              className="ml-auto linea-pill-btn linea-pill-primary px-3 py-1 text-[10px]"
             >
               Regenerate
             </button>
@@ -188,7 +188,7 @@ export const ContextualCopilot: React.FC = () => {
           {nextAction.mode === 'ASK' && nextAction.question && (
             <button
               onClick={() => handleSend(nextAction.question)}
-              className="ml-auto text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#202636] text-[#d8e0ec] hover:bg-[#2a3345]"
+              className="ml-auto linea-pill-btn linea-pill-secondary px-3 py-1 text-[10px]"
             >
               Resolve
             </button>
@@ -197,13 +197,13 @@ export const ContextualCopilot: React.FC = () => {
       </div>
 
       {/* Project Context Badge */}
-      <div className="px-4 py-2 bg-[#141822] border-b border-[#1f2533] flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 text-[#9aa6b8]">
-          <Layers className="w-3.5 h-3.5 text-[#f25b2a]" />
-          <span className="truncate">Reading Canonical Project Memory</span>
+      <div className="px-4 py-2 bg-[#0e1119]/60 border-y border-white/[0.06] flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2 text-stone-400">
+          <Layers className="w-3.5 h-3.5 text-amber-400" />
+          <span className="truncate text-[11px]">Reading Canonical Project Memory</span>
         </div>
-        <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
           Live
         </span>
       </div>
@@ -218,28 +218,28 @@ export const ContextualCopilot: React.FC = () => {
             }`}
           >
             {(msg.sender === 'tattvaCo' || msg.sender === 'tattava') && (
-              <div className="w-6 h-6 rounded-full bg-[#f25b2a]/20 border border-[#f25b2a]/40 flex items-center justify-center flex-shrink-0 text-[#f25b2a] mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0 text-amber-300 mt-0.5">
                 <Bot className="w-3.5 h-3.5" />
               </div>
             )}
             <div
               className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 leading-relaxed ${
                 msg.sender === 'user'
-                  ? 'bg-[#f25b2a] text-white rounded-br-none shadow-sm'
-                  : 'bg-[#181c26] text-[#cad4e2] border border-[#272e3d] rounded-bl-none'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black font-medium shadow-[0_2px_12px_rgba(245,158,11,0.25)]'
+                  : 'bg-[#151924] text-[#fbf8f3] border border-white/10 shadow-sm'
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.text}</p>
               <span
                 className={`block text-[9px] mt-1 text-right ${
-                  msg.sender === 'user' ? 'text-white/70' : 'text-[#6c788c]'
+                  msg.sender === 'user' ? 'text-black/70' : 'text-stone-400'
                 }`}
               >
                 {msg.time}
               </span>
             </div>
             {msg.sender === 'user' && (
-              <div className="w-6 h-6 rounded-full bg-[#272e3d] flex items-center justify-center flex-shrink-0 text-[#8b96a8] mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-white mt-0.5">
                 <User className="w-3.5 h-3.5" />
               </div>
             )}
@@ -247,18 +247,25 @@ export const ContextualCopilot: React.FC = () => {
         ))}
 
         {isThinking && (
-          <div className="flex gap-2.5 text-xs items-center text-[#8b96a8]">
-            <div className="w-6 h-6 rounded-full bg-[#f25b2a]/20 border border-[#f25b2a]/40 flex items-center justify-center text-[#f25b2a]">
+          <div className="flex gap-2.5 text-xs items-center text-stone-400">
+            <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
               <RefreshCw className="w-3 h-3 animate-spin" />
             </div>
-            <span className="italic text-[11px]">tattvaCo is analyzing project memory...</span>
+            <span className="italic text-[11px] flex items-center gap-1.5">
+              <span>tattvaCo is synthesizing project memory</span>
+              <span className="linea-btn-wave" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            </span>
           </div>
         )}
       </div>
 
       {/* Dynamic Context Prompt Chips */}
-      <div className="p-3 border-t border-[#1f2533] bg-[#121620]/90">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#8b96a8] mb-2">
+      <div className="p-3 border-t border-white/[0.08] bg-[#0e121a]">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-400 mb-2">
           <Lightbulb className="w-3 h-3 text-amber-400" />
           <span>Recommended for this screen:</span>
         </div>
@@ -267,17 +274,17 @@ export const ContextualCopilot: React.FC = () => {
             <button
               key={idx}
               onClick={() => handleSend(chip)}
-              className="w-full text-left text-xs text-[#b5c1d1] hover:text-white bg-[#171b24] hover:bg-[#202636] border border-[#282f3f] hover:border-[#384359] px-2.5 py-1.5 rounded-lg flex items-center justify-between group transition-all"
+              className="w-full text-left text-xs text-stone-300 hover:text-white bg-[#141824] hover:bg-[#1a2030] border border-white/[0.08] hover:border-amber-500/30 px-3 py-1.5 rounded-full flex items-center justify-between group transition-all"
             >
               <span className="truncate">{chip}</span>
-              <ChevronRight className="w-3 h-3 text-[#647287] group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 ml-1" />
+              <ChevronRight className="w-3 h-3 text-stone-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 ml-1" />
             </button>
           ))}
         </div>
       </div>
 
       {/* Input Form */}
-      <div className="p-3 border-t border-[#222836] bg-[#0d0f14]">
+      <div className="p-3 border-t border-white/[0.08] bg-[#0a0c12]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -290,14 +297,14 @@ export const ContextualCopilot: React.FC = () => {
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             placeholder="Ask tattvaCo about your project..."
-            className="w-full bg-[#171a22] border border-[#2a3242] rounded-xl pl-3 pr-10 py-2.5 text-xs text-white placeholder-[#687588] focus:outline-none focus:border-[#f25b2a] transition-all"
+            className="w-full bg-[#141824] border border-white/10 rounded-full pl-4 pr-11 py-2.5 text-xs text-[#fbf8f3] placeholder-stone-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40 transition-all"
           />
           <button
             type="submit"
             disabled={!inputVal.trim()}
-            className="absolute right-2 p-1.5 rounded-lg bg-[#f25b2a] hover:bg-[#e04b1a] text-white disabled:opacity-30 disabled:hover:bg-[#f25b2a] transition-all"
+            className="absolute right-1.5 w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black flex items-center justify-center disabled:opacity-30 transition-all shadow-sm"
           >
-            <Send className="w-3 h-3" />
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>

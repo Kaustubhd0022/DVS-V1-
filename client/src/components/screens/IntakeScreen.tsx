@@ -166,24 +166,24 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
   return (
     <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto pb-16">
       {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <span className="linea-caption-chip">
               Pipeline Step 01
             </span>
-            <span className="text-xs text-white/40">• Project Intake & Ambiguity Detection</span>
+            <span className="text-xs text-stone-400">• Project Intake & Ambiguity Detection</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-[#fbf8f3] flex items-center gap-3">
             <span>Project Understanding & Intake</span>
             {isApproved && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold flex items-center gap-1">
+              <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono font-bold flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Approved Canon
               </span>
             )}
           </h1>
-          <p className="text-sm text-white/60 mt-1 max-w-3xl">
-            Deconstructing <strong className="text-white">"{currentProject.title}"</strong>. Distinguishing raw user input from AI inferences, surfacing open questions, and establishing verified baseline canon.
+          <p className="text-sm text-stone-400 mt-1 max-w-3xl">
+            Deconstructing <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong>. Distinguishing raw user input from AI inferences, surfacing open questions, and establishing verified baseline canon.
           </p>
         </div>
 
@@ -191,25 +191,32 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
           <button
             onClick={runIntakeAnalysis}
             disabled={isAnalyzing}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/10 text-xs font-semibold transition-all"
+            className="linea-pill-btn linea-pill-secondary px-4 py-2 text-xs font-semibold gap-2"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${isAnalyzing ? 'animate-spin' : ''}`} />
             <span>{isAnalyzing ? 'Analyzing Input...' : 'Re-Analyze with AI'}</span>
+            {isAnalyzing && (
+              <span className="linea-btn-wave ml-1" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
           </button>
 
           {!isApproved && (
             <button
               onClick={handleApproveAndInitializeBrain}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/10 text-xs font-semibold transition-all"
+              className="linea-pill-btn linea-pill-primary px-4 py-2 text-xs font-bold gap-2"
             >
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4" />
               <span>Approve Canon</span>
             </button>
           )}
 
           <button
             onClick={() => setActiveScreen('research')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+            className="linea-pill-btn linea-pill-primary px-5 py-2 text-xs font-bold gap-2"
             title="Advance to Traceable Research & Evidence"
           >
             <span>Next: Research & Evidence</span>
@@ -220,7 +227,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
 
       {/* Error alert if AI fails */}
       {analysisError && (
-        <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-start justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5">
             <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
@@ -233,7 +240,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
           </div>
           <button
             onClick={() => setIsEditing(true)}
-            className="px-3 py-1.5 rounded-lg bg-amber-500 text-black font-bold text-xs shrink-0"
+            className="linea-pill-btn linea-pill-primary px-3 py-1.5 text-xs font-bold shrink-0"
           >
             Edit Manually
           </button>
@@ -247,67 +254,67 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
         <div className="xl:col-span-8 space-y-6">
 
           {/* Section A: User-Provided Input */}
-          <div className="bg-[#12141a]/95 rounded-2xl border border-white/10 p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div className="linea-bento rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] font-mono">
                   User-Provided Source Material
                 </h3>
               </div>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+              <span className="linea-caption-chip">
                 USER-PROVIDED (AUTHENTIC)
               </span>
             </div>
 
             <div className="space-y-3">
               <div>
-                <span className="text-[11px] font-bold text-white/50 block mb-1">RAW STORY PREMISE</span>
-                <p className="text-sm text-white/90 font-mono bg-black/40 p-4 rounded-xl border border-white/5 leading-relaxed">
+                <span className="text-[10px] font-bold text-stone-500 block mb-1 font-mono uppercase tracking-wider">RAW STORY PREMISE</span>
+                <p className="text-sm text-[#fbf8f3] font-mono bg-[#0a0c12] p-4 rounded-2xl border border-white/5 leading-relaxed">
                   "{premise || 'No premise provided yet. Add an initial idea to start project intelligence.'}"
                 </p>
               </div>
 
               {currentProject.intent?.uploadedMaterialName && (
-                <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20 flex items-center justify-between text-xs">
+                <div className="p-3 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 flex items-center justify-between text-xs">
                   <span className="text-cyan-300 flex items-center gap-2">
                     <FileText className="w-4 h-4" />
                     <span>Uploaded Source: <strong>{currentProject.intent.uploadedMaterialName}</strong></span>
                   </span>
-                  <span className="text-white/40 text-[10px]">Extracted Text Referenced</span>
+                  <span className="text-stone-500 text-[10px] font-mono">Extracted Text Referenced</span>
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
-                  <span className="text-white/40 block text-[10px]">CONTENT FORMAT</span>
-                  <span className="font-semibold text-white mt-0.5 block">{currentProject.contentType}</span>
+                <div className="p-3.5 rounded-2xl bg-[#0a0c12] border border-white/5">
+                  <span className="text-stone-500 block text-[9px] uppercase font-mono tracking-wider">CONTENT FORMAT</span>
+                  <span className="font-semibold text-[#fbf8f3] mt-0.5 block">{currentProject.contentType}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
-                  <span className="text-white/40 block text-[10px]">PRIMARY LANGUAGE</span>
-                  <span className="font-semibold text-white mt-0.5 block">{currentProject.language}</span>
+                <div className="p-3.5 rounded-2xl bg-[#0a0c12] border border-white/5">
+                  <span className="text-stone-500 block text-[9px] uppercase font-mono tracking-wider">PRIMARY LANGUAGE</span>
+                  <span className="font-semibold text-[#fbf8f3] mt-0.5 block">{currentProject.language}</span>
                 </div>
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
-                  <span className="text-white/40 block text-[10px]">PRIMARY GENRE</span>
-                  <span className="font-semibold text-white mt-0.5 block">{currentProject.genre}</span>
+                <div className="p-3.5 rounded-2xl bg-[#0a0c12] border border-white/5">
+                  <span className="text-stone-500 block text-[9px] uppercase font-mono tracking-wider">PRIMARY GENRE</span>
+                  <span className="font-semibold text-[#fbf8f3] mt-0.5 block">{currentProject.genre}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Section B: AI-Inferred Intelligence (Pending Approval) */}
-          <div className="bg-[#12141a]/95 rounded-2xl border border-white/10 p-6 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div className="linea-bento rounded-3xl p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] font-mono">
                   AI-Inferred Narrative Architecture
                 </h3>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                 isApproved 
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                  : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' 
+                  : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
               }`}>
                 {isApproved ? 'USER-APPROVED (CANON)' : 'AI-INFERRED (CANDIDATE)'}
               </span>
@@ -316,72 +323,72 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
             {isAnalyzing ? (
               <div className="p-8 text-center space-y-3">
                 <RefreshCw className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
-                <p className="text-xs font-semibold text-white">
+                <p className="text-xs font-semibold text-[#fbf8f3]">
                   Analyzing raw concept with AI...
                 </p>
-                <p className="text-[11px] text-white/40">
+                <p className="text-[11px] text-stone-400">
                   Extracting protagonist psychometrics, world setting, and dramatic conflicts
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {/* Synthesized Logline */}
-                <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-1">
+                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-1 font-mono">
                     SYNTHESIZED LOGLINE
                   </span>
-                  <p className="text-sm font-serif text-white leading-relaxed">
+                  <p className="text-sm font-serif text-[#fbf8f3] leading-relaxed">
                     {understanding.premise || premise}
                   </p>
                 </div>
 
                 {/* 2x2 Grid: Protagonist, Setting, Conflict, Stakes */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                  <div className="p-4 rounded-2xl bg-[#0a0c12] border border-white/5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 font-mono">
                       POTENTIAL PROTAGONIST
                     </span>
-                    <p className="text-white/90 leading-relaxed">
+                    <p className="text-stone-300 leading-relaxed">
                       {understanding.protagonist || 'A driven central protagonist to be shaped.'}
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                  <div className="p-4 rounded-2xl bg-[#0a0c12] border border-white/5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 font-mono">
                       STORY DOMAIN & WORLD SETTING
                     </span>
-                    <p className="text-white/90 leading-relaxed">
+                    <p className="text-stone-300 leading-relaxed">
                       {understanding.setting || 'Grounded setting to be defined.'}
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400">
+                  <div className="p-4 rounded-2xl bg-[#0a0c12] border border-white/5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 font-mono">
                       CORE DRAMATIC CONFLICT
                     </span>
-                    <p className="text-white/90 leading-relaxed">
+                    <p className="text-stone-300 leading-relaxed">
                       {understanding.conflict || 'Irreconcilable moral or physical obstacle.'}
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
+                  <div className="p-4 rounded-2xl bg-[#0a0c12] border border-white/5 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 font-mono">
                       CATASTROPHIC STAKES
                     </span>
-                    <p className="text-white/90 leading-relaxed">
+                    <p className="text-stone-300 leading-relaxed">
                       {understanding.stakes || 'Severe personal and public consequences upon failure.'}
                     </p>
                   </div>
                 </div>
 
-                {/* Known vs Unknown Information (Section 5 Requirement) */}
+                {/* Known vs Unknown Information */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="p-4 rounded-xl bg-black/40 border border-cyan-500/20 space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                  <div className="p-4 rounded-2xl bg-[#0a0c12] border border-cyan-500/20 space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-mono">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       KNOWN INFORMATION (FROM INPUT)
                     </span>
-                    <ul className="space-y-1.5 text-xs text-white/80">
+                    <ul className="space-y-1.5 text-xs text-stone-300">
                       {understanding.knownInformation.map((item, idx) => (
                         <li key={idx} className="flex items-start gap-1.5">
                           <span className="text-cyan-400">•</span>
@@ -391,12 +398,12 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
                     </ul>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-black/40 border border-amber-500/20 space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <div className="p-4 rounded-2xl bg-[#0a0c12] border border-amber-500/20 space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5 font-mono">
                       <HelpCircle className="w-3.5 h-3.5" />
                       UNKNOWN INFORMATION (GAPS)
                     </span>
-                    <ul className="space-y-1.5 text-xs text-white/80">
+                    <ul className="space-y-1.5 text-xs text-stone-300">
                       {understanding.unknownInformation.map((item, idx) => (
                         <li key={idx} className="flex items-start gap-1.5">
                           <span className="text-amber-400">•</span>
@@ -409,14 +416,14 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
 
                 {/* Open Clarifying Questions */}
                 {understanding.missingQuestions.length > 0 && (
-                  <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">
+                  <div className="p-4 rounded-2xl bg-[#0a0c12] border border-white/5 space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 font-mono">
                       OPEN QUESTIONS TO RESOLVE
                     </span>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {understanding.missingQuestions.map((q, idx) => (
-                        <div key={idx} className="text-xs text-white/80 flex items-start gap-2">
-                          <span className="w-4 h-4 rounded bg-white/10 text-white/60 font-mono text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                        <div key={idx} className="text-xs text-stone-300 flex items-start gap-2.5">
+                          <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 font-mono text-[10px] flex items-center justify-center shrink-0 mt-0.5 font-bold">
                             {idx + 1}
                           </span>
                           <span>{q}</span>
@@ -429,13 +436,13 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
             )}
           </div>
 
-          {/* Action Bar */}
-          <div className="p-6 rounded-2xl bg-[#12141a]/95 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Action Bar (Linea Bento Capsule) */}
+          <div className="p-6 rounded-3xl linea-bento flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-[#fbf8f3] uppercase tracking-wider font-mono">
                 {isApproved ? 'Story Brain Initialized' : 'Ready to Establish Baseline Canon?'}
               </h4>
-              <p className="text-[11px] text-white/50 mt-0.5">
+              <p className="text-[11px] text-stone-400 mt-1">
                 {isApproved 
                   ? 'Canonical facts are now locked in Story Brain. Explore directions or develop characters.'
                   : 'Approving converts this AI inference into locked canonical knowledge in Story Brain.'}
@@ -446,7 +453,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
               {!isApproved ? (
                 <button
                   onClick={handleApproveAndInitializeBrain}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer"
+                  className="linea-pill-btn linea-pill-primary px-5 py-2.5 text-xs font-bold gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Approve Understanding as Canon</span>
@@ -454,7 +461,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
               ) : (
                 <button
                   onClick={() => setActiveScreen('research')}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                  className="linea-pill-btn linea-pill-primary px-5 py-2.5 text-xs font-bold gap-2"
                 >
                   <span>Next: Traceable Research</span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -463,7 +470,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
 
               <button
                 onClick={() => setActiveScreen('story-exploration')}
-                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all border border-white/10 flex items-center gap-2 cursor-pointer"
+                className="linea-pill-btn linea-pill-secondary px-4 py-2.5 text-xs font-semibold gap-2"
               >
                 <span>Explore Story Directions</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -474,16 +481,16 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
 
         {/* Right Column: Interactive Copilot Q&A on Intake (4 cols) */}
         <div className="xl:col-span-4 space-y-6">
-          <div className="bg-[#12141a]/95 rounded-2xl border border-white/10 p-6 flex flex-col h-[680px]">
-            <div className="pb-3 border-b border-white/10 flex items-center justify-between">
+          <div className="linea-bento rounded-3xl p-6 flex flex-col h-[680px]">
+            <div className="pb-3 border-b border-white/[0.08] flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] flex items-center gap-2 font-mono">
                   <Brain className="w-4 h-4 text-amber-400" />
                   <span>Intake Copilot</span>
                 </h3>
-                <p className="text-[11px] text-white/50">Ask questions about this specific project</p>
+                <p className="text-[11px] text-stone-400 mt-0.5">Ask questions about this specific project</p>
               </div>
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+              <span className="linea-caption-chip">
                 Project-Scoped
               </span>
             </div>
@@ -493,13 +500,13 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
               {chatMessages.map((msg, idx) => (
                 <div
                   key={idx}
-                  className={`p-3.5 rounded-xl ${
+                  className={`p-3.5 rounded-2xl ${
                     msg.sender === 'user'
                       ? 'bg-amber-500/15 border border-amber-500/30 text-amber-100 ml-4'
-                      : 'bg-black/50 border border-white/5 text-white/90 mr-2'
+                      : 'bg-[#0a0c12] border border-white/5 text-stone-200 mr-2'
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[10px] text-white/40 mb-1">
+                  <div className="flex items-center justify-between text-[10px] text-stone-500 mb-1 font-mono">
                     <span className="font-bold">{msg.sender === 'user' ? 'You' : 'Tattava Copilot'}</span>
                     <span>{msg.time}</span>
                   </div>
@@ -508,7 +515,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
               ))}
 
               {isChatting && (
-                <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs text-white/60 flex items-center gap-2">
+                <div className="p-3 rounded-2xl bg-[#0a0c12] border border-white/5 text-xs text-stone-400 flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
                   <span>Reasoning on project context...</span>
                 </div>
@@ -516,20 +523,20 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
             </div>
 
             {/* Chat Input */}
-            <form onSubmit={handleSendChat} className="pt-3 border-t border-white/10 flex items-center gap-2">
+            <form onSubmit={handleSendChat} className="pt-3 border-t border-white/[0.08] relative flex items-center">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Ask about protagonist flaw, stakes..."
-                className="flex-1 bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-white/30 focus:outline-none transition-all"
+                className="w-full bg-[#0a0c12] border border-white/10 focus:border-amber-400 rounded-full pl-4 pr-11 py-2.5 text-xs text-[#fbf8f3] placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-400/40 transition-all"
               />
               <button
                 type="submit"
                 disabled={!chatInput.trim() || isChatting}
-                className="p-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black transition-all"
+                className="absolute right-1.5 w-7 h-7 rounded-full bg-amber-400 hover:bg-amber-300 disabled:opacity-30 text-black flex items-center justify-center transition-all shadow-sm"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5" />
               </button>
             </form>
           </div>

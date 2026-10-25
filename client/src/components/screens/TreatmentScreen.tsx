@@ -103,19 +103,19 @@ export const TreatmentScreen: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto pb-16">
       {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <span className="linea-caption-chip">
               Pipeline Step 10
             </span>
-            <span className="text-xs text-white/40">• Comprehensive Prose Blueprint</span>
+            <span className="text-xs text-stone-400">• Comprehensive Prose Blueprint</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-[#fbf8f3] flex items-center gap-3">
             Narrative Treatment & Prose Dossier
           </h1>
-          <p className="text-sm text-white/60 mt-1 max-w-2xl">
-            Version {treatment.version || 'v0.1'} • {wordCount.toLocaleString()} Words • {isSeries ? `Episode ${activeEpisode}/${episodeCount} • ${episodeDuration} min` : 'Feature'} • Complete Narrative Spine for <strong className="text-white">"{currentProject.title}"</strong>
+          <p className="text-sm text-stone-400 mt-1 max-w-2xl">
+            Version {treatment.version || 'v0.1'} • {wordCount.toLocaleString()} Words • {isSeries ? `Episode ${activeEpisode}/${episodeCount} • ${episodeDuration} min` : 'Feature'} • Complete Narrative Spine for <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong>
           </p>
         </div>
 
@@ -123,21 +123,28 @@ export const TreatmentScreen: React.FC = () => {
           <button
             onClick={handleSynthesizeTreatment}
             disabled={isSynthesizing}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+            className="linea-pill-btn linea-pill-primary px-4 py-2 text-xs font-bold gap-2 disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSynthesizing ? 'animate-spin' : ''}`} />
             <span>{isSynthesizing ? 'Synthesizing Treatment...' : 'Synthesize Treatment (AI)'}</span>
+            {isSynthesizing && (
+              <span className="linea-btn-wave ml-1" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
           </button>
           <button
             onClick={() => openContextResolver('Treatment Beat', 'Prose Synopsis Draft')}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all"
+            className="linea-pill-btn linea-pill-secondary px-3.5 py-2 text-xs font-semibold text-cyan-300 border-cyan-500/30 gap-2"
           >
             <Brain className="w-3.5 h-3.5 text-cyan-400" />
             <span>Scoped Context</span>
           </button>
           <button
             onClick={nextStep}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-all shadow-lg shadow-amber-500/20"
+            className="linea-pill-btn linea-pill-primary px-5 py-2 text-xs font-bold gap-2"
           >
             <span>Next: Scene Breakdown</span>
             <ArrowRight className="w-4 h-4" />
@@ -145,49 +152,49 @@ export const TreatmentScreen: React.FC = () => {
         </div>
       </div>
 
-{treatment.isSynthesisStale && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-4">
+      {treatment.isSynthesisStale && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-4">
           <div>
             <div className="font-semibold">{isSeries ? 'Format changed: episode treatment needs synthesis' : 'Treatment configuration changed'}</div>
-            <div className="mt-1 text-white/50">{isSeries ? `Generating the narrative treatment for Episode ${activeEpisode} of ${episodeCount} at ${episodeDuration} minutes.` : 'The previous treatment belongs to another format/template.'}</div>
+            <div className="mt-1 text-stone-400">{isSeries ? `Generating the narrative treatment for Episode ${activeEpisode} of ${episodeCount} at ${episodeDuration} minutes.` : 'The previous treatment belongs to another format/template.'}</div>
           </div>
-          <button onClick={handleSynthesizeTreatment} disabled={isSynthesizing} className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 font-semibold text-black hover:bg-amber-400 disabled:opacity-50">{isSynthesizing ? 'Synthesizing…' : 'Update Treatment'}</button>
+          <button onClick={handleSynthesizeTreatment} disabled={isSynthesizing} className="linea-pill-btn linea-pill-primary px-4 py-1.5 text-xs font-bold disabled:opacity-50">{isSynthesizing ? 'Synthesizing…' : 'Update Treatment'}</button>
         </div>
       )}
 
-            {treatmentError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
+      {treatmentError && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{treatmentError}</span>
           </div>
-          <button onClick={() => setTreatmentError(null)} className="text-white/40 hover:text-white">✕</button>
+          <button onClick={() => setTreatmentError(null)} className="text-stone-400 hover:text-white">✕</button>
         </div>
       )}
 
-      {/* Metadata Pill Bar */}
-      <div className="p-4 rounded-xl bg-[#12141a]/90 border border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs">
+      {/* Metadata Pill Bar (Linea Bento Capsule) */}
+      <div className="linea-bento p-4 rounded-3xl flex flex-wrap items-center justify-between gap-4 text-xs">
         <div className="flex flex-wrap items-center gap-4">
-          <span className="flex items-center gap-1.5 text-white/60">
+          <span className="flex items-center gap-1.5 text-stone-300">
             <BookOpen className="w-4 h-4 text-amber-400" />
-            <span>Word Count: <strong className="text-white">{wordCount.toLocaleString()}</strong></span>
+            <span>Word Count: <strong className="text-[#fbf8f3] font-mono">{wordCount.toLocaleString()}</strong></span>
           </span>
-          <span className="text-white/20">•</span>
-          <span className="text-white/60">
-            Reading Time: <strong className="text-white">~{Math.max(1, Math.round(wordCount / 200))} Mins</strong>
+          <span className="text-stone-600">•</span>
+          <span className="text-stone-300">
+            Reading Time: <strong className="text-[#fbf8f3] font-mono">~{Math.max(1, Math.round(wordCount / 200))} Mins</strong>
           </span>
-          <span className="text-white/20">•</span>
-          <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+          <span className="text-stone-600">•</span>
+          <span className="flex items-center gap-1.5 text-emerald-400 font-semibold font-mono">
             <ShieldCheck className="w-4 h-4" /> Status: {treatment.status || 'DRAFT'}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {tones.length === 0 ? (
-            <span className="text-white/40 text-[11px] italic">No tones assigned</span>
+            <span className="text-stone-500 text-[11px] italic">No tones assigned</span>
           ) : (
             tones.map((t, idx) => (
-              <span key={idx} className="px-2.5 py-0.5 rounded bg-white/5 text-white/70 border border-white/10 font-mono text-[11px]">
+              <span key={idx} className="px-3 py-1 rounded-full bg-[#141824] text-stone-300 border border-white/[0.08] font-mono text-[11px]">
                 {t}
               </span>
             ))
@@ -199,32 +206,30 @@ export const TreatmentScreen: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         
         {/* Left Column: Treatment Document Viewer (7 cols) */}
-        <div className="xl:col-span-7 bg-[#12141a]/95 rounded-2xl border border-white/10 p-6 space-y-6 flex flex-col">
-          <div className="flex items-center justify-between pb-4 border-b border-white/10">
-            <div>
-              <span className="text-[11px] font-mono uppercase tracking-wider text-amber-400">Executive Logline</span>
-              <h2 className="text-sm font-semibold text-white/90 italic mt-1 leading-relaxed">
-                "{treatment.logline || currentProject.intent?.premise || 'No logline defined yet.'}"
-              </h2>
-            </div>
+        <div className="xl:col-span-7 linea-bento rounded-3xl p-6 space-y-6 flex flex-col">
+          <div className="pb-4 border-b border-white/[0.08]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Executive Logline</span>
+            <h2 className="text-sm font-semibold text-[#fbf8f3] italic mt-1.5 leading-relaxed">
+              "{treatment.logline || currentProject.intent?.premise || 'No logline defined yet.'}"
+            </h2>
           </div>
 
           <div className="space-y-4 flex-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-white/50">
+              <span className="text-xs font-bold uppercase tracking-wider text-stone-400 font-mono">
                 Narrative Synopsis & Thematic Progression
               </span>
               {isEditingSynopsis ? (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setIsEditingSynopsis(false)}
-                    className="text-xs text-white/40 hover:text-white"
+                    className="text-xs text-stone-400 hover:text-white"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveSynopsis}
-                    className="px-3 py-1 rounded bg-amber-500 text-black text-xs font-bold"
+                    className="linea-pill-btn linea-pill-primary px-3 py-1 text-xs font-bold"
                   >
                     Save Changes
                   </button>
@@ -232,9 +237,9 @@ export const TreatmentScreen: React.FC = () => {
               ) : (
                 <button
                   onClick={() => setIsEditingSynopsis(true)}
-                  className="text-xs text-amber-400 hover:underline flex items-center gap-1"
+                  className="text-xs text-amber-400 hover:underline flex items-center gap-1 font-semibold"
                 >
-                  <Edit3 className="w-3 h-3" /> Edit Prose
+                  <Edit3 className="w-3.5 h-3.5" /> Edit Prose
                 </button>
               )}
             </div>
@@ -244,24 +249,24 @@ export const TreatmentScreen: React.FC = () => {
                 value={synopsisText}
                 onChange={(e) => setSynopsisText(e.target.value)}
                 rows={12}
-                className="w-full p-4 rounded-xl bg-black/60 border border-amber-500 text-white/90 text-sm leading-relaxed focus:outline-none font-serif resize-none"
+                className="w-full p-4 rounded-2xl bg-[#0a0c12] border border-amber-400/80 text-[#fbf8f3] text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-amber-400 font-serif resize-none"
               />
             ) : !treatment.synopsis ? (
-              <div className="p-8 text-center bg-black/40 border border-white/5 rounded-xl space-y-3">
-                <p className="text-xs text-white/50">
+              <div className="p-8 text-center bg-[#0a0c12] border border-white/5 rounded-2xl space-y-3">
+                <p className="text-xs text-stone-400">
                   No narrative synopsis drafted yet for "{currentProject.title}".
                 </p>
                 <button
                   onClick={handleSynthesizeTreatment}
                   disabled={isSynthesizing}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold inline-flex items-center gap-1.5 transition-all"
+                  className="linea-pill-btn linea-pill-primary px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Draft Synopsis with AI</span>
                 </button>
               </div>
             ) : (
-              <div className="p-5 rounded-xl bg-black/40 border border-white/5 text-sm text-white/80 leading-relaxed space-y-4 font-serif">
+              <div className="p-6 rounded-2xl bg-[#0a0c12] border border-white/[0.06] text-sm text-[#fbf8f3]/90 leading-relaxed space-y-4 font-serif">
                 <p className="whitespace-pre-line">{treatment.synopsis}</p>
               </div>
             )}
@@ -272,23 +277,23 @@ export const TreatmentScreen: React.FC = () => {
         <div className="xl:col-span-5 space-y-6">
           
           {/* Plot Beats Board */}
-          <div className="bg-[#12141a]/95 rounded-2xl border border-white/10 p-5 space-y-4">
+          <div className="linea-bento rounded-3xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] font-mono">
                   Cardinal Plot Beats ({plotBeats.length})
                 </h3>
-                <p className="text-[11px] text-white/50">Progression from Opening Image to Final Resolution</p>
+                <p className="text-[11px] text-stone-400 mt-0.5">Progression from Opening Image to Final Resolution</p>
               </div>
 
               {/* Act Filter */}
-              <div className="flex items-center gap-1 bg-black/50 p-1 rounded-lg border border-white/10">
+              <div className="flex items-center gap-1 bg-[#0a0c12] p-1 rounded-full border border-white/[0.08]">
                 {(['ALL', 'ACT I', 'ACT II', 'ACT III'] as const).map(act => (
                   <button
                     key={act}
                     onClick={() => setActiveAct(act)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-colors ${
-                      activeAct === act ? 'bg-amber-500 text-black' : 'text-white/50 hover:text-white'
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold transition-all ${
+                      activeAct === act ? 'bg-amber-400 text-black shadow-sm font-bold' : 'text-stone-400 hover:text-white'
                     }`}
                   >
                     {act}
@@ -298,14 +303,14 @@ export const TreatmentScreen: React.FC = () => {
             </div>
 
             {plotBeats.length === 0 ? (
-              <div className="p-8 text-center bg-black/30 border border-dashed border-white/10 rounded-xl space-y-3">
-                <p className="text-xs text-white/50">
+              <div className="p-8 text-center bg-[#0a0c12] border border-dashed border-white/10 rounded-2xl space-y-3">
+                <p className="text-xs text-stone-400">
                   No cardinal plot beats mapped yet.
                 </p>
                 <button
                   onClick={handleSynthesizeTreatment}
                   disabled={isSynthesizing}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold inline-flex items-center gap-1.5 transition-all"
+                  className="linea-pill-btn linea-pill-primary px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Synthesize Plot Beats (AI)</span>
@@ -316,20 +321,20 @@ export const TreatmentScreen: React.FC = () => {
                 {filteredBeats.map(beat => (
                   <div
                     key={beat.id}
-                    className="p-3.5 rounded-xl bg-black/40 hover:bg-black/60 border border-white/5 hover:border-amber-500/30 transition-all"
+                    className="p-3.5 rounded-2xl bg-[#121622] hover:bg-[#161b2a] border border-white/[0.06] hover:border-amber-400/30 transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-white/10 text-amber-400 text-[10px] font-mono flex items-center justify-center">
+                      <span className="text-xs font-bold text-[#fbf8f3] flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono flex items-center justify-center font-bold">
                           {beat.number}
                         </span>
                         {beat.title}
                       </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-white/60">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-stone-400">
                         {beat.act}
                       </span>
                     </div>
-                    <p className="text-xs text-white/60 mt-1.5 pl-7 leading-relaxed">
+                    <p className="text-xs text-stone-300 mt-1.5 pl-7 leading-relaxed">
                       {beat.description}
                     </p>
                   </div>
@@ -339,9 +344,9 @@ export const TreatmentScreen: React.FC = () => {
           </div>
 
           {/* Quality Audit Checklist */}
-          <div className="bg-[#12141a]/95 rounded-2xl border border-white/10 p-5 space-y-3">
+          <div className="linea-bento rounded-3xl p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] flex items-center gap-2 font-mono">
                 <ListChecks className="w-4 h-4 text-emerald-400" />
                 Treatment Quality Audit
               </span>
@@ -358,9 +363,9 @@ export const TreatmentScreen: React.FC = () => {
                 { item: 'Midpoint Reversal Mapped', completed: plotBeats.some(b => b.act === 'ACT II') },
                 { item: 'Climax & Thematic Resolution', completed: plotBeats.some(b => b.act === 'ACT III') }
               ] : checklist).map((chk, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-black/30 border border-white/5">
-                  <span className="text-xs text-white/80">{chk.item}</span>
-                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${chk.completed ? 'text-emerald-400' : 'text-white/20'}`} />
+                <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-[#0f121a] border border-white/5">
+                  <span className="text-xs text-stone-300">{chk.item}</span>
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${chk.completed ? 'text-emerald-400' : 'text-stone-600'}`} />
                 </div>
               ))}
             </div>

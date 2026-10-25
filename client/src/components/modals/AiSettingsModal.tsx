@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, X, Cpu, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import { getAiStatus, testAiConnection } from '../../services/aiService';
+import { BentoCard, LineaButton, LineaEqualizerWave } from '../common/LineaUI';
 
 interface AiSettingsModalProps {
   isOpen: boolean;
@@ -39,39 +40,41 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
   const ready = status?.configured === true;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-      <div className="w-full max-w-lg bg-[#14161f] border border-amber-500/40 rounded-2xl overflow-hidden shadow-2xl shadow-black">
-        <div className="p-5 border-b border-white/10 flex items-center justify-between bg-black/40">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+      <BentoCard className="w-full max-w-lg bg-[#0e1119]/95 border-white/[0.12] rounded-3xl overflow-hidden shadow-2xl p-0">
+        <div className="p-5 sm:p-6 border-b border-white/[0.08] flex items-center justify-between bg-black/40">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <Zap className="w-5 h-5 fill-current" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">tattvaCo AI Engine</h3>
-              <p className="text-xs text-white/50">HuggingFace Inference, called from the server</p>
+              <h3 className="text-sm font-bold text-[#fbf8f3]">tattvaCo AI Engine</h3>
+              <p className="text-xs text-stone-400">HuggingFace Inference, executed from the secure backend</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-full text-stone-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
-          <div className="p-4 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+        <div className="p-6 space-y-4">
+          <div className="p-4 rounded-2xl bg-[#0a0c12]/80 border border-white/[0.06] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Cpu className="w-5 h-5 text-amber-400" />
               <div>
-                <div className="text-xs font-mono font-bold text-white">{status?.model ?? '…'}</div>
-                <div className="text-[11px] text-white/50">Configured model (the server may fall back to a second model)</div>
+                <div className="text-xs font-mono font-bold text-[#fbf8f3]">{status?.model ?? '…'}</div>
+                <div className="text-[11px] text-stone-400">Configured model (with automatic failover)</div>
               </div>
             </div>
             <span
-              className={`text-[11px] font-mono font-semibold flex items-center gap-1 ${
-                ready ? 'text-emerald-400' : 'text-rose-400'
+              className={`text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
+                ready 
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' 
+                  : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${ready ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
@@ -85,15 +88,15 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
             </p>
           )}
           {status && !ready && (
-            <p className="text-xs text-white/60">
-              Set <span className="font-mono">HUGGINGFACE_API_TOKEN</span> in <span className="font-mono">server/.env</span>{' '}
+            <p className="text-xs text-stone-400 leading-relaxed bg-[#0a0c12]/60 p-3 rounded-2xl border border-white/[0.06]">
+              Set <span className="font-mono text-amber-300">HUGGINGFACE_API_TOKEN</span> in <span className="font-mono text-stone-300">server/.env</span>{' '}
               and restart the backend. The token never needs to be entered in the browser.
             </p>
           )}
 
           {testResult && (
             <div
-              className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
+              className={`p-3.5 rounded-2xl border text-xs flex items-center gap-2.5 ${
                 testResult.success
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                   : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
@@ -108,29 +111,33 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ isOpen, onClos
             </div>
           )}
 
-          <div className="pt-2 border-t border-white/5 flex items-start gap-2 text-[11px] text-white/50">
-            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-            <span>Prompts go to your own server, which adds the provider token. Nothing secret is stored in this browser.</span>
+          <div className="pt-2 border-t border-white/[0.06] flex items-start gap-2.5 text-xs text-stone-400">
+            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <span className="leading-relaxed">Prompts are routed through your private server environment. No secrets or API credentials are exposed in the client browser.</span>
           </div>
         </div>
 
-        <div className="p-4 bg-black/60 border-t border-white/10 flex items-center justify-between">
-          <button
+        <div className="p-4 sm:p-5 bg-black/40 border-t border-white/[0.08] flex items-center justify-between">
+          <LineaButton
+            variant="ghost"
+            size="sm"
+            showWave={testing}
             onClick={handleTest}
             disabled={testing}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 text-xs font-medium border border-white/10 transition-colors"
+            icon={<RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-amber-400' : ''}`} />}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-amber-400' : ''}`} />
-            <span>{testing ? 'Verifying...' : 'Test Connection'}</span>
-          </button>
-          <button
+            {testing ? 'Verifying...' : 'Test Connection'}
+          </LineaButton>
+
+          <LineaButton
+            variant="primary"
+            size="sm"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all"
           >
             Close
-          </button>
+          </LineaButton>
         </div>
-      </div>
+      </BentoCard>
     </div>
   );
 };

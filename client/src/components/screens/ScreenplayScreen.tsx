@@ -107,26 +107,26 @@ export const ScreenplayScreen: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto pb-16">
       {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <span className="linea-caption-chip">
               Pipeline Step 11
             </span>
-            <span className="text-xs text-white/40">• Industry Standard Screenplay Formatter</span>
+            <span className="text-xs text-stone-400">• Industry Standard Screenplay Formatter</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-[#fbf8f3] flex items-center gap-3">
             Screenplay Production Draft
           </h1>
-          <p className="text-sm text-white/60 mt-1 max-w-2xl">
-            Courier Prime standard format • Page {activeSceneNumber} of 118 • Project: <strong className="text-white">"{currentProject.title}"</strong>
+          <p className="text-sm text-stone-400 mt-1 max-w-2xl">
+            Courier Prime standard format • Page {activeSceneNumber} of 118 • Project: <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong>
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => openContextResolver('Scene Drafting', `Screenplay Draft Scene ${activeSceneNumber}`)}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all"
+            className="linea-pill-btn linea-pill-secondary px-3.5 py-2 text-xs font-semibold text-cyan-300 border-cyan-500/30 gap-2"
           >
             <Brain className="w-3.5 h-3.5 text-cyan-400" />
             <span>Scoped Context</span>
@@ -134,14 +134,21 @@ export const ScreenplayScreen: React.FC = () => {
           <button
             onClick={runAiDialoguePunchUp}
             disabled={aiPunchingUp || filteredLines.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-medium transition-all disabled:opacity-40"
+            className="linea-pill-btn linea-pill-secondary px-4 py-2 text-xs font-medium gap-2 disabled:opacity-40"
           >
             <Sparkles className={`w-3.5 h-3.5 text-amber-400 ${aiPunchingUp ? 'animate-spin' : ''}`} />
             <span>{aiPunchingUp ? 'Sharpening Subtext...' : 'Subtext Punch-Up'}</span>
+            {aiPunchingUp && (
+              <span className="linea-btn-wave ml-1" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            )}
           </button>
           <button
             onClick={nextStep}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-all shadow-lg shadow-amber-500/20"
+            className="linea-pill-btn linea-pill-primary px-5 py-2 text-xs font-bold gap-2"
           >
             <span>Next: Dialogue Studio</span>
             <ArrowRight className="w-4 h-4" />
@@ -150,39 +157,39 @@ export const ScreenplayScreen: React.FC = () => {
       </div>
 
       {draftError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
           <span>{draftError}</span>
-          <button onClick={() => setDraftError(null)} className="text-white/40 hover:text-white">✕</button>
+          <button onClick={() => setDraftError(null)} className="text-stone-400 hover:text-white">✕</button>
         </div>
       )}
 
       {screenplayStale && activeSceneArtifact && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
           <span>Screenplay is stale for the current project configuration. Tattava is rebuilding Scene {activeSceneNumber} from the current scene, canon, and project configuration.</span>
           <button
             onClick={handleDraftSceneWithAi}
             disabled={isDraftingScene}
-            className="px-3 py-1.5 rounded-lg bg-amber-500 text-black font-bold disabled:opacity-50"
+            className="linea-pill-btn linea-pill-primary px-3.5 py-1.5 text-xs font-bold disabled:opacity-50"
           >
             {isDraftingScene ? 'Drafting…' : 'Draft Now'}
           </button>
         </div>
       )}
 
-      {/* Formatting & Scene Bar */}
-      <div className="p-3.5 rounded-xl bg-[#12141a]/95 border border-white/10 flex flex-wrap items-center justify-between gap-4">
+      {/* Formatting & Scene Bar (Linea Bento Capsule) */}
+      <div className="linea-bento p-3 flex flex-wrap items-center justify-between gap-4">
         {/* Scene Selector */}
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-white/40">Scene:</span>
-          <div className="flex items-center gap-1.5 overflow-x-auto">
+          <span className="text-xs font-bold uppercase tracking-wider text-stone-400 font-mono">Scene:</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-[#0b0e15] rounded-full border border-white/5">
             {sceneNumbers.slice(0, 8).map(num => (
               <button
                 key={num}
                 onClick={() => setActiveSceneNumber(num)}
-                className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all border ${
+                className={`px-3.5 py-1 rounded-full text-xs font-mono font-bold transition-all ${
                   activeSceneNumber === num
-                    ? 'bg-amber-500 text-black border-amber-500 shadow-md shadow-amber-500/10'
-                    : 'bg-black/50 text-white/60 border-white/10 hover:bg-white/10 hover:text-white'
+                    ? 'bg-amber-400 text-black shadow-[0_2px_10px_rgba(245,158,11,0.3)]'
+                    : 'text-stone-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 Scene {num}
@@ -195,53 +202,60 @@ export const ScreenplayScreen: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleAddNewLine('action')}
-            className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 text-xs border border-white/10 flex items-center gap-1"
+            className="linea-pill-btn linea-pill-secondary px-3 py-1.5 text-xs gap-1"
           >
-            <Plus className="w-3 h-3 text-amber-400" /> + Action
+            <Plus className="w-3 h-3 text-amber-400" /> Action
           </button>
           <button
             onClick={() => handleAddNewLine('character')}
-            className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 text-xs border border-white/10 flex items-center gap-1"
+            className="linea-pill-btn linea-pill-secondary px-3 py-1.5 text-xs gap-1"
           >
-            <Plus className="w-3 h-3 text-amber-400" /> + Character
+            <Plus className="w-3 h-3 text-amber-400" /> Character
           </button>
           <button
             onClick={() => handleAddNewLine('dialogue')}
-            className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 text-xs border border-white/10 flex items-center gap-1"
+            className="linea-pill-btn linea-pill-secondary px-3 py-1.5 text-xs gap-1"
           >
-            <Plus className="w-3 h-3 text-amber-400" /> + Dialogue
+            <Plus className="w-3 h-3 text-amber-400" /> Dialogue
           </button>
         </div>
       </div>
 
-      {/* Screenplay Page Container - Cinematic Paper Texture & Courier Prime */}
-      <div className="max-w-4xl mx-auto bg-[#181a20] rounded-2xl border border-white/15 p-12 lg:p-16 shadow-2xl shadow-black relative font-mono text-[14px] leading-relaxed text-white/90">
+      {/* Screenplay Page Container - Cinematic Paper Texture & Linea Warm Contrast */}
+      <div className="max-w-4xl mx-auto bg-[#0d1017] rounded-3xl border border-white/[0.08] p-10 lg:p-14 shadow-2xl relative font-mono text-[14px] leading-relaxed text-[#fbf8f3] inset-specular">
         
         {/* Top Page Header */}
-        <div className="flex items-center justify-between text-white/40 text-xs font-mono pb-8 border-b border-white/10 mb-8 select-none">
+        <div className="flex items-center justify-between text-stone-500 text-xs font-mono pb-6 border-b border-white/[0.08] mb-8 select-none">
           <span>{currentProject.title.toUpperCase()} • PRODUCTION DRAFT</span>
           <span>PAGE {activeSceneNumber}</span>
         </div>
 
         {/* Screenplay Lines List or Empty State */}
         {filteredLines.length === 0 ? (
-          <div className="py-16 text-center space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+          <div className="py-16 text-center space-y-5">
+            <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-[0_2px_12px_rgba(245,158,11,0.15)]">
               <FileCode2 className="w-6 h-6" />
             </div>
-            <div className="max-w-md mx-auto space-y-1">
-              <h3 className="text-base font-bold text-white font-sans">No Screenplay Lines Drafted Yet for Scene {activeSceneNumber}</h3>
-              <p className="text-xs text-white/50 font-sans">
-                Draft dialogue and action beats manually using the format bar above, or synthesize a formatted scene using AI.
+            <div className="max-w-md mx-auto space-y-1.5">
+              <h3 className="text-base font-bold text-[#fbf8f3] font-sans">No Screenplay Lines Drafted Yet for Scene {activeSceneNumber}</h3>
+              <p className="text-xs text-stone-400 font-sans leading-relaxed">
+                Draft dialogue and action beats manually using the format pills above, or synthesize a formatted scene using AI.
               </p>
             </div>
             <button
               onClick={handleDraftSceneWithAi}
               disabled={isDraftingScene}
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold font-sans inline-flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all hover:scale-105 disabled:opacity-50"
+              className="linea-pill-btn linea-pill-primary px-5 py-2.5 text-xs font-bold font-sans inline-flex items-center gap-2 disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
               <span>{isDraftingScene ? 'Drafting Scene...' : `Draft Scene ${activeSceneNumber} with AI`}</span>
+              {isDraftingScene && (
+                <span className="linea-btn-wave ml-1" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              )}
             </button>
           </div>
         ) : (
@@ -276,7 +290,7 @@ export const ScreenplayScreen: React.FC = () => {
                 return (
                   <div 
                     key={line.id} 
-                    className="text-white/80 max-w-2xl px-2 py-1 cursor-pointer hover:bg-white/5 rounded"
+                    className="text-stone-300 max-w-2xl px-2 py-1 cursor-pointer hover:bg-white/[0.04] rounded-lg transition-colors"
                     onClick={() => setEditingLineId(line.id)}
                   >
                     {isEditing ? (
@@ -285,7 +299,7 @@ export const ScreenplayScreen: React.FC = () => {
                         onChange={(e) => handleLineContentChange(line.id, e.target.value)}
                         onBlur={() => setEditingLineId(null)}
                         autoFocus
-                        className="w-full bg-black/80 text-white/90 border border-amber-500 rounded px-2 py-1 font-mono resize-none"
+                        className="w-full bg-[#080a10] text-[#fbf8f3] border border-amber-400/80 rounded-xl p-2 font-mono resize-none focus:outline-none focus:ring-1 focus:ring-amber-400/50"
                       />
                     ) : (
                       <p>{line.content}</p>
@@ -296,7 +310,7 @@ export const ScreenplayScreen: React.FC = () => {
 
               if (line.type === 'character') {
                 return (
-                  <div key={line.id} className="text-center font-bold text-amber-400 uppercase pt-3 select-none">
+                  <div key={line.id} className="text-center font-bold text-amber-400 tracking-wider uppercase pt-3 select-none">
                     {line.content}
                   </div>
                 );
@@ -304,7 +318,7 @@ export const ScreenplayScreen: React.FC = () => {
 
               if (line.type === 'parenthetical') {
                 return (
-                  <div key={line.id} className="text-center text-white/50 italic text-xs">
+                  <div key={line.id} className="text-center text-stone-400 italic text-xs">
                     {line.content}
                   </div>
                 );
@@ -314,7 +328,7 @@ export const ScreenplayScreen: React.FC = () => {
                 return (
                   <div 
                     key={line.id} 
-                    className="max-w-md mx-auto text-center px-4 py-1.5 cursor-pointer hover:bg-amber-500/10 rounded transition-colors group relative border border-transparent hover:border-amber-500/20"
+                    className="max-w-md mx-auto text-center px-4 py-2 cursor-pointer hover:bg-amber-500/10 rounded-2xl transition-all group relative border border-transparent hover:border-amber-500/20"
                     onClick={() => setEditingLineId(line.id)}
                   >
                     {isEditing ? (
@@ -323,15 +337,15 @@ export const ScreenplayScreen: React.FC = () => {
                         onChange={(e) => handleLineContentChange(line.id, e.target.value)}
                         onBlur={() => setEditingLineId(null)}
                         autoFocus
-                        className="w-full bg-black/90 text-white/90 border border-amber-500 rounded px-2 py-1 font-mono text-center resize-none"
+                        className="w-full bg-[#080a10] text-[#fbf8f3] border border-amber-400 rounded-xl p-2 font-mono text-center resize-none focus:outline-none focus:ring-1 focus:ring-amber-400/50"
                       />
                     ) : (
-                      <p className="text-white/90 leading-relaxed font-mono">
+                      <p className="text-[#fbf8f3] leading-relaxed font-mono">
                         "{line.content}"
                       </p>
                     )}
-                    <span className="opacity-0 group-hover:opacity-100 text-[10px] text-amber-400 absolute right-1 top-1">
-                      Click to edit
+                    <span className="opacity-0 group-hover:opacity-100 text-[10px] text-amber-400 absolute right-2 top-2 font-sans font-semibold">
+                      Edit
                     </span>
                   </div>
                 );
@@ -343,7 +357,7 @@ export const ScreenplayScreen: React.FC = () => {
         )}
 
         {/* Page Footer */}
-        <div className="mt-16 pt-8 border-t border-white/10 flex items-center justify-between text-xs text-white/40 font-mono">
+        <div className="mt-16 pt-6 border-t border-white/[0.08] flex items-center justify-between text-xs text-stone-500 font-mono">
           <span>(CONTINUED)</span>
           <span>Draft V1.0 • Tattava Standard Screenplay</span>
         </div>

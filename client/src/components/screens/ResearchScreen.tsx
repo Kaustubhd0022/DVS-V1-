@@ -2,29 +2,23 @@ import React, { useState } from 'react';
 import { 
   CheckCircle2, 
   ArrowRight, 
-  ArrowLeft, 
   Plus, 
-  Search, 
   Sparkles, 
   ExternalLink, 
   BookOpen, 
   AlertCircle, 
   FileCheck, 
-  Video, 
-  Link2,
-  Users,
-  Clapperboard,
-  Globe2,
-  Filter,
-  Shield,
-  HelpCircle,
-  AlertTriangle,
-  RefreshCw,
-  Cpu
+  Globe2, 
+  Shield, 
+  HelpCircle, 
+  AlertTriangle, 
+  RefreshCw, 
+  Cpu 
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { ResearchFinding } from '../../types/project';
 import { generateResearchTopics } from '../../services/aiService';
+import { LineaButton, BentoCard, LineaCaption, LineaEqualizerWave } from '../common/LineaUI';
 
 export const ResearchScreen: React.FC = () => {
   const { currentProject, addCanonFact, nextStep, openContextResolver, updateCurrentProject, buildResearchUniverse } = useProject();
@@ -98,22 +92,16 @@ export const ResearchScreen: React.FC = () => {
           sourceType: (t.sourceType as any) || 'Established Publication',
           status: 'Needs Review',
           confidence: t.confidence || 0,
-          implicationForPlot: t.implicationForPlot || '',
+          tags: ['Extracted Finding', t.topic || 'General'],
           date: new Date().toLocaleDateString(),
-          usedIn: ['Story Context', 'World Grounding']
-        }));
-
-        const newQuestions = (res.topics || []).map((t, idx) => ({
-          id: 'rq-' + ((prev.researchQuestions?.length || 0) + idx + 1),
-          title: `Investigate: ${t.topic}`,
-          category: 'Domain Inquiry',
-          completed: false
+          evidenceQuote: (t as any).evidenceQuote || t.evidence || '',
+          implicationForPlot: t.implicationForPlot || '',
+          usedIn: []
         }));
 
         return {
           ...prev,
           researchFindings: [...(prev.researchFindings || []), ...newFindings],
-          researchQuestions: [...(prev.researchQuestions || []), ...newQuestions],
           pilotMetrics: {
             ...prev.pilotMetrics,
             totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1
@@ -121,7 +109,7 @@ export const ResearchScreen: React.FC = () => {
         };
       });
     } catch (err: any) {
-      setGenerationError(err.message || 'AI service error generating research dossier.');
+      setGenerationError(err.message || 'AI service error generating research findings.');
     } finally {
       setIsGenerating(false);
     }
@@ -166,113 +154,129 @@ export const ResearchScreen: React.FC = () => {
   const provenanceRate = findings.length > 0 ? Math.round((verifiedCount / findings.length) * 100) : 0;
 
   return (
-    <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-white/10">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              Flow 2 • Traceable Research Engine
-            </span>
-            <span className="text-xs text-white/40">• Project-Specific Grounding</span>
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fadeIn">
+      {/* Top Bento Hero Banner */}
+      <BentoCard className="relative overflow-hidden p-6 lg:p-8 border-white/[0.08]">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <LineaCaption variant="periwinkle" icon={<BookOpen className="w-3.5 h-3.5" />}>
+                Flow 2 • Traceable Research Engine
+              </LineaCaption>
+              <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-white/[0.04] text-stone-400 border border-white/[0.08]">
+                Grounding & Provenance
+              </span>
+            </div>
+            
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#fbf8f3]">
+              Traceable Research & Evidence Dossier
+            </h1>
+            
+            <p className="text-xs sm:text-sm text-stone-300/80 max-w-3xl leading-relaxed">
+              Derived directly from <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong>.
+              All external claims require verified provenance. Where evidence is uncertain, the system flags insufficient evidence rather than hallucinating facts.
+            </p>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            Traceable Research & Evidence Dossier
-          </h1>
-          <p className="text-sm text-white/70 mt-1 max-w-2xl">
-            Derived directly from <strong className="text-white">"{currentProject.title}"</strong>.
-            External claims require verified provenance. Where evidence is uncertain, the system flags insufficient evidence rather than hallucinating facts.
-          </p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <LineaButton
+              variant="primary"
+              size="md"
+              showWave={isGenerating}
+              onClick={handleGenerateResearch}
+              disabled={isGenerating}
+              icon={<RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />}
+            >
+              {isGenerating ? 'Synthesizing Dossier...' : 'Generate Research Topics (AI)'}
+            </LineaButton>
+
+            <button
+              onClick={() => openContextResolver()}
+              className="px-4 py-2.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-sky-200 border border-white/[0.1] text-xs font-semibold transition-colors cursor-pointer"
+            >
+              Inspect Context Package
+            </button>
+            
+            <LineaButton
+              variant="ghost"
+              size="md"
+              onClick={nextStep}
+              icon={<ArrowRight className="w-4 h-4" />}
+              iconPosition="right"
+            >
+              Next: Story Exploration
+            </LineaButton>
+          </div>
         </div>
+      </BentoCard>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={handleGenerateResearch}
-            disabled={isGenerating}
-            className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span>{isGenerating ? 'Synthesizing Dossier...' : 'Generate Research Topics (AI)'}</span>
-          </button>
-
-          <button
-            onClick={() => openContextResolver()}
-            className="px-3.5 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-          >
-            <span>Inspect Context Package</span>
-          </button>
-          
-          <button
-            onClick={nextStep}
-            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-4 py-2 rounded-xl shadow-lg shadow-amber-500/20 transition-all"
-          >
-            <span>Next: Story Exploration</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Research Universe — knowledge map before claims */}
-      <section className="bg-[#111722] border border-cyan-500/20 rounded-2xl p-5 space-y-4 shadow-lg">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
+      {/* Research Universe Bento — Knowledge map before claims */}
+      <BentoCard className="p-6 lg:p-8 space-y-5 border-sky-500/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Globe2 className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-bold text-white">Research Universe</h2>
-              <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+              <Globe2 className="w-4 h-4 text-sky-400" />
+              <h2 className="text-sm font-bold text-[#fbf8f3]">Research Universe</h2>
+              <span className="text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold font-mono">
                 Knowledge Map
               </span>
             </div>
-            <p className="text-[11px] text-white/50 mt-1 max-w-2xl">
-              Map what must be understood before Tattava turns research into factual findings. Dimensions are research territories, not verified claims.
+            <p className="text-xs text-stone-400 max-w-2xl leading-relaxed">
+              Map what must be understood before Tattava turns research into factual findings. Dimensions are research territories, not unverified claims.
             </p>
           </div>
-          <button
+          <LineaButton
+            variant="ghost"
+            size="sm"
+            showWave={isMappingUniverse}
             onClick={handleBuildResearchUniverse}
             disabled={isMappingUniverse}
-            className="px-4 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center gap-2 disabled:opacity-50"
+            icon={<Cpu className={`w-3.5 h-3.5 ${isMappingUniverse ? 'animate-spin' : ''}`} />}
           >
-            <Cpu className={`w-3.5 h-3.5 ${isMappingUniverse ? 'animate-spin' : ''}`} />
             {isMappingUniverse ? 'Mapping Knowledge Space...' : 'Map Research Universe'}
-          </button>
+          </LineaButton>
         </div>
 
         {currentProject.projectIntelligence?.researchUniverse?.dimensions?.length ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="rounded-xl bg-black/20 border border-white/5 p-3">
-                <p className="text-[9px] uppercase tracking-wider text-white/35">Root Subject</p>
-                <p className="text-xs text-white/85 mt-1">{currentProject.projectIntelligence.researchUniverse.rootSubject}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] p-4">
+                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Root Subject</p>
+                <p className="text-xs font-bold text-[#fbf8f3] mt-1">{currentProject.projectIntelligence.researchUniverse.rootSubject}</p>
               </div>
-              <div className="rounded-xl bg-black/20 border border-white/5 p-3">
-                <p className="text-[9px] uppercase tracking-wider text-white/35">Research Dimensions</p>
-                <p className="text-xl font-bold text-cyan-300 mt-1">{currentProject.projectIntelligence.researchUniverse.dimensions.length}</p>
+              <div className="rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] p-4">
+                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Research Dimensions</p>
+                <p className="text-xl font-bold text-sky-300 mt-1">{currentProject.projectIntelligence.researchUniverse.dimensions.length}</p>
               </div>
-              <div className="rounded-xl bg-black/20 border border-white/5 p-3">
-                <p className="text-[9px] uppercase tracking-wider text-white/35">Evidence Coverage</p>
-                <p className="text-xl font-bold text-white mt-1">{currentProject.projectIntelligence.researchUniverse.coveragePercent}%</p>
+              <div className="rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] p-4">
+                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Evidence Coverage</p>
+                <p className="text-xl font-bold text-[#fbf8f3] mt-1">{currentProject.projectIntelligence.researchUniverse.coveragePercent}%</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {currentProject.projectIntelligence.researchUniverse.dimensions.map((dimension) => (
-                <div key={dimension.id} className="rounded-xl bg-black/20 border border-white/5 p-3">
+                <div key={dimension.id} className="rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] p-4 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-white">{dimension.label}</span>
-                    <span className="text-[9px] uppercase text-white/35">{dimension.status}</span>
+                    <span className="text-xs font-bold text-[#fbf8f3]">{dimension.label}</span>
+                    <span className="text-[10px] uppercase font-mono text-stone-400">{dimension.status}</span>
                   </div>
-                  <p className="text-[10px] text-white/50 leading-relaxed mt-1">{dimension.description}</p>
+                  <p className="text-xs text-stone-400 leading-relaxed">{dimension.description}</p>
                 </div>
               ))}
             </div>
 
             {currentProject.projectIntelligence.researchUniverse.unresolvedQuestions.length > 0 && (
-              <div className="pt-3 border-t border-white/5">
-                <p className="text-[9px] uppercase tracking-wider font-bold text-amber-400 mb-2">Unresolved Research Questions</p>
+              <div className="pt-3 border-t border-white/[0.06]">
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-amber-300 mb-2">Unresolved Research Questions</p>
                 <div className="space-y-1.5">
                   {currentProject.projectIntelligence.researchUniverse.unresolvedQuestions.map((q, i) => (
-                    <div key={i} className="text-[11px] text-white/70 flex gap-2">
-                      <span className="text-amber-400">•</span><span>{q}</span>
+                    <div key={i} className="text-xs text-stone-300 flex items-start gap-2">
+                      <span className="text-amber-400">•</span>
+                      <span>{q}</span>
                     </div>
                   ))}
                 </div>
@@ -280,110 +284,114 @@ export const ResearchScreen: React.FC = () => {
             )}
           </>
         ) : (
-          <div className="rounded-xl border border-dashed border-white/10 p-5 text-center">
-            <p className="text-xs text-white/55">No research universe mapped yet.</p>
-            <p className="text-[10px] text-white/35 mt-1">Start here before generating evidence findings.</p>
+          <div className="rounded-2xl border border-dashed border-white/[0.1] p-6 text-center space-y-1">
+            <p className="text-xs text-stone-300 font-medium">No research universe mapped yet.</p>
+            <p className="text-[11px] text-stone-500">Map the knowledge space first to ground downstream AI generation.</p>
           </div>
         )}
-      </section>
+      </BentoCard>
 
       {/* Error alert banner */}
       {generationError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between backdrop-blur-md">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{generationError}</span>
           </div>
-          <button onClick={() => setGenerationError(null)} className="text-white/40 hover:text-white">✕</button>
+          <button onClick={() => setGenerationError(null)} className="text-stone-400 hover:text-white transition-colors">✕</button>
         </div>
       )}
 
       {/* 4 Metric KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#141822] border border-white/10 rounded-2xl p-4 flex items-center gap-3.5 shadow-md">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <BentoCard className="p-4 flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white leading-none">{questions.length}</h3>
-            <p className="text-xs font-semibold text-white/80 mt-0.5">Research Questions</p>
-            <p className="text-[10px] text-white/40">{questions.filter(q => q.completed).length} completed</p>
+            <h3 className="text-xl font-bold text-[#fbf8f3] leading-none">{questions.length}</h3>
+            <p className="text-xs font-semibold text-stone-300 mt-1">Research Questions</p>
+            <p className="text-[10px] text-stone-500">{questions.filter(q => q.completed).length} completed</p>
           </div>
-        </div>
+        </BentoCard>
 
-        <div className="bg-[#141822] border border-white/10 rounded-2xl p-4 flex items-center gap-3.5 shadow-md">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+        <BentoCard className="p-4 flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
             <FileCheck className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white leading-none">
+            <h3 className="text-xl font-bold text-[#fbf8f3] leading-none">
               {verifiedCount}
             </h3>
-            <p className="text-xs font-semibold text-white/80 mt-0.5">Verified Findings</p>
+            <p className="text-xs font-semibold text-stone-300 mt-1">Verified Findings</p>
             <p className="text-[10px] text-emerald-400 font-semibold">{provenanceRate}% Provenance Rate</p>
           </div>
-        </div>
+        </BentoCard>
 
-        <div className="bg-[#141822] border border-white/10 rounded-2xl p-4 flex items-center gap-3.5 shadow-md">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+        <BentoCard className="p-4 flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white leading-none">
+            <h3 className="text-xl font-bold text-[#fbf8f3] leading-none">
               {findings.filter(f => f.status === 'Conflicting').length}
             </h3>
-            <p className="text-xs font-semibold text-white/80 mt-0.5">Conflicting Sources</p>
-            <p className="text-[10px] text-amber-300">Surfaced for human decision</p>
+            <p className="text-xs font-semibold text-stone-300 mt-1">Conflicting Sources</p>
+            <p className="text-[10px] text-amber-300">Surfaced for human review</p>
           </div>
-        </div>
+        </BentoCard>
 
-        <div className="bg-[#141822] border border-white/10 rounded-2xl p-4 flex items-center gap-3.5 shadow-md">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+        <BentoCard className="p-4 flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
             <HelpCircle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white leading-none">
+            <h3 className="text-xl font-bold text-[#fbf8f3] leading-none">
               {findings.filter(f => f.status === 'Insufficient Evidence').length}
             </h3>
-            <p className="text-xs font-semibold text-white/80 mt-0.5">Uncertainty Flagged</p>
+            <p className="text-xs font-semibold text-stone-300 mt-1">Uncertainty Flagged</p>
             <p className="text-[10px] text-purple-300">Zero fabricated claims</p>
           </div>
-        </div>
+        </BentoCard>
       </div>
 
       {/* Main 2 Column Layout or Empty State */}
       {findings.length === 0 && questions.length === 0 ? (
-        <div className="p-12 text-center bg-[#141822] border border-dashed border-white/10 rounded-3xl space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto">
+        <BentoCard className="p-12 text-center border-dashed border-white/[0.12] space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center mx-auto">
             <BookOpen className="w-8 h-8" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
-            <h3 className="text-lg font-bold text-white">No Research Dossier Generated Yet</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
+            <h3 className="text-lg font-bold text-[#fbf8f3]">No Research Dossier Generated Yet</h3>
+            <p className="text-xs text-stone-400 leading-relaxed">
               Every project begins with zero external claims. Tattava will extract key domains from your premise (<span className="text-amber-300">"{currentProject.title}"</span>) and generate traceable research queries.
             </p>
           </div>
-          <button
-            onClick={handleGenerateResearch}
-            disabled={isGenerating}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-bold flex items-center gap-2 mx-auto shadow-lg shadow-cyan-500/20 disabled:opacity-50 transition-all hover:scale-105"
-          >
-            <Sparkles className="w-4 h-4 fill-black" />
-            <span>{isGenerating ? 'Synthesizing Project Research...' : 'Generate Project-Specific Research Dossier'}</span>
-          </button>
-        </div>
+          <div className="pt-2">
+            <LineaButton
+              variant="primary"
+              size="md"
+              showWave={isGenerating}
+              onClick={handleGenerateResearch}
+              disabled={isGenerating}
+              icon={<Sparkles className="w-4 h-4 fill-black" />}
+            >
+              {isGenerating ? 'Synthesizing Project Research...' : 'Generate Project-Specific Research Dossier'}
+            </LineaButton>
+          </div>
+        </BentoCard>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (4 cols): Research Questions Queue */}
-          <div className="lg:col-span-4 bg-[#141822] border border-white/10 rounded-2xl p-5 space-y-4 shadow-md">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <BentoCard className="lg:col-span-4 p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
               <div>
-                <h3 className="text-sm font-bold text-white">Targeted Research Questions</h3>
-                <p className="text-[11px] text-white/50">{questions.filter(q => q.completed).length} of {questions.length} answered</p>
+                <h3 className="text-sm font-bold text-[#fbf8f3]">Targeted Research Questions</h3>
+                <p className="text-[11px] text-stone-400">{questions.filter(q => q.completed).length} of {questions.length} answered</p>
               </div>
               <button
                 onClick={() => setShowAddQuestion(true)}
-                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white"
+                className="p-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-stone-300 hover:text-white transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4 text-amber-400" />
               </button>
@@ -394,18 +402,18 @@ export const ResearchScreen: React.FC = () => {
                 <div
                   key={q.id}
                   onClick={() => handleToggleQuestion(q.id)}
-                  className={`cursor-pointer flex items-center gap-3 p-3 rounded-xl border text-xs transition-all ${
+                  className={`cursor-pointer flex items-center gap-3 p-3 rounded-2xl border text-xs transition-all ${
                     q.completed
-                      ? 'bg-[#181d28] border-white/5 text-white/50'
-                      : 'bg-[#1a202d] border-white/10 text-white hover:border-amber-500/40'
+                      ? 'bg-[#0a0c12]/40 border-white/[0.04] text-stone-500'
+                      : 'bg-[#0a0c12]/80 border-white/[0.08] text-stone-200 hover:border-amber-500/40'
                   }`}
                 >
                   <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    q.completed ? 'bg-emerald-500 text-black' : 'border border-white/30'
+                    q.completed ? 'bg-emerald-500 text-stone-950' : 'border border-white/30'
                   }`}>
-                    {q.completed && <CheckCircle2 className="w-3.5 h-3.5 text-black" />}
+                    {q.completed && <CheckCircle2 className="w-3.5 h-3.5 text-stone-950" />}
                   </div>
-                  <span className={`flex-1 ${q.completed ? 'line-through text-white/40' : 'font-medium'}`}>
+                  <span className={`flex-1 ${q.completed ? 'line-through text-stone-500' : 'font-medium'}`}>
                     {q.title}
                   </span>
                 </div>
@@ -419,103 +427,105 @@ export const ResearchScreen: React.FC = () => {
                     value={newQuestionInput}
                     onChange={(e) => setNewQuestionInput(e.target.value)}
                     placeholder="Type question and hit enter..."
-                    className="w-full bg-[#181d28] border border-amber-500/50 rounded-xl px-3 py-2 text-xs text-white placeholder-white/40 focus:outline-none"
+                    className="w-full bg-[#0a0c12] border border-amber-500/50 rounded-full px-4 py-2 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none"
                   />
                 </form>
               )}
             </div>
-          </div>
+          </BentoCard>
 
           {/* Right Column (8 cols): Traceable Findings Dossier */}
           <div className="lg:col-span-8 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#131622] p-3 rounded-xl border border-white/10">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/60">
-                Evidence Findings with Source Attribution ({filteredFindings.length})
-              </h3>
+            <BentoCard className="p-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 px-2">
+                  Evidence Findings with Source Attribution ({filteredFindings.length})
+                </span>
 
-              <div className="flex items-center gap-1.5 text-xs overflow-x-auto">
-                {(['All', 'Verified', 'Conflicting', 'Insufficient Evidence'] as const).map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setFilterType(filter)}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors whitespace-nowrap ${
-                      filterType === filter
-                        ? 'bg-amber-500 text-black'
-                        : 'bg-black/30 text-white/60 hover:text-white border border-white/10'
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
+                <div className="flex items-center gap-1.5 text-xs overflow-x-auto p-1">
+                  {(['All', 'Verified', 'Conflicting', 'Insufficient Evidence'] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setFilterType(filter)}
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                        filterType === filter
+                          ? 'bg-amber-400 text-stone-950 shadow-md shadow-amber-500/20'
+                          : 'bg-white/[0.04] text-stone-400 hover:text-white border border-white/[0.08]'
+                      }`}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            </BentoCard>
 
             <div className="space-y-4">
               {filteredFindings.map((finding) => {
                 const isPromoted = promotedFindingIds.includes(finding.id);
 
                 return (
-                  <div
+                  <BentoCard
                     key={finding.id}
-                    className={`border rounded-2xl p-5 shadow-lg space-y-3.5 transition-all ${
+                    className={`p-5 space-y-3.5 transition-all ${
                       finding.status === 'Insufficient Evidence'
-                        ? 'bg-purple-950/20 border-purple-500/30'
+                        ? 'border-purple-500/30 bg-purple-950/15'
                         : finding.status === 'Conflicting'
-                        ? 'bg-amber-950/20 border-amber-500/30'
-                        : 'bg-[#141822] border-white/10 hover:border-amber-500/30'
+                        ? 'border-amber-500/30 bg-amber-950/15'
+                        : 'hover:border-amber-500/30'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white/60">
+                        <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-stone-400">
                           {finding.id.toUpperCase()} • {finding.topic}
                         </span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
                           finding.status === 'Verified'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                             : finding.status === 'Conflicting'
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                            : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                            : 'bg-purple-500/15 text-purple-300 border-purple-500/30'
                         }`}>
                           {finding.status}
                         </span>
                       </div>
 
-                      <span className="text-xs font-mono font-bold text-white/60">
+                      <span className="text-xs font-mono font-bold text-stone-400">
                         {finding.confidence}% Confidence
                       </span>
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-bold text-white mb-1">
+                      <h4 className="text-sm font-bold text-[#fbf8f3] mb-1.5">
                         {finding.claim}
                       </h4>
-                      <p className="text-xs text-white/80 leading-relaxed bg-black/30 p-3 rounded-xl border border-white/5">
+                      <p className="text-xs text-stone-300 leading-relaxed bg-[#0a0c12]/70 p-3.5 rounded-2xl border border-white/[0.06]">
                         {finding.evidence}
                       </p>
                     </div>
 
                     {finding.evidenceQuote && (
-                      <blockquote className="text-[11px] text-amber-200/90 italic pl-3 border-l-2 border-amber-500/50">
+                      <blockquote className="text-xs text-amber-200/90 italic pl-3 border-l-2 border-amber-500/50">
                         "{finding.evidenceQuote}"
                       </blockquote>
                     )}
 
                     {finding.implicationForPlot && (
-                      <div className="text-xs text-white/70 pt-1">
-                        <strong className="text-cyan-300">Plot Implication:</strong> {finding.implicationForPlot}
+                      <div className="text-xs text-stone-300 pt-1">
+                        <strong className="text-sky-300">Plot Implication:</strong> {finding.implicationForPlot}
                       </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/5 text-[11px] text-white/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/[0.08] text-xs text-stone-400">
                       <div className="flex items-center gap-3">
-                        <span>Source: <strong className="text-white/80">{finding.source}</strong> ({finding.sourceType})</span>
+                        <span>Source: <strong className="text-[#fbf8f3]">{finding.source}</strong> ({finding.sourceType})</span>
                         {finding.sourceUrl && (
                           <a 
                             href={finding.sourceUrl} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold"
+                            className="text-sky-400 hover:text-sky-300 flex items-center gap-1 font-semibold"
                           >
                             <ExternalLink className="w-3 h-3" />
                             <span>View Provenance</span>
@@ -529,12 +539,12 @@ export const ResearchScreen: React.FC = () => {
                             value={verificationUrl[finding.id] || ''}
                             onChange={(e) => setVerificationUrl(prev => ({ ...prev, [finding.id]: e.target.value }))}
                             placeholder="Paste source URL after human verification"
-                            className="w-64 max-w-full bg-black/30 border border-amber-500/20 rounded-lg px-2.5 py-1.5 text-[10px] text-white placeholder-white/30 focus:outline-none focus:border-amber-500/50"
+                            className="w-64 max-w-full bg-[#0a0c12] border border-amber-500/20 rounded-full px-3 py-1.5 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50"
                           />
                           <button
                             onClick={() => handleVerifyFinding(finding)}
                             disabled={!verificationUrl[finding.id]?.trim()}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-40"
+                            className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-stone-950 disabled:opacity-40 cursor-pointer"
                           >
                             Verify Source
                           </button>
@@ -545,10 +555,10 @@ export const ResearchScreen: React.FC = () => {
                         <button
                           onClick={() => handlePromoteToCanon(finding)}
                           disabled={isPromoted}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
                             isPromoted
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              : 'bg-amber-500 hover:bg-amber-400 text-black shadow-sm'
+                              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-amber-400 hover:bg-amber-300 text-stone-950 shadow-md shadow-amber-500/20'
                           }`}
                         >
                           <Shield className="w-3.5 h-3.5" />
@@ -556,7 +566,7 @@ export const ResearchScreen: React.FC = () => {
                         </button>
                       )}
                     </div>
-                  </div>
+                  </BentoCard>
                 );
               })}
             </div>

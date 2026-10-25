@@ -96,11 +96,11 @@ export const TopHeader: React.FC = () => {
   const totalResults = matchedCharacters.length + matchedCanonFacts.length + matchedScenes.length + matchedProjects.length;
 
   return (
-    <header className="h-16 border-b border-[#222834] bg-[#0f1217]/95 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-16 border-b border-white/[0.08] bg-[#0c0f17]/90 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-40 transition-colors">
       {/* Search bar & Dropdown */}
       <div ref={searchContainerRef} className="flex-1 max-w-xl relative">
         <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+          <Search className="w-4 h-4 text-stone-400 absolute left-4 pointer-events-none" />
           <input
             ref={searchInputRef}
             type="text"
@@ -111,7 +111,7 @@ export const TopHeader: React.FC = () => {
               setIsSearchOpen(true);
             }}
             placeholder="Search characters, canon facts, scenes, or projects..."
-            className="w-full bg-[#171b24] border border-[#272e3d] rounded-xl pl-10 pr-20 py-2 text-sm text-[#f1f3f7] placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+            className="w-full bg-[#131722]/90 border border-white/10 rounded-full pl-11 pr-20 py-2 text-xs text-[#fbf8f3] placeholder-stone-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 shadow-inner transition-all"
           />
           {searchQuery && (
             <button
@@ -119,25 +119,25 @@ export const TopHeader: React.FC = () => {
                 setSearchQuery('');
                 searchInputRef.current?.focus();
               }}
-              className="absolute right-12 text-slate-400 hover:text-white p-1"
+              className="absolute right-12 text-stone-400 hover:text-white p-1"
               title="Clear search"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          <kbd className="hidden sm:inline-block absolute right-3 text-[10px] text-slate-400 bg-[#222836] px-1.5 py-0.5 rounded border border-[#2e3648]">
+          <kbd className="hidden sm:inline-block absolute right-3.5 text-[10px] text-stone-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10 font-mono">
             ⌘K
           </kbd>
         </div>
 
         {/* Global Search Results Dropdown */}
         {isSearchOpen && searchQuery.trim().length > 0 && (
-          <div className="absolute top-12 left-0 w-full bg-[#151922] border border-[#2d3648] rounded-2xl shadow-2xl p-3 z-50 max-h-[460px] overflow-y-auto space-y-3 animate-fadeIn">
+          <div className="absolute top-12 left-0 w-full bg-[#131724]/95 border border-white/10 rounded-3xl shadow-2xl p-4 z-50 max-h-[460px] overflow-y-auto space-y-3 backdrop-blur-2xl animate-in fade-in zoom-in-95">
             {totalResults === 0 ? (
               <div className="p-6 text-center space-y-2">
-                <Search className="w-6 h-6 text-slate-500 mx-auto" />
+                <Search className="w-6 h-6 text-stone-500 mx-auto" />
                 <p className="text-sm font-semibold text-white">No story elements found</p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-stone-400">
                   No characters, canon facts, or scenes matched <span className="text-amber-400">"{searchQuery}"</span>.
                 </p>
               </div>
@@ -146,7 +146,7 @@ export const TopHeader: React.FC = () => {
                 {/* Matched Characters */}
                 {matchedCharacters.length > 0 && (
                   <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 px-2 py-1 flex items-center gap-1.5">
                       <Users className="w-3 h-3 text-cyan-400" />
                       Characters ({matchedCharacters.length})
                     </span>
@@ -158,13 +158,13 @@ export const TopHeader: React.FC = () => {
                             setActiveScreen('characters');
                             setIsSearchOpen(false);
                           }}
-                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-amber-500/15 hover:border-amber-500/30 border border-transparent flex items-center justify-between text-xs transition-colors group"
+                          className="w-full text-left p-2.5 rounded-2xl bg-white/5 hover:bg-amber-500/15 hover:border-amber-500/30 border border-transparent flex items-center justify-between text-xs transition-colors group"
                         >
                           <div>
                             <span className="font-bold text-white group-hover:text-amber-300">{c.name}</span>
-                            <span className="text-slate-400 ml-2">({c.role}, Age {c.age})</span>
+                            <span className="text-stone-400 ml-2">({c.role}, Age {c.age})</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 group-hover:text-amber-400 flex items-center gap-1">
+                          <span className="text-[10px] text-stone-400 group-hover:text-amber-400 flex items-center gap-1">
                             View Arc <ArrowRight className="w-3 h-3" />
                           </span>
                         </button>
@@ -176,7 +176,7 @@ export const TopHeader: React.FC = () => {
                 {/* Matched Canon Facts */}
                 {matchedCanonFacts.length > 0 && (
                   <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 px-2 py-1 flex items-center gap-1.5">
                       <Shield className="w-3 h-3 text-amber-400" />
                       Story Brain Canon Facts ({matchedCanonFacts.length})
                     </span>
@@ -188,15 +188,15 @@ export const TopHeader: React.FC = () => {
                             setActiveScreen('story-brain');
                             setIsSearchOpen(false);
                           }}
-                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-amber-500/15 hover:border-amber-500/30 border border-transparent text-xs transition-colors group"
+                          className="w-full text-left p-2.5 rounded-2xl bg-white/5 hover:bg-amber-500/15 hover:border-amber-500/30 border border-transparent text-xs transition-colors group"
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">
+                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                               {f.category}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">{f.id}</span>
+                            <span className="text-[10px] text-stone-400 font-mono">{f.id}</span>
                           </div>
-                          <p className="text-white/90 group-hover:text-amber-200 line-clamp-1">{f.statement}</p>
+                          <p className="text-[#fbf8f3] group-hover:text-amber-200 line-clamp-1">{f.statement}</p>
                         </button>
                       ))}
                     </div>
@@ -206,7 +206,7 @@ export const TopHeader: React.FC = () => {
                 {/* Matched Scenes */}
                 {matchedScenes.length > 0 && (
                   <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 px-2 py-1 flex items-center gap-1.5">
                       <FileText className="w-3 h-3 text-emerald-400" />
                       Script Outline & Scenes ({matchedScenes.length})
                     </span>
@@ -218,13 +218,13 @@ export const TopHeader: React.FC = () => {
                             setActiveScreen('scene-outline');
                             setIsSearchOpen(false);
                           }}
-                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-emerald-500/15 hover:border-emerald-500/30 border border-transparent text-xs transition-colors group"
+                          className="w-full text-left p-2.5 rounded-2xl bg-white/5 hover:bg-emerald-500/15 hover:border-emerald-500/30 border border-transparent text-xs transition-colors group"
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-white group-hover:text-emerald-300">{s.slugline || s.subheading || `Scene ${s.sceneNumber}`}</span>
-                            <span className="text-[10px] text-slate-400">Scene {s.sceneNumber}</span>
+                            <span className="text-[10px] text-stone-400">Scene {s.sceneNumber}</span>
                           </div>
-                          <p className="text-slate-400 line-clamp-1 text-[11px] mt-0.5">{s.summary}</p>
+                          <p className="text-stone-400 line-clamp-1 text-[11px] mt-0.5">{s.summary}</p>
                         </button>
                       ))}
                     </div>
@@ -234,7 +234,7 @@ export const TopHeader: React.FC = () => {
                 {/* Other Projects */}
                 {matchedProjects.length > 0 && (
                   <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 px-2 py-1 flex items-center gap-1.5">
                       <Film className="w-3 h-3 text-purple-400" />
                       Other Workspaces ({matchedProjects.length})
                     </span>
@@ -246,7 +246,7 @@ export const TopHeader: React.FC = () => {
                             openProject(p.id, 'story-brain');
                             setIsSearchOpen(false);
                           }}
-                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-purple-500/15 hover:border-purple-500/30 border border-transparent flex items-center justify-between text-xs transition-colors group"
+                          className="w-full text-left p-2.5 rounded-2xl bg-white/5 hover:bg-purple-500/15 hover:border-purple-500/30 border border-transparent flex items-center justify-between text-xs transition-colors group"
                         >
                           <span className="font-semibold text-white group-hover:text-purple-300">{p.title}</span>
                           <span className="text-[10px] text-purple-400 font-mono">Switch Workspace →</span>
@@ -263,67 +263,71 @@ export const TopHeader: React.FC = () => {
 
       {/* Right controls */}
       <div className="flex items-center gap-3 ml-4">
-        {/* + New Project Button */}
+        {/* + New Project Button (Linea Pill) */}
         <button
           onClick={() => setActiveScreen('create-project')}
-          className="flex items-center gap-2 bg-[#1f2533] hover:bg-[#283042] text-white px-3.5 py-2 rounded-xl text-xs font-semibold border border-[#323d54] shadow-sm transition-all active:scale-95"
+          className="linea-pill-btn linea-pill-secondary px-4 py-2 text-xs font-semibold gap-2 border border-white/10 shadow-sm"
         >
-          <Plus className="w-4 h-4 text-amber-400" />
+          <Plus className="w-3.5 h-3.5 text-amber-400" />
           <span>New Project</span>
         </button>
 
-        {/* Contextual AI Copilot Toggle */}
+        {/* Contextual AI Copilot Toggle (Linea Pill with Equalizer Wave) */}
         <button
           onClick={toggleCopilot}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+          className={`linea-pill-btn px-4 py-2 text-xs font-semibold gap-2 transition-all ${
             isCopilotOpen
-              ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 shadow-sm'
-              : 'bg-[#171b24] text-slate-300 hover:text-white border-[#272e3d]'
+              ? 'linea-pill-primary'
+              : 'linea-pill-secondary text-stone-300 hover:text-white'
           }`}
           title="Toggle Contextual AI Copilot"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <Sparkles className={`w-3.5 h-3.5 ${isCopilotOpen ? 'text-black' : 'text-amber-400'}`} />
           <span className="hidden md:inline">Copilot</span>
+          <span className="linea-btn-wave" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
         </button>
 
-        {/* Notifications */}
-        <button className="relative p-2 rounded-xl bg-[#171b24] hover:bg-[#222836] border border-[#272e3d] text-slate-300 hover:text-white transition-colors">
+        {/* Notifications Pill */}
+        <button className="relative w-9 h-9 rounded-full bg-[#151924] hover:bg-[#1e2332] border border-white/10 text-stone-300 hover:text-white flex items-center justify-center transition-all">
           <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
         </button>
 
-        {/* User profile dropdown */}
+        {/* User profile pill */}
         <div className="relative">
           <button 
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2.5 pl-2 py-1 pr-1.5 rounded-xl hover:bg-[#181c26] transition-colors"
+            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-[#151924]/80 hover:bg-[#1f2536] border border-white/10 transition-all cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-black flex items-center justify-center font-bold text-xs shadow-sm">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-black flex items-center justify-center font-bold text-xs shadow-sm">
               KD
             </div>
             <div className="hidden lg:block text-left">
-              <p className="text-xs font-semibold text-[#f1f3f7] leading-tight">Kaustubh Deshmukh</p>
-              <p className="text-[10px] text-slate-400">Story Development Lead</p>
+              <p className="text-xs font-semibold text-[#fbf8f3] leading-tight">Kaustubh</p>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-[#161a22] border border-[#2a3243] rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
-              <div className="px-3 py-2 border-b border-[#252c3c]">
+            <div className="absolute right-0 mt-2 w-56 bg-[#141824]/95 border border-white/10 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-xl animate-in fade-in zoom-in-95">
+              <div className="px-3 py-2 border-b border-white/10">
                 <p className="text-xs font-bold text-white">Kaustubh Deshmukh</p>
-                <p className="text-[11px] text-slate-400">kaustubh@donvanzara.film</p>
+                <p className="text-[11px] text-stone-400">kaustubh@donvanzara.film</p>
               </div>
               <div className="py-1">
                 <button 
                   onClick={() => { setActiveScreen('home'); setShowUserMenu(false); }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-[#cad3e0] hover:bg-[#212735] rounded-lg"
+                  className="w-full text-left px-3 py-2 text-xs text-stone-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
                 >
                   Workspace Dashboard
                 </button>
                 <button 
                   onClick={() => { setActiveScreen('package'); setShowUserMenu(false); }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-[#cad3e0] hover:bg-[#212735] rounded-lg"
+                  className="w-full text-left px-3 py-2 text-xs text-stone-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
                 >
                   Project Governance & Settings
                 </button>

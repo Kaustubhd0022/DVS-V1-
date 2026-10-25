@@ -33,7 +33,11 @@ export const getCanonicalConfiguration = (project: TattavaProject): CanonicalCon
     'Three-Act Classical Thriller';
 
   const series = isSeriesFormat(formatLabel);
-  const episodeCount = series ? (project.projectConfig?.episodeCount || project.structure?.episodeCount || 6) : undefined;
+  const epMatch = formatLabel.match(/(\d+)\s*[- ]*(?:ep|episode)/i);
+  const detectedEpCount = epMatch ? parseInt(epMatch[1], 10) : undefined;
+  const episodeCount = series 
+    ? (detectedEpCount || project.dynamicFormat?.episodeCount || project.intent?.episodeCount || project.projectConfig?.episodeCount || project.structure?.episodeCount || 16) 
+    : undefined;
   const episodeDurationMins = series ? (project.projectConfig?.episodeDurationMins || project.structure?.episodeDurationMins || 45) : undefined;
   const activeEpisodeNumber = series ? (project.projectConfig?.activeEpisodeNumber || project.structure?.activeEpisodeNumber || 1) : undefined;
   const runtime = series ? episodeDurationMins! : (project.structure?.estimatedDurationMins || 120);

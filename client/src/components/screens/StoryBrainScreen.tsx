@@ -21,15 +21,33 @@ import {
   Database,
   ExternalLink,
   BookOpen,
-  Trash2
+  Trash2,
+  Check,
+  X
 } from 'lucide-react';
 
 export const StoryBrainScreen: React.FC = () => {
-  const { currentProject, addCanonFact, deleteCanonFact, toggleLockCanonFact, logCreativeDecision, resolveDependencyStaleness, setActiveScreen, openContextResolver } = useProject();
+  const { 
+    currentProject, 
+    addCanonFact, 
+    deleteCanonFact, 
+    toggleLockCanonFact, 
+    logCreativeDecision, 
+    resolveDependencyStaleness, 
+    setActiveScreen, 
+    openContextResolver,
+    fetchCandidatePool,
+    adoptCandidateIntoProject,
+    updateCandidateStatus,
+    resolveCanonConflict
+  } = useProject();
   
-  const [activeTab, setActiveTab] = useState<'canon' | 'entities' | 'decisions' | 'dependencies'>('canon');
+  const [activeTab, setActiveTab] = useState<'canon' | 'candidates' | 'conflicts' | 'entities' | 'decisions' | 'dependencies'>('canon');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [candidateTypeFilter, setCandidateTypeFilter] = useState<string>('ALL');
+  const [candidateSearchQuery, setCandidateSearchQuery] = useState<string>('');
+  const [isGeneratingCandidates, setIsGeneratingCandidates] = useState<boolean>(false);
 
   // Form modal state
   const [isAddFactOpen, setIsAddFactOpen] = useState(false);
@@ -48,6 +66,16 @@ export const StoryBrainScreen: React.FC = () => {
   const canonFacts = currentProject.storyBrain?.canonFacts || [];
   const decisions = currentProject.storyBrain?.creativeDecisions || currentProject.storyBrain?.decisionLog || [];
   const dependencies = currentProject.storyBrain?.dependencies || [];
+  const candidatePool = currentProject.candidatePool || [];
+  const canonConflicts = currentProject.canonConflicts || [];
+
+  const filteredCandidates = candidatePool.filter(c => {
+    const matchesSearch = c.title.toLowerCase().includes(candidateSearchQuery.toLowerCase()) ||
+                          c.whatItIs.toLowerCase().includes(candidateSearchQuery.toLowerCase()) ||
+                          c.evidence.toLowerCase().includes(candidateSearchQuery.toLowerCase());
+    const matchesType = candidateTypeFilter === 'ALL' || c.candidateType === candidateTypeFilter;
+    return matchesSearch && matchesType;
+  });
 
   const filteredFacts = canonFacts.filter(fact => {
     const matchesSearch = fact.statement.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -100,25 +128,23 @@ export const StoryBrainScreen: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fadeIn">
-      {/* Top Hero: Story Brain System of Record */}
-      <div className="relative rounded-2xl bg-gradient-to-br from-[#121624] via-[#0f121d] to-[#151a2d] border border-amber-500/30 p-6 lg:p-8 shadow-2xl overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-        
+      {/* Top Hero: Story Brain System of Record (Linea Bento Card) */}
+      <div className="linea-bento p-6 lg:p-8 relative overflow-hidden border-amber-500/30">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 font-mono">
                 <Brain className="w-3.5 h-3.5" />
                 System of Record • V1 Pilot Baseline
               </span>
-              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono bg-white/10 text-white/70 border border-white/10">
+              <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-white/10 text-stone-300 border border-white/10">
                 {currentProject.canonicalVersion || 'v1.2-canonical'}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#fbf8f3] tracking-tight flex items-center gap-3">
               Story Brain & Project Intelligence
             </h1>
-            <p className="text-sm text-white/70 max-w-3xl leading-relaxed">
+            <p className="text-sm text-stone-300 max-w-3xl leading-relaxed">
               The persistent narrative memory for <strong className="text-white">{currentProject.title}</strong>. 
               Maintains immutable world rules, character truths, and causal dependencies across the development lifecycle.
               No agent may silently mutate approved canon.
@@ -128,7 +154,7 @@ export const StoryBrainScreen: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => openContextResolver()}
-              className="px-4 py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold flex items-center gap-2 transition-all shadow-lg backdrop-blur-md"
+              className="linea-pill-btn linea-pill-secondary px-4 py-2.5 text-xs font-semibold gap-2 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30"
             >
               <Database className="w-4 h-4 text-cyan-400" />
               <span>Inspect Context Resolver</span>
@@ -136,7 +162,7 @@ export const StoryBrainScreen: React.FC = () => {
 
             <button
               onClick={() => setIsAddFactOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 text-xs font-semibold flex items-center gap-2 transition-all"
+              className="linea-pill-btn linea-pill-secondary px-4 py-2.5 text-xs font-semibold gap-2 border border-white/10"
             >
               <Plus className="w-4 h-4 text-amber-400" />
               <span>Add Canon Fact</span>
@@ -144,43 +170,43 @@ export const StoryBrainScreen: React.FC = () => {
 
             <button
               onClick={() => setActiveScreen('intake')}
-              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-95 whitespace-nowrap cursor-pointer"
+              className="linea-pill-btn linea-pill-primary px-5 py-2.5 text-xs font-bold gap-2 whitespace-nowrap cursor-pointer"
               title="Advance to Project Intake & Ambiguity Dossier"
             >
               <span>Next: Project Intake</span>
-              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              <ArrowRight className="w-4 h-4 text-black stroke-[2.5]" />
             </button>
           </div>
         </div>
 
-        {/* Live Operational Metrics Ribbon */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Canonical Facts</span>
+        {/* Live Operational Metrics Ribbon (Linea Bento Chips) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
+          <div className="bg-[#121622]/80 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 shadow-inner">
+            <span className="text-[11px] text-stone-400 block font-medium font-mono">Canonical Facts</span>
             <span className="text-xl font-black text-white flex items-center gap-1.5 mt-0.5">
               <Shield className="w-4 h-4 text-amber-400" />
               {canonFacts.length}
             </span>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Approved Decisions</span>
+          <div className="bg-[#121622]/80 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 shadow-inner">
+            <span className="text-[11px] text-stone-400 block font-medium font-mono">Approved Decisions</span>
             <span className="text-xl font-black text-white flex items-center gap-1.5 mt-0.5">
               <History className="w-4 h-4 text-blue-400" />
               {decisions.length}
             </span>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Active Graph Entities</span>
+          <div className="bg-[#121622]/80 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 shadow-inner">
+            <span className="text-[11px] text-stone-400 block font-medium font-mono">Active Graph Entities</span>
             <span className="text-xl font-black text-white flex items-center gap-1.5 mt-0.5">
               <Users className="w-4 h-4 text-emerald-400" />
               {currentProject.storyBrain.activeEntitiesCount}
             </span>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Dependency Integrity</span>
+          <div className="bg-[#121622]/80 backdrop-blur-sm rounded-2xl p-3.5 border border-white/10 shadow-inner">
+            <span className="text-[11px] text-stone-400 block font-medium font-mono">Dependency Integrity</span>
             <span className={`text-xl font-black flex items-center gap-1.5 mt-0.5 ${
               staleDependenciesCount > 0 ? 'text-amber-400' : 'text-emerald-400'
             }`}>
@@ -200,18 +226,42 @@ export const StoryBrainScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-1">
+      {/* Tabs Navigation (Linea Pill Tabs) */}
+      <div className="flex border-b border-white/[0.08] gap-2 overflow-x-auto pb-2">
         <button
           onClick={() => setActiveTab('canon')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'canon'
-              ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'
-              : 'text-white/70 hover:text-white hover:bg-white/5'
+              ? 'bg-amber-400 text-black shadow-lg shadow-amber-500/20'
+              : 'text-stone-300 hover:text-white hover:bg-white/5'
           }`}
         >
           <Shield className="w-4 h-4" />
           <span>Canon Facts & Truths ({canonFacts.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('candidates')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'candidates'
+              ? 'bg-amber-400 text-black shadow-lg shadow-amber-500/20'
+              : 'text-stone-300 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Candidate Pool ({candidatePool.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('conflicts')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all relative cursor-pointer ${
+            activeTab === 'conflicts'
+              ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/25'
+              : 'text-stone-300 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span>Canon Conflicts ({canonConflicts.filter(c => c.status === 'OPEN').length})</span>
         </button>
 
         <button
@@ -223,7 +273,7 @@ export const StoryBrainScreen: React.FC = () => {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Entity & Relationship Network</span>
+          <span>Entity Network</span>
         </button>
 
         <button
@@ -235,7 +285,7 @@ export const StoryBrainScreen: React.FC = () => {
           }`}
         >
           <History className="w-4 h-4" />
-          <span>Creative Decision Log ({decisions.length})</span>
+          <span>Decision Log ({decisions.length})</span>
         </button>
 
         <button
@@ -402,6 +452,391 @@ export const StoryBrainScreen: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* TAB: EVIDENCE-BACKED CANDIDATE POOL (PHASE 7) */}
+      {activeTab === 'candidates' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header Banner */}
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-950/30 via-[#131722] to-black/80 border border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Evidence-Backed Candidate Pool</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                    Phase 7 Architecture
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white mt-1">Multi-Type Historical & Dramatic Candidates</h3>
+                <p className="text-xs text-white/70 mt-1 max-w-2xl leading-relaxed">
+                  Hold generated historical events, figures, political transitions, and turning points in an evidence-backed candidate pool before human review and promotion into authoritative canon.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                setIsGeneratingCandidates(true);
+                try {
+                  await fetchCandidatePool();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setIsGeneratingCandidates(false);
+                }
+              }}
+              disabled={isGeneratingCandidates}
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20 shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              <Sparkles className={`w-4 h-4 ${isGeneratingCandidates ? 'animate-spin' : ''}`} />
+              <span>{isGeneratingCandidates ? 'Synthesizing Candidates...' : 'Synthesize Candidate Pool (Groq LPU)'}</span>
+            </button>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#131622] p-3 rounded-xl border border-white/10">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-white/40" />
+              <input
+                type="text"
+                value={candidateSearchQuery}
+                onChange={e => setCandidateSearchQuery(e.target.value)}
+                placeholder="Search candidates, evidence, or relevance..."
+                className="w-full pl-9 pr-4 py-2 rounded-lg bg-black/40 border border-white/10 text-xs text-white placeholder-white/40 focus:outline-none focus:border-amber-500/50"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+              <Filter className="w-3.5 h-3.5 text-white/40 shrink-0 mr-1" />
+              {[
+                { id: 'ALL', label: 'All Candidates' },
+                { id: 'historical_event', label: 'Historical Events' },
+                { id: 'person', label: 'Key Figures' },
+                { id: 'conflict', label: 'Core Conflicts' },
+                { id: 'turning_point', label: 'Turning Points' },
+                { id: 'political_transition', label: 'Political Transitions' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setCandidateTypeFilter(tab.id)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+                    candidateTypeFilter === tab.id
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Candidate Cards Grid */}
+          {filteredCandidates.length === 0 ? (
+            <div className="p-12 rounded-2xl bg-[#141724] border border-white/10 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1.5">
+                <h3 className="text-base font-bold text-white">No Candidates Generated Yet</h3>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  Synthesize the evidence-backed candidate pool to discover historical events, real figures, and critical turning points ready for adoption into Story Brain.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsGeneratingCandidates(true);
+                  try {
+                    await fetchCandidatePool();
+                  } finally {
+                    setIsGeneratingCandidates(false);
+                  }
+                }}
+                disabled={isGeneratingCandidates}
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md shadow-amber-500/20"
+              >
+                Synthesize Candidate Pool with Groq LPU
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredCandidates.map(c => (
+                <div
+                  key={c.id}
+                  className={`rounded-2xl p-5 border flex flex-col justify-between transition-all duration-200 ${
+                    c.status === 'ADOPTED'
+                      ? 'bg-[#131b24] border-emerald-500/40 shadow-lg shadow-emerald-500/5'
+                      : c.status === 'LOCKED'
+                      ? 'bg-[#151829] border-blue-500/40 shadow-lg shadow-blue-500/5'
+                      : 'bg-[#12141d] border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        {c.candidateType.replace('_', ' ')}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                        c.status === 'ADOPTED'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : c.status === 'LOCKED'
+                          ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          : 'bg-white/10 text-white/70'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-base font-bold text-white leading-tight">{c.title}</h4>
+                      <p className="text-xs text-white/80 mt-1 leading-relaxed">{c.whatItIs}</p>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 block font-semibold">Supporting Evidence:</span>
+                      <p className="text-[11px] text-white/70 italic leading-snug">{c.evidence}</p>
+                    </div>
+
+                    <div className="space-y-1 text-xs">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-white/40 block">Narrative Significance:</span>
+                      <p className="text-white/70 leading-relaxed">{c.narrativeRelevance}</p>
+                    </div>
+
+                    {c.possibleEpisodeUsage && c.possibleEpisodeUsage.length > 0 && (
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <span className="text-[10px] text-white/40 font-mono uppercase">Episode Usage:</span>
+                        {c.possibleEpisodeUsage.map(ep => (
+                          <span key={ep} className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-amber-300 font-mono">
+                            Ep {ep}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-white/10 flex items-center justify-between gap-2">
+                    {c.status !== 'ADOPTED' && c.status !== 'LOCKED' ? (
+                      <button
+                        type="button"
+                        onClick={() => adoptCandidateIntoProject(c.id)}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Adopt into Story Brain</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Adopted in Canon
+                      </span>
+                    )}
+
+                    {c.status !== 'REJECTED' && (
+                      <button
+                        type="button"
+                        onClick={() => updateCandidateStatus(c.id, 'REJECTED')}
+                        className="py-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-white/40 hover:text-rose-300 border border-white/5 text-xs transition-colors"
+                        title="Reject Candidate"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: CANON CONFLICT & RECONCILIATION WORKSPACE (PHASE 9) */}
+      {activeTab === 'conflicts' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header Banner */}
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-950/30 via-[#141724] to-black/80 border border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Canon Conflict & Diff Reconciliation Engine</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                    Phase 9 Architecture
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white mt-1">Authoritative Canon vs. Evidentiary Contradictions</h3>
+                <p className="text-xs text-white/70 mt-1 max-w-2xl leading-relaxed">
+                  When new historical claims or creative choices contest established canon, reconcile the differences with explicit action: Merge, Override, Preserve Both, or Reject.
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right shrink-0">
+              <div className="text-xs text-white/40">Total Conflicts</div>
+              <div className="text-lg font-mono font-bold text-amber-400">
+                {canonConflicts.filter(c => c.status === 'OPEN').length} Open / {canonConflicts.length} Logged
+              </div>
+            </div>
+          </div>
+
+          {/* Conflicts List */}
+          {canonConflicts.length === 0 ? (
+            <div className="p-12 rounded-2xl bg-[#141724] border border-white/10 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1.5">
+                <h3 className="text-base font-bold text-white">Zero Unresolved Canon Conflicts</h3>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  All active facts in Story Brain, character backstories, and narrative timelines are in full harmony with current evidence.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {canonConflicts.map(conflict => {
+                const isResolved = conflict.status !== 'OPEN' && conflict.status !== 'COMPARE';
+
+                return (
+                  <div
+                    key={conflict.id}
+                    className={`rounded-2xl p-6 border transition-all ${
+                      isResolved
+                        ? 'bg-[#11131a] border-white/10 opacity-75'
+                        : 'bg-[#151928] border-amber-500/40 shadow-xl'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          {conflict.conflictType.replace(/_/g, ' ')}
+                        </span>
+                        <h4 className="text-base font-bold text-white">{conflict.title}</h4>
+                      </div>
+
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold uppercase ${
+                        isResolved
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      }`}>
+                        {conflict.status}
+                      </span>
+                    </div>
+
+                    {/* Side-by-Side Diff */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {/* Left: Existing Canon */}
+                      <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-mono font-bold uppercase text-white/40 flex items-center gap-1.5">
+                            <Shield className="w-3.5 h-3.5 text-blue-400" />
+                            Existing Story Brain Canon
+                          </span>
+                          <span className="text-[10px] text-blue-300 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                            Current Law
+                          </span>
+                        </div>
+                        <p className="text-xs text-white/90 leading-relaxed font-serif">
+                          "{conflict.existingCanonText}"
+                        </p>
+                      </div>
+
+                      {/* Right: New Contradictory Evidence */}
+                      <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-mono font-bold uppercase text-amber-400 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            New Contradictory Evidence
+                          </span>
+                          <span className="text-[10px] text-amber-300 font-mono bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                            Source: {conflict.source}
+                          </span>
+                        </div>
+                        <p className="text-xs text-white/90 leading-relaxed font-serif">
+                          "{conflict.newEvidenceText}"
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Difference & Impact Breakdown */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5 text-xs">
+                      <div>
+                        <span className="text-[11px] font-mono uppercase text-white/40 block">Contradiction Analysis:</span>
+                        <p className="text-white/70 mt-1 leading-relaxed">{conflict.difference}</p>
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-mono uppercase text-white/40 block">Downstream Impact:</span>
+                        <p className="text-amber-300/80 mt-1 leading-relaxed">{conflict.impact}</p>
+                      </div>
+                    </div>
+
+                    {/* Action Controls */}
+                    <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-xs text-white/50">
+                        {isResolved
+                          ? `Resolution Note: ${conflict.resolutionNotes || conflict.status}`
+                          : 'Select an authoritative reconciliation action:'}
+                      </div>
+
+                      {!isResolved ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => resolveCanonConflict(conflict.id, 'MERGED')}
+                            className="px-3.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs font-semibold transition-all"
+                            title="Synthesize creative nuance that accommodates both perspectives"
+                          >
+                            Merge Perspectives
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => resolveCanonConflict(conflict.id, 'OVERRIDE')}
+                            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20"
+                            title="Replace existing canon with new verified evidence"
+                          >
+                            Override Existing Canon
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => resolveCanonConflict(conflict.id, 'PRESERVE_BOTH')}
+                            className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15 transition-all"
+                            title="Frame contradiction as an in-world scholarly mystery or ideological rift"
+                          >
+                            Preserve Both as Mystery
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => resolveCanonConflict(conflict.id, 'REJECTED')}
+                            className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-semibold transition-all"
+                            title="Reject the new evidence and enforce existing canon"
+                          >
+                            Reject Contradiction
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => resolveCanonConflict(conflict.id, 'OPEN')}
+                          className="px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xs border border-white/10"
+                        >
+                          Reopen Conflict
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

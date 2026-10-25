@@ -11,13 +11,11 @@ import {
   UserCheck, 
   BarChart3, 
   Flame, 
-  BookOpen, 
-  Sliders, 
-  Wrench,
-  ThumbsUp,
+  Wrench, 
   FileCheck,
   AlertCircle
 } from 'lucide-react';
+import { LineaButton, BentoCard, LineaCaption, LineaEqualizerWave } from '../common/LineaUI';
 
 export const EvaluationScreen: React.FC = () => {
   const { currentProject, runStoryEvaluation, reevaluateAfterRepair, signOffEvaluation, repairSceneWithCanon, setActiveScreen } = useProject();
@@ -59,10 +57,10 @@ export const EvaluationScreen: React.FC = () => {
     setSignedOff(true);
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-emerald-400 bg-emerald-500/20 border-emerald-500/40';
-    if (score >= 80) return 'text-amber-300 bg-amber-500/20 border-amber-500/40';
-    return 'text-rose-400 bg-rose-500/20 border-rose-500/40';
+  const getScoreBadge = (score: number) => {
+    if (score >= 90) return 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30';
+    if (score >= 80) return 'text-amber-300 bg-amber-500/15 border-amber-500/30';
+    return 'text-rose-300 bg-rose-500/15 border-rose-500/30';
   };
 
   const openBlockers = (currentProject.continuityIssues || []).filter(
@@ -70,157 +68,167 @@ export const EvaluationScreen: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fadeIn">
-      {/* Top Header Card */}
-      <div className="relative rounded-2xl bg-gradient-to-br from-[#121624] via-[#0f1320] to-[#171b30] border border-amber-500/30 p-6 lg:p-8 shadow-2xl overflow-hidden">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fadeIn">
+      {/* Top Bento Hero Banner */}
+      <BentoCard className="relative overflow-hidden p-6 lg:p-8 border-white/[0.08]">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
-                <Award className="w-3.5 h-3.5" />
-                Flow 6 • AI Story Evaluation Benchmark
-              </span>
-              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono bg-white/10 text-white/70 border border-white/10">
-                Rubric v1.0
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <LineaCaption variant="mint" icon={<Award className="w-3.5 h-3.5" />}>
+                Flow 6 • Quality Benchmark
+              </LineaCaption>
+              <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-white/[0.04] text-stone-400 border border-white/[0.08]">
+                Rubric Engine v1.0
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#fbf8f3]">
               AI Story Evaluation Harness
             </h1>
-            <p className="text-sm text-white/70 max-w-3xl leading-relaxed">
-              Autonomous multi-dimensional rubric assessing narrative logic, character flaw coherence, research grounding, 
-              and canon adherence for <strong className="text-white">"{currentProject.title}"</strong>.
-              Final greenlight authority remains strictly with human producers.
+            
+            <p className="text-xs sm:text-sm text-stone-300/80 max-w-3xl leading-relaxed">
+              Autonomous multi-dimensional rubric assessing narrative structure, character flaw cohesion, research grounding, 
+              and canon adherence for <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong>.
+              Final greenlight authority remains strictly with human creators.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <LineaButton
+              variant="primary"
+              size="md"
+              showWave={isRunning}
               onClick={handleRunEvaluation}
               disabled={isRunning}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+              icon={<RefreshCw className={`w-4 h-4 ${isRunning ? 'animate-spin' : ''}`} />}
             >
-              <RefreshCw className={`w-4 h-4 ${isRunning ? 'animate-spin' : ''}`} />
-              <span>{isRunning ? 'Analyzing Story Brain...' : evaluation ? 'Re-Run Evaluation' : 'Run Story Evaluation (AI)'}</span>
-            </button>
+              {isRunning ? 'Analyzing Story Brain...' : evaluation ? 'Re-Run Evaluation' : 'Run Story Evaluation (AI)'}
+            </LineaButton>
 
             {evaluation && (
-              <button
+              <LineaButton
+                variant="ghost"
+                size="md"
                 onClick={() => setActiveScreen('package')}
-                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors border border-white/10"
+                icon={<ArrowRight className="w-4 h-4" />}
+                iconPosition="right"
               >
-                <span>Package Delivery</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+                Package Delivery
+              </LineaButton>
             )}
           </div>
         </div>
 
-        {/* Hero Score Grid (Only if evaluation exists) */}
+        {/* Live Score Bento Grid */}
         {evaluation && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
-            <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex flex-col items-center justify-center text-amber-400">
-                <span className="text-xl font-black">{Math.round(evaluation.overallScore)}</span>
-                <span className="text-[9px] uppercase font-bold text-amber-300/70">/ 100</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
+            <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex flex-col items-center justify-center text-amber-300 shadow-inner">
+                <span className="text-xl font-bold">{Math.round(evaluation.overallScore)}</span>
+                <span className="text-[9px] uppercase font-semibold text-amber-400/70">/ 100</span>
               </div>
               <div>
-                <span className="text-[11px] text-white/50 block font-medium">Overall Readiness Index</span>
-                <span className="text-sm font-bold text-white flex items-center gap-1.5 mt-0.5">
+                <span className="text-[11px] text-stone-400 block font-medium">Overall Readiness</span>
+                <span className="text-xs font-bold text-[#fbf8f3] flex items-center gap-1.5 mt-0.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   {evaluation.readinessStatus}
                 </span>
               </div>
             </div>
 
-            <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
-              <span className="text-[11px] text-white/50 block font-medium">Evaluator Model</span>
-              <span className="text-xs font-mono font-bold text-white/90 block mt-1 truncate">
+            <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm">
+              <span className="text-[11px] text-stone-400 block font-medium">Evaluator Model</span>
+              <span className="text-xs font-mono font-semibold text-stone-200 block mt-1 truncate">
                 {evaluation.evaluatorModel}
               </span>
-              <span className="text-[10px] text-white/40 block mt-0.5">
-                Dynamic LPU inference • Zero cross-project leakage
+              <span className="text-[10px] text-stone-500 block mt-0.5">
+                Dynamic LPU • Zero leakage
               </span>
             </div>
 
-            <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
-              <span className="text-[11px] text-white/50 block font-medium">Critical Blocker Status</span>
+            <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm">
+              <span className="text-[11px] text-stone-400 block font-medium">Critical Blocker Status</span>
               <div className="mt-1 flex items-center gap-1.5">
                 {openBlockers.length > 0 ? (
-                  <span className="text-xs font-bold text-rose-400 flex items-center gap-1">
+                  <span className="text-xs font-semibold text-rose-400 flex items-center gap-1">
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    {openBlockers.length} Unresolved Contradiction
+                    {openBlockers.length} Discrepancies
                   </span>
                 ) : (
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    All Continuity Cleared
+                    All Cleared
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-white/40 block mt-0.5">
+              <span className="text-[10px] text-stone-500 block mt-0.5">
                 Canon adherence weight: 20%
               </span>
             </div>
 
-            <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
-              <span className="text-[11px] text-white/50 block font-medium">Producer Sign-Off</span>
-              <span className="text-xs font-bold text-white flex items-center gap-1.5 mt-1">
+            <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm">
+              <span className="text-[11px] text-stone-400 block font-medium">Producer Sign-Off</span>
+              <span className="text-xs font-semibold text-[#fbf8f3] flex items-center gap-1.5 mt-1">
                 <UserCheck className={`w-3.5 h-3.5 ${signedOff ? 'text-emerald-400' : 'text-amber-400'}`} />
                 {signedOff ? 'Signed by Producer' : 'Pending Formal Review'}
               </span>
-              <span className="text-[10px] text-white/40 block mt-0.5">
+              <span className="text-[10px] text-stone-500 block mt-0.5">
                 {evaluation.humanSignOff?.date || 'Awaiting sign-off below'}
               </span>
             </div>
           </div>
         )}
-      </div>
+      </BentoCard>
 
       {/* Error alert banner */}
       {evalError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between backdrop-blur-md">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{evalError}</span>
           </div>
-          <button onClick={() => setEvalError(null)} className="text-white/40 hover:text-white">✕</button>
+          <button onClick={() => setEvalError(null)} className="text-stone-400 hover:text-white transition-colors">✕</button>
         </div>
       )}
 
-      {/* When evaluation is null: Honest Empty State */}
+      {/* Empty State */}
       {!evaluation ? (
-        <div className="p-12 text-center bg-[#141822] border border-dashed border-white/10 rounded-3xl space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+        <BentoCard className="p-12 text-center border-dashed border-white/[0.12] space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
             <BarChart3 className="w-8 h-8" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
-            <h3 className="text-lg font-bold text-white">Narrative Evaluation Not Run Yet</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
-              Tattava does not pre-fill evaluation scores. Run the autonomous quality benchmark to evaluate <span className="text-amber-300">"{currentProject.title}"</span> based on its actual canon facts, characters, and dramatic structure.
+            <h3 className="text-lg font-bold text-[#fbf8f3]">Narrative Evaluation Not Run Yet</h3>
+            <p className="text-xs text-stone-400 leading-relaxed">
+              Tattava does not generate superficial mock scores. Run the quality benchmark to evaluate <span className="text-amber-300">"{currentProject.title}"</span> based on its actual canon facts, characters, and screenplay structure.
             </p>
           </div>
-          <button
-            onClick={handleRunEvaluation}
-            disabled={isRunning}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 mx-auto shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all hover:scale-105"
-          >
-            <Sparkles className="w-4 h-4 fill-black" />
-            <span>{isRunning ? 'Evaluating Story Brain...' : 'Run Autonomous Story Evaluation'}</span>
-          </button>
-        </div>
+          <div className="pt-2">
+            <LineaButton
+              variant="primary"
+              size="md"
+              showWave={isRunning}
+              onClick={handleRunEvaluation}
+              disabled={isRunning}
+              icon={<Sparkles className="w-4 h-4" />}
+            >
+              {isRunning ? 'Evaluating Story Brain...' : 'Run Autonomous Story Evaluation'}
+            </LineaButton>
+          </div>
+        </BentoCard>
       ) : (
         <>
           {/* Narrative Blocker Alert if active */}
           {openBlockers.length > 0 && (
-            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <BentoCard className="p-4 border-rose-500/30 bg-rose-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <ShieldAlert className="w-5 h-5 text-rose-400 flex-shrink-0" />
                 <div>
                   <h4 className="text-xs font-bold text-rose-300">Active Continuity Blocker Flagged</h4>
-                  <p className="text-xs text-white/70">
+                  <p className="text-xs text-stone-300">
                     {openBlockers[0]?.title}: {openBlockers[0]?.description}
                   </p>
                 </div>
@@ -228,51 +236,51 @@ export const EvaluationScreen: React.FC = () => {
 
               <button
                 onClick={() => repairSceneWithCanon(openBlockers[0]?.id)}
-                className="px-3.5 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold flex items-center gap-1.5 whitespace-nowrap shadow-md transition-colors"
+                className="px-4 py-2 rounded-full bg-rose-500 hover:bg-rose-400 text-white text-xs font-semibold flex items-center gap-2 whitespace-nowrap shadow-md transition-colors cursor-pointer"
               >
                 <Wrench className="w-3.5 h-3.5" />
                 <span>Apply AI Canon Repair</span>
               </button>
-            </div>
+            </BentoCard>
           )}
 
           {/* 5/6-Dimension Rubric Breakdown Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {evaluation.dimensions?.map(dim => {
-              const badgeClass = getScoreColor(dim.score);
+              const badgeClass = getScoreBadge(dim.score);
               return (
-                <div 
+                <BentoCard 
                   key={dim.id}
-                  className="bg-[#141724] border border-white/10 hover:border-amber-500/30 rounded-2xl p-5 space-y-3.5 transition-all flex flex-col justify-between"
+                  className="p-5 space-y-4 flex flex-col justify-between hover:border-amber-500/30 transition-all"
                 >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-bold text-white">{dim.name}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeClass}`}>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-[#fbf8f3]">{dim.name}</h3>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeClass}`}>
                         {dim.score}%
                       </span>
                     </div>
 
                     {/* Score Progress Bar */}
-                    <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-3">
+                    <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-500"
                         style={{ width: `${dim.score}%` }}
                       />
                     </div>
 
-                    <p className="text-xs text-white/70 leading-relaxed">
+                    <p className="text-xs text-stone-300 leading-relaxed">
                       {dim.diagnostic}
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-3 border-t border-white/5 text-xs">
+                  <div className="space-y-3 pt-3 border-t border-white/[0.06] text-xs">
                     {dim.strengths && dim.strengths.length > 0 && (
-                      <div>
-                        <span className="text-[10px] font-bold text-emerald-400 block uppercase tracking-wider mb-1">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-semibold text-emerald-400 block uppercase tracking-wider">
                           Strengths:
                         </span>
-                        <ul className="space-y-0.5 text-white/80">
+                        <ul className="space-y-1 text-stone-300">
                           {dim.strengths.map((str, idx) => (
                             <li key={idx} className="flex items-start gap-1.5">
                               <CheckCircle2 className="w-3 h-3 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -284,112 +292,114 @@ export const EvaluationScreen: React.FC = () => {
                     )}
 
                     {dim.recommendation && (
-                      <div className="pt-2 border-t border-white/5">
-                        <span className="text-[10px] font-bold text-amber-400 block uppercase tracking-wider mb-1">
+                      <div className="pt-2 border-t border-white/[0.06]">
+                        <span className="text-[10px] font-semibold text-amber-400 block uppercase tracking-wider mb-1">
                           Recommendation:
                         </span>
-                        <p className="text-xs text-amber-200/90 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                        <p className="text-xs text-amber-200/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 leading-relaxed">
                           {dim.recommendation}
                         </p>
                       </div>
                     )}
                   </div>
-                </div>
+                </BentoCard>
               );
             })}
           </div>
 
           {/* Critical Risks & Strengths Synthesis */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[#141724] border border-white/10 rounded-2xl p-5 space-y-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <BentoCard className="p-5 space-y-3">
+              <h3 className="text-sm font-bold text-[#fbf8f3] flex items-center gap-2">
                 <Flame className="w-4 h-4 text-emerald-400" />
                 Key Strategic Strengths
               </h3>
               <div className="space-y-2">
                 {evaluation.keyStrengths?.map((strength, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-black/30 border border-white/5 text-xs text-white/80 flex items-start gap-2.5">
+                  <div key={idx} className="p-3 rounded-xl bg-[#0a0c12]/60 border border-white/[0.06] text-xs text-stone-300 flex items-start gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
                     <span>{strength}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </BentoCard>
 
-            <div className="bg-[#141724] border border-white/10 rounded-2xl p-5 space-y-3">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <BentoCard className="p-5 space-y-3">
+              <h3 className="text-sm font-bold text-[#fbf8f3] flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
                 Active Narrative Risks & Gaps
               </h3>
               <div className="space-y-2">
                 {evaluation.criticalRisks?.map((risk, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-black/30 border border-amber-500/20 text-xs text-amber-200/90 flex items-start gap-2.5">
+                  <div key={idx} className="p-3 rounded-xl bg-[#0a0c12]/60 border border-amber-500/20 text-xs text-amber-200/90 flex items-start gap-2.5">
                     <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
                     <span>{risk}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </BentoCard>
           </div>
 
           {/* Repair -> Re-evaluation Loop */}
           {currentProject.evaluationRepairPlan && currentProject.evaluationRepairPlan.items.length > 0 && (
-            <div className="bg-[#141724] border border-cyan-500/30 rounded-2xl p-5 space-y-4">
+            <BentoCard className="p-6 space-y-4 border-sky-500/30">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-bold text-[#fbf8f3] flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-sky-400" />
                     Evaluation → Repair → Re-evaluation
                   </h3>
-                  <p className="text-xs text-white/60 mt-1">
+                  <p className="text-xs text-stone-400 mt-1">
                     Approved repairs remain non-canonical until re-evaluation confirms whether the underlying risk improved.
                   </p>
                 </div>
-                <button
+                <LineaButton
+                  variant="primary"
+                  size="sm"
+                  showWave={isRunning}
                   onClick={handleReevaluateAfterRepair}
                   disabled={isRunning}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold flex items-center gap-2 disabled:opacity-50"
+                  icon={<RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />}
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
                   {isRunning ? 'Re-evaluating...' : 'Re-evaluate After Repair'}
-                </button>
+                </LineaButton>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase tracking-wider text-white/40">Repair Plan</span>
-                  <div className="text-xs font-bold text-white mt-1">{currentProject.evaluationRepairPlan.status}</div>
+                <div className="p-3.5 rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06]">
+                  <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Repair Plan</span>
+                  <div className="text-xs font-bold text-[#fbf8f3] mt-1">{currentProject.evaluationRepairPlan.status}</div>
                 </div>
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase tracking-wider text-white/40">Items</span>
-                  <div className="text-xs font-bold text-white mt-1">{currentProject.evaluationRepairPlan.items.length}</div>
+                <div className="p-3.5 rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06]">
+                  <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Items</span>
+                  <div className="text-xs font-bold text-[#fbf8f3] mt-1">{currentProject.evaluationRepairPlan.items.length}</div>
                 </div>
-                <div className="p-3 rounded-xl bg-black/30 border border-white/5">
-                  <span className="text-[10px] uppercase tracking-wider text-white/40">Comparison History</span>
-                  <div className="text-xs font-bold text-white mt-1">{currentProject.evaluationComparisons?.length || 0} run(s)</div>
+                <div className="p-3.5 rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06]">
+                  <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Comparison History</span>
+                  <div className="text-xs font-bold text-[#fbf8f3] mt-1">{currentProject.evaluationComparisons?.length || 0} run(s)</div>
                 </div>
               </div>
-            </div>
+            </BentoCard>
           )}
 
           {currentProject.evaluationComparisons && currentProject.evaluationComparisons.length > 0 && (
-            <div className="bg-[#141724] border border-white/10 rounded-2xl p-5 space-y-3">
-              <h3 className="text-sm font-bold text-white">Before vs After Evaluation</h3>
+            <BentoCard className="p-6 space-y-4">
+              <h3 className="text-sm font-bold text-[#fbf8f3]">Before vs After Evaluation Comparisons</h3>
               {currentProject.evaluationComparisons.slice(0, 3).map(comparison => (
-                <div key={comparison.id} className="p-4 rounded-xl bg-black/30 border border-white/5 space-y-3">
+                <div key={comparison.id} className="p-4 rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-xs text-white/60">Overall score delta</span>
-                    <span className={`text-sm font-black ${comparison.overallScoreDelta > 0 ? 'text-emerald-400' : comparison.overallScoreDelta < 0 ? 'text-rose-400' : 'text-white'}`}>
+                    <span className="text-xs text-stone-400">Overall score delta:</span>
+                    <span className={`text-sm font-bold ${comparison.overallScoreDelta > 0 ? 'text-emerald-400' : comparison.overallScoreDelta < 0 ? 'text-rose-400' : 'text-stone-300'}`}>
                       {comparison.overallScoreDelta > 0 ? '+' : ''}{comparison.overallScoreDelta.toFixed(1)}
                     </span>
-                    <span className="text-[10px] text-white/40">
-                      {comparison.readinessChanged ? 'Readiness status changed' : 'Readiness status unchanged'}
+                    <span className="text-[10px] text-stone-500 font-mono">
+                      {comparison.readinessChanged ? 'Readiness status updated' : 'Readiness status unchanged'}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {comparison.dimensionChanges.map(change => (
-                      <div key={change.dimension} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03]">
-                        <span className="text-[11px] text-white/70">{change.dimension}</span>
-                        <span className={`text-[11px] font-bold ${change.delta > 0 ? 'text-emerald-400' : change.delta < 0 ? 'text-rose-400' : 'text-white/50'}`}>
+                      <div key={change.dimension} className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03]">
+                        <span className="text-[11px] text-stone-300">{change.dimension}</span>
+                        <span className={`text-[11px] font-semibold ${change.delta > 0 ? 'text-emerald-400' : change.delta < 0 ? 'text-rose-400' : 'text-stone-500'}`}>
                           {change.delta > 0 ? '+' : ''}{change.delta.toFixed(1)}
                         </span>
                       </div>
@@ -407,79 +417,82 @@ export const EvaluationScreen: React.FC = () => {
                   )}
                 </div>
               ))}
-            </div>
+            </BentoCard>
           )}
 
           {/* Human Producer Review & Evaluation Sign-Off */}
-          <div className="bg-[#141724] border border-amber-500/30 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <BentoCard className="p-6 lg:p-8 space-y-5 border-amber-500/30">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <h3 className="text-base font-bold text-[#fbf8f3] flex items-center gap-2">
                   <UserCheck className="w-4 h-4 text-amber-400" />
                   Human Producer Review & Quality Gate Sign-Off
                 </h3>
-                <p className="text-xs text-white/60">
-                  In accordance with the specification: AI evaluation informs, but only a human producer grants greenlight clearance.
+                <p className="text-xs text-stone-400 mt-0.5">
+                  In accordance with studio governance: AI evaluation informs, but only a human producer grants greenlight clearance.
                 </p>
               </div>
 
-              <button
+              <LineaButton
+                variant="ghost"
+                size="sm"
                 onClick={() => setActiveScreen('package')}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold flex items-center gap-1.5 transition-colors"
+                icon={<ArrowRight className="w-3.5 h-3.5" />}
+                iconPosition="right"
               >
-                <span>Proceed to Story Development Package</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+                Proceed to Package Delivery
+              </LineaButton>
             </div>
 
-            <form onSubmit={handleSignOff} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">Reviewer Name</label>
+            <form onSubmit={handleSignOff} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-stone-300">Reviewer Name & Title</label>
                   <input
                     type="text"
                     value={signerName}
                     onChange={e => setSignerName(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] focus:outline-none focus:border-amber-500/60 transition-all"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-white/70 block mb-1">Sign-Off Date</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-stone-300">Sign-Off Date</label>
                   <input
                     type="text"
                     disabled
                     value={new Date().toLocaleDateString()}
-                    className="w-full p-2.5 rounded-xl bg-black/20 border border-white/5 text-xs text-white/50"
+                    className="w-full px-4 py-2.5 rounded-full bg-[#0a0c12]/50 border border-white/[0.06] text-xs text-stone-500"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs text-white/70 block mb-1">Producer Review Notes & Greenlight Assessment</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-stone-300">Producer Review Notes & Greenlight Assessment</label>
                 <textarea
                   value={signOffComments}
                   onChange={e => setSignOffComments(e.target.value)}
                   placeholder="Add notes on market viability, casting alignment, or script amendments..."
                   rows={3}
-                  className="w-full p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-white/40 focus:outline-none focus:border-amber-500"
+                  className="w-full p-3.5 rounded-2xl bg-[#0a0c12] border border-white/[0.1] text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none focus:border-amber-500/60 transition-all resize-none"
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                <div className="text-xs text-white/50">
-                  Signatory: <strong className="text-white">{signerName}</strong> • Lead Creative Role Authorized
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                <div className="text-xs text-stone-400">
+                  Signatory: <strong className="text-[#fbf8f3]">{signerName}</strong> • Lead Creative Role Authorized
                 </div>
 
-                <button
+                <LineaButton
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-colors"
+                  variant="mint"
+                  size="md"
+                  icon={<FileCheck className="w-4 h-4" />}
                 >
-                  <FileCheck className="w-4 h-4" />
-                  <span>{signedOff ? 'Update Producer Sign-Off' : 'Sign Off & Approve Evaluation'}</span>
-                </button>
+                  {signedOff ? 'Update Producer Sign-Off' : 'Sign Off & Approve Evaluation'}
+                </LineaButton>
               </div>
             </form>
-          </div>
+          </BentoCard>
         </>
       )}
     </div>

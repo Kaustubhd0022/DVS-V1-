@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Sparkles, 
   Upload, 
-  Check, 
   ArrowRight, 
   Film, 
   Tv, 
@@ -10,12 +9,11 @@ import {
   FileText, 
   Compass, 
   Info,
-  Layers,
   FileCheck,
   AlertCircle
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
-import { inferContentMode, inferMediaFormat } from '../../domain/tattvacoProject';
+import { BentoCard, LineaCaption, LineaButton } from '../common/LineaUI';
 
 export const CreateProjectScreen: React.FC = () => {
   const { createNewProject, setActiveScreen, openDemoProject, sendDiscoveryMessage } = useProject();
@@ -31,16 +29,16 @@ export const CreateProjectScreen: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const contentTypes = [
-    { label: 'Movie', icon: <Film className="w-4 h-4" /> },
-    { label: 'Feature Film', icon: <Film className="w-4 h-4" /> },
-    { label: 'Series / OTT', icon: <Tv className="w-4 h-4" /> },
-    { label: 'Mini-Series', icon: <Video className="w-4 h-4" /> },
-    { label: 'Short Film', icon: <Film className="w-4 h-4" /> },
-    { label: 'Documentary', icon: <Compass className="w-4 h-4" /> },
-    { label: 'Podcast', icon: <FileText className="w-4 h-4" /> },
-    { label: 'Exploration', icon: <Compass className="w-4 h-4" /> },
-    { label: 'Informant', icon: <Info className="w-4 h-4" /> },
-    { label: 'Other', icon: <Sparkles className="w-4 h-4" /> }
+    { label: 'Movie', icon: <Film className="w-3.5 h-3.5" /> },
+    { label: 'Feature Film', icon: <Film className="w-3.5 h-3.5" /> },
+    { label: 'Series / OTT', icon: <Tv className="w-3.5 h-3.5" /> },
+    { label: 'Mini-Series', icon: <Video className="w-3.5 h-3.5" /> },
+    { label: 'Short Film', icon: <Film className="w-3.5 h-3.5" /> },
+    { label: 'Documentary', icon: <Compass className="w-3.5 h-3.5" /> },
+    { label: 'Podcast', icon: <FileText className="w-3.5 h-3.5" /> },
+    { label: 'Exploration', icon: <Compass className="w-3.5 h-3.5" /> },
+    { label: 'Informant', icon: <Info className="w-3.5 h-3.5" /> },
+    { label: 'Other', icon: <Sparkles className="w-3.5 h-3.5" /> }
   ];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +56,6 @@ export const CreateProjectScreen: React.FC = () => {
         content: text || `[Uploaded Document: ${file.name}]`
       });
 
-      // If premise is empty, extract first 200 chars as tentative premise
       if (!premise.trim() && text) {
         const preview = text.replace(/\s+/g, ' ').trim().slice(0, 160);
         if (preview) setPremise(preview);
@@ -110,45 +107,52 @@ export const CreateProjectScreen: React.FC = () => {
   };
 
   return (
-    <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-8 animate-fadeIn pb-16">
-      {/* Step Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[11px] uppercase tracking-widest font-extrabold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20">
-              CREATE PROJECT
+    <div className="space-y-6 max-w-5xl mx-auto pb-16 animate-fadeIn">
+      {/* Top Banner */}
+      <BentoCard className="p-6 lg:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+
+        <div className="space-y-3 relative z-10 max-w-2xl">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <LineaCaption variant="amber" icon={<Sparkles className="w-3.5 h-3.5" />}>
+              Create Project
+            </LineaCaption>
+            <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-white/[0.04] text-stone-400 border border-white/[0.08]">
+              Input-Driven Initialization
             </span>
-            <span className="text-xs text-white/40">• Input-Driven Project Initialization</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold font-serif text-white tracking-tight">
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-[#fbf8f3]">
             Start a New Story Project
           </h1>
-          <p className="text-sm text-white/60 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-stone-300/80 leading-relaxed">
             Tattava builds narrative intelligence strictly from your premise and source material. No pre-seeded characters or canon are assumed.
           </p>
         </div>
 
-        <button
-          onClick={openDemoProject}
-          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-2 transition-all self-start md:self-auto"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>Explore Sample Demo Project</span>
-        </button>
-      </div>
+        <div className="relative z-10 self-start md:self-auto">
+          <LineaButton
+            variant="ghost"
+            size="sm"
+            onClick={openDemoProject}
+            icon={<Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+          >
+            Explore Sample Demo Project
+          </LineaButton>
+        </div>
+      </BentoCard>
 
       {errorMsg && (
-        <div className="p-3.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2 animate-shake">
-          <AlertCircle className="w-4 h-4 text-rose-400" />
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2.5 backdrop-blur-md">
+          <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Main Creation Card */}
-      <div className="bg-[#12141a]/95 border border-white/10 rounded-2xl p-6 lg:p-8 space-y-6 shadow-xl">
+      <BentoCard className="p-6 lg:p-8 space-y-6">
         {/* Project Name */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+        <div className="space-y-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
             Project Name / Working Title
           </label>
           <input
@@ -159,16 +163,16 @@ export const CreateProjectScreen: React.FC = () => {
               setErrorMsg(null);
             }}
             placeholder="e.g. Echoes of the Deep, The Last Monsoon, Vidarbha Bloodline..."
-            className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none transition-all"
+            className="w-full bg-[#0a0c12] border border-white/[0.1] focus:border-amber-500/60 rounded-full px-5 py-3 text-xs sm:text-sm text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none transition-all"
           />
         </div>
 
         {/* Content Type Selector */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+        <div className="space-y-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
             Project Type
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {contentTypes.map((item) => {
               const isSelected = contentType === item.label;
               return (
@@ -176,10 +180,10 @@ export const CreateProjectScreen: React.FC = () => {
                   key={item.label}
                   type="button"
                   onClick={() => setContentType(item.label)}
-                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                  className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-amber-500 text-black border-amber-500 shadow-md shadow-amber-500/20'
-                      : 'bg-black/30 hover:bg-black/60 border-white/10 text-white/70 hover:text-white'
+                      ? 'bg-amber-400 text-stone-950 border-amber-300 font-bold shadow-md shadow-amber-500/20'
+                      : 'bg-[#0a0c12]/80 hover:bg-[#141720] border-white/[0.08] text-stone-300 hover:text-white'
                   }`}
                 >
                   {item.icon}
@@ -191,12 +195,12 @@ export const CreateProjectScreen: React.FC = () => {
         </div>
 
         {/* Initial Idea / Premise (Core Input) */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-white/80">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
               Initial Idea / Premise <span className="text-amber-400">*</span>
             </label>
-            <span className="text-[11px] text-white/40">Only a rough concept is needed to start</span>
+            <span className="text-[11px] text-stone-500">Only a rough concept is needed to start</span>
           </div>
           <textarea
             rows={4}
@@ -206,16 +210,16 @@ export const CreateProjectScreen: React.FC = () => {
               setErrorMsg(null);
             }}
             placeholder="e.g. My story is about a 28-year-old marine biologist who discovers that an isolated coastal village is hiding a dangerous secret about the collapse of their local coral reef..."
-            className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl p-4 text-sm text-white placeholder-white/30 focus:outline-none transition-all leading-relaxed"
+            className="w-full bg-[#0a0c12] border border-white/[0.1] focus:border-amber-500/60 rounded-2xl p-4 text-xs sm:text-sm text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none transition-all leading-relaxed resize-none"
           />
         </div>
 
         {/* Upload Existing Material */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+        <div className="space-y-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
             Upload Existing Material (Optional)
           </label>
-          <div className="relative border-2 border-dashed border-white/15 hover:border-amber-500/50 rounded-2xl p-6 text-center transition-all bg-black/20">
+          <div className="relative border border-dashed border-white/[0.15] hover:border-amber-500/50 rounded-3xl p-6 text-center transition-all bg-[#0a0c12]/60">
             <input
               type="file"
               accept=".txt,.pdf,.docx,.doc,.json,.md"
@@ -226,15 +230,15 @@ export const CreateProjectScreen: React.FC = () => {
               <div className="flex items-center justify-center gap-3 text-emerald-400 font-semibold text-xs">
                 <FileCheck className="w-5 h-5" />
                 <span>Uploaded: <strong>{uploadedFile.name}</strong> ({uploadedFile.size})</span>
-                <span className="text-white/40 text-[11px]">• Click to replace</span>
+                <span className="text-stone-500 text-[11px]">• Click to replace</span>
               </div>
             ) : (
               <div className="space-y-1.5 pointer-events-none">
                 <Upload className="w-6 h-6 text-amber-400 mx-auto" />
-                <p className="text-xs font-semibold text-white">
+                <p className="text-xs font-semibold text-[#fbf8f3]">
                   Drop your concept brief, screenplay treatment, or pitch notes here
                 </p>
-                <p className="text-[11px] text-white/40">
+                <p className="text-[11px] text-stone-500">
                   Supports PDF, DOCX, TXT, Markdown, or JSON
                 </p>
               </div>
@@ -243,24 +247,24 @@ export const CreateProjectScreen: React.FC = () => {
         </div>
 
         {/* V1 Content Configuration */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
               Content Mode
             </label>
             <select
               value={contentMode}
               onChange={(e) => setContentMode(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
+              className="w-full bg-[#0a0c12] border border-white/[0.1] focus:border-amber-500/60 rounded-full px-4 py-2.5 text-xs text-[#fbf8f3] focus:outline-none"
             >
               {['Informational','Educational','Documentary','Infotainment','Narrative','Exploratory','Hybrid'].map(mode => (
                 <option key={mode} value={mode}>{mode}</option>
               ))}
             </select>
-            <p className="text-[10px] text-white/35 mt-1">Format and mode are separate so hybrid projects are first-class.</p>
+            <p className="text-[10px] text-stone-500">Format and mode are separate so hybrid projects are first-class.</p>
           </div>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
               Primary Knowledge Domain
             </label>
             <input
@@ -268,16 +272,16 @@ export const CreateProjectScreen: React.FC = () => {
               value={primaryDomain}
               onChange={(e) => setPrimaryDomain(e.target.value)}
               placeholder="e.g. History, Food, Mythology, Culture & Traditions"
-              className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none"
+              className="w-full bg-[#0a0c12] border border-white/[0.1] focus:border-amber-500/60 rounded-full px-4 py-2.5 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none"
             />
-            <p className="text-[10px] text-white/35 mt-1">Tattava can expand this into connected domains during Discovery.</p>
+            <p className="text-[10px] text-stone-500">Tattava can expand this into connected domains during Discovery.</p>
           </div>
         </div>
 
         {/* Optional Metadata Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
               Primary Genre (Optional)
             </label>
             <input
@@ -285,12 +289,12 @@ export const CreateProjectScreen: React.FC = () => {
               value={genre}
               onChange={(e) => setGenre(e.target.value)}
               placeholder="e.g. Psychological Thriller, Mystery, Sci-Fi..."
-              className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none transition-all"
+              className="w-full bg-[#0a0c12] border border-white/[0.1] focus:border-amber-500/60 rounded-full px-4 py-2.5 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none transition-all"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-white/80 mb-2">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-300">
               Primary Language (Optional)
             </label>
             <input
@@ -298,31 +302,33 @@ export const CreateProjectScreen: React.FC = () => {
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               placeholder="e.g. Hindi, English, Bilingual..."
-              className="w-full bg-black/50 border border-white/10 focus:border-amber-500 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none transition-all"
+              className="w-full bg-[#0a0c12] border border-white/[0.1] focus:border-amber-500/60 rounded-full px-4 py-2.5 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none transition-all"
             />
           </div>
         </div>
 
         {/* Action Button */}
-        <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+        <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between">
           <button
             type="button"
             onClick={() => setActiveScreen('home')}
-            className="text-xs text-white/60 hover:text-white transition-colors"
+            className="text-xs text-stone-400 hover:text-white transition-colors cursor-pointer"
           >
             Cancel
           </button>
 
-          <button
+          <LineaButton
             type="button"
+            variant="primary"
+            size="md"
             onClick={handleCreateProject}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/25 cursor-pointer"
+            icon={<ArrowRight className="w-4 h-4" />}
+            iconPosition="right"
           >
-            <span>Launch Creative Discovery Studio</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+            Launch Creative Discovery Studio
+          </LineaButton>
         </div>
-      </div>
+      </BentoCard>
     </div>
   );
 };

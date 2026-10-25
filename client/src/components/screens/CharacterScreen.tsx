@@ -190,18 +190,18 @@ export const CharacterScreen: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto pb-16">
       {/* Top Banner / Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <span className="linea-caption-chip">
               Pipeline Step 06
             </span>
-            <span className="text-xs text-white/40">• Character Architecture & Psychometrics</span>
+            <span className="text-xs text-stone-400">• Character Architecture & Psychometrics</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl lg:text-3xl font-bold font-serif tracking-tight text-[#fbf8f3] flex items-center gap-3">
             Character Development & Ensemble Matrix
           </h1>
-          <p className="text-sm text-white/60 mt-1 max-w-2xl">
+          <p className="text-sm text-stone-400 mt-1 max-w-2xl">
             Cast of {currentProject.characters.length} principal figures. Every psychometric trait and relationship is reactive to story changes.
           </p>
         </div>
@@ -210,7 +210,7 @@ export const CharacterScreen: React.FC = () => {
           {/* Flagship Demo Button */}
           <button
             onClick={handleTriggerAanyaAgeImpactDemo}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 via-rose-500 to-amber-600 hover:from-amber-400 hover:to-rose-400 text-black font-bold text-xs transition-all shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/50 animate-pulse"
+            className="linea-pill-btn linea-pill-primary px-4 py-2 text-xs font-bold gap-2 shadow-[0_2px_14px_rgba(245,158,11,0.25)]"
           >
             <Zap className="w-3.5 h-3.5 fill-black" />
             <span>Test Demo: Change Aanya’s Age (24 → 34)</span>
@@ -218,7 +218,7 @@ export const CharacterScreen: React.FC = () => {
 
           <button
             onClick={nextStep}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/10 transition-all"
+            className="linea-pill-btn linea-pill-secondary px-5 py-2 text-xs font-semibold gap-2"
           >
             <span>Next: World & Setting</span>
             <ArrowRight className="w-4 h-4" />
@@ -226,36 +226,36 @@ export const CharacterScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Flagship Notice Bar */}
-      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+      {/* Flagship Notice Bar (Linea Bento Capsule) */}
+      <div className="linea-bento p-4 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Reactive Impact Engine Active</span>
-            <p className="text-xs text-white/80">
+            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">Reactive Impact Engine Active</span>
+            <p className="text-xs text-stone-300 mt-0.5 leading-relaxed">
               Modifying core character attributes (age, flaw, or relationships) triggers the <span className="text-amber-400 font-semibold">Change Impact Engine</span> across Story Canon, Scenes, Dialogue, and Continuity.
             </p>
           </div>
         </div>
         <button
           onClick={handleTriggerImpactSimulation}
-          className="text-xs font-semibold text-amber-400 underline hover:text-amber-300 shrink-0 cursor-pointer"
+          className="linea-pill-btn linea-pill-secondary px-3.5 py-1.5 text-xs font-bold text-amber-300 hover:text-white shrink-0"
         >
-          Simulate Impact for {selectedChar?.name || 'Selected Character'} →
+          Simulate Impact for {selectedChar?.name || 'Selected'} →
         </button>
       </div>
 
       {/* Main Grid: Left Characters List, Right Character Detail Canvas */}
       {characters.length === 0 ? (
-        <div className="p-12 text-center bg-[#141822] border border-dashed border-white/10 rounded-3xl space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+        <div className="p-12 text-center linea-bento rounded-3xl space-y-4">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-[0_2px_12px_rgba(245,158,11,0.15)]">
             <Users className="w-8 h-8" />
           </div>
-          <div className="max-w-md mx-auto space-y-1">
-            <h3 className="text-lg font-bold text-white">No Characters Added Yet</h3>
-            <p className="text-xs text-white/60 leading-relaxed">
+          <div className="max-w-md mx-auto space-y-1.5">
+            <h3 className="text-lg font-bold text-[#fbf8f3]">No Characters Added Yet</h3>
+            <p className="text-xs text-stone-400 leading-relaxed">
               Synthesize your protagonist, antagonist, or ensemble cast derived from <span className="text-amber-300">"{currentProject.title}"</span>.
             </p>
           </div>
@@ -263,7 +263,7 @@ export const CharacterScreen: React.FC = () => {
             <button
               onClick={() => handleSynthesizeCharacter('Protagonist')}
               disabled={isGeneratingCandidate}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all hover:scale-105 cursor-pointer"
+              className="linea-pill-btn linea-pill-primary px-5 py-2.5 text-xs font-bold inline-flex items-center gap-2 disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4 fill-black" />
               <span>{isGeneratingCandidate ? 'Synthesizing...' : 'Synthesize Protagonist (AI)'}</span>
@@ -271,9 +271,9 @@ export const CharacterScreen: React.FC = () => {
             <button
               onClick={() => handleSynthesizeCharacter('Antagonist')}
               disabled={isGeneratingCandidate}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-rose-500/20 disabled:opacity-50 transition-all hover:scale-105 cursor-pointer"
+              className="linea-pill-btn linea-pill-secondary px-5 py-2.5 text-xs font-bold inline-flex items-center gap-2 disabled:opacity-50 text-rose-300 border-rose-500/30"
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4 h-4 text-rose-400" />
               <span>Synthesize Antagonist (AI)</span>
             </button>
           </div>
@@ -284,12 +284,12 @@ export const CharacterScreen: React.FC = () => {
         {/* Left Column: Character Cards List (4 cols) */}
         <div className="xl:col-span-4 space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white/60">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 font-mono">
               Ensemble Roster ({currentProject.characters.length})
             </h3>
             <button
               onClick={() => runAiCharacterTool('Ensemble Analysis')}
-              className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium"
+              className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-semibold"
             >
               <Sparkles className="w-3 h-3" />
               Analyze Ensemble
@@ -308,10 +308,10 @@ export const CharacterScreen: React.FC = () => {
                     setSelectedCharId(char.id);
                     setTempAge(char.age);
                   }}
-                  className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border relative ${
+                  className={`p-4 rounded-3xl cursor-pointer transition-all duration-300 border relative ${
                     isSelected
-                      ? 'bg-gradient-to-r from-amber-950/40 via-[#161822] to-[#12141a] border-amber-500 shadow-xl shadow-amber-500/10 ring-1 ring-amber-500'
-                      : 'bg-[#12141a]/90 hover:bg-[#161822] border-white/5 hover:border-white/20'
+                      ? 'bg-[#181d2a] border-amber-400/80 shadow-[0_2px_16px_rgba(245,158,11,0.15)] ring-1 ring-amber-400/40'
+                      : 'bg-[#121622] hover:bg-[#161b2a] border-white/[0.06] hover:border-amber-400/30'
                   }`}
                 >
                   <div className="flex items-start gap-3.5">
@@ -319,11 +319,11 @@ export const CharacterScreen: React.FC = () => {
                       <img
                         src={char.photoUrl}
                         alt={char.name}
-                        className="w-14 h-14 rounded-xl object-cover border border-white/10"
+                        className="w-14 h-14 rounded-2xl object-cover border border-white/10"
                       />
-                      <span className={`absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                        char.role === 'Protagonist' ? 'bg-amber-500 text-black' :
-                        char.role === 'Antagonist' ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white'
+                      <span className={`absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                        char.role === 'Protagonist' ? 'bg-amber-400 text-black' :
+                        char.role === 'Antagonist' ? 'bg-rose-500 text-white' : 'bg-cyan-500 text-black'
                       }`}>
                         {char.role}
                       </span>
@@ -331,21 +331,21 @@ export const CharacterScreen: React.FC = () => {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h4 className={`text-sm font-bold truncate ${isSelected ? 'text-amber-400' : 'text-white'}`}>
+                        <h4 className={`text-sm font-bold truncate ${isSelected ? 'text-amber-400' : 'text-[#fbf8f3]'}`}>
                           {char.name}
                         </h4>
-                        <span className="text-xs font-mono text-white/50">{char.age} yrs</span>
+                        <span className="text-xs font-mono text-stone-400">{char.age} yrs</span>
                       </div>
 
-                      <p className="text-xs text-white/50 truncate mt-0.5">
+                      <p className="text-xs text-stone-400 truncate mt-0.5">
                         {char.occupation}
                       </p>
 
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/60 border border-white/10">
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/5 text-stone-300 border border-white/[0.06] font-mono">
                           {char.scenesAppeared.length} Scenes
                         </span>
-                        <span className="text-[10px] text-white/40 italic truncate">
+                        <span className="text-[10px] text-stone-500 italic truncate">
                           "{char.want.slice(0, 30)}..."
                         </span>
                       </div>
@@ -355,7 +355,7 @@ export const CharacterScreen: React.FC = () => {
                   {/* Special CTA on Aanya */}
                   {isAanya && (
                     <div className="mt-3 pt-2.5 border-t border-amber-500/20 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold text-amber-400/90 flex items-center gap-1">
+                      <span className="text-[10px] font-semibold text-amber-400/90 flex items-center gap-1 font-mono">
                         <Zap className="w-2.5 h-2.5 fill-amber-400" />
                         Anchor Change Object
                       </span>
@@ -364,7 +364,7 @@ export const CharacterScreen: React.FC = () => {
                           e.stopPropagation();
                           handleTriggerAanyaAgeImpactDemo();
                         }}
-                        className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition-colors"
+                        className="linea-pill-btn linea-pill-secondary text-[10px] px-2.5 py-0.5 font-bold text-amber-300"
                       >
                         Change 24 → 34
                       </button>
@@ -377,52 +377,52 @@ export const CharacterScreen: React.FC = () => {
         </div>
 
         {/* Right Column: Deep Character Dossier & Reactive Workspace (8 cols) */}
-        <div className="xl:col-span-8 bg-[#12141a]/95 rounded-2xl border border-white/10 overflow-hidden flex flex-col">
+        <div className="xl:col-span-8 linea-bento rounded-3xl overflow-hidden flex flex-col">
           
           {!selectedChar ? (
-            <div className="p-12 text-center text-white/50">Select a character from the roster to view their profile.</div>
+            <div className="p-12 text-center text-stone-500">Select a character from the roster to view their profile.</div>
           ) : (
             <>
               {/* Dossier Header */}
-              <div className="p-6 bg-gradient-to-r from-black/80 via-[#181b26]/60 to-black/80 border-b border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="p-6 bg-[#0c0f17] border-b border-white/[0.08] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               <img
                 src={selectedChar.photoUrl}
                 alt={selectedChar.name}
-                className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-500/40 shadow-2xl shadow-black"
+                className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400/50 shadow-2xl shadow-black"
               />
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-2xl font-bold font-serif text-white">{selectedChar.name}</h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <h2 className="text-2xl font-bold font-serif text-[#fbf8f3]">{selectedChar.name}</h2>
+                  <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
                     {selectedChar.role}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                     {selectedChar.status}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-xs text-white/60 mt-1.5">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400 mt-1.5">
                   <span>{selectedChar.occupation}</span>
                   <span>•</span>
                   <span>Based in {selectedChar.location}</span>
                   <span>•</span>
                   
                   {/* Interactive Age Badge with Quick Edit */}
-                  <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                    <span className="text-white/40">Age:</span>
+                  <div className="flex items-center gap-1.5 bg-[#141824] px-3 py-1 rounded-full border border-white/10">
+                    <span className="text-stone-500">Age:</span>
                     {isEditingAge ? (
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
                           value={tempAge}
                           onChange={(e) => setTempAge(parseInt(e.target.value) || 0)}
-                          className="w-12 px-1 py-0.2 bg-black border border-amber-500 rounded text-amber-400 font-mono text-xs text-center"
+                          className="w-12 px-1 py-0.5 bg-black border border-amber-400 rounded-lg text-amber-300 font-mono text-xs text-center focus:outline-none"
                           autoFocus
                         />
                         <button
                           onClick={handleAgeChangeSubmit}
-                          className="text-[10px] px-1.5 py-0.5 bg-amber-500 text-black font-bold rounded"
+                          className="text-[10px] px-2 py-0.5 bg-amber-400 text-black font-bold rounded-full"
                         >
                           Save
                         </button>
@@ -437,13 +437,13 @@ export const CharacterScreen: React.FC = () => {
                         title="Click to edit age or test change propagation"
                       >
                         <span>{selectedChar.age}</span>
-                        <Edit3 className="w-2.5 h-2.5 text-white/40" />
+                        <Edit3 className="w-2.5 h-2.5 text-stone-500" />
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="text-xs text-white/80 italic mt-2 border-l-2 border-amber-500/50 pl-3">
+                <div className="text-xs text-stone-300 italic mt-2 border-l-2 border-amber-400 pl-3">
                   "{selectedChar.quote}"
                 </div>
               </div>
@@ -453,14 +453,14 @@ export const CharacterScreen: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => runAiCharacterTool('Explore Variations')}
-                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                className="linea-pill-btn linea-pill-secondary px-3.5 py-1.5 text-xs gap-1.5"
               >
                 <GitFork className="w-3.5 h-3.5 text-amber-400" />
                 <span>Explore Variations</span>
               </button>
               <button
                 onClick={() => runAiCharacterTool('Consistency Check')}
-                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                className="linea-pill-btn linea-pill-secondary px-3.5 py-1.5 text-xs gap-1.5"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Consistency Check</span>
@@ -468,51 +468,51 @@ export const CharacterScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* Dossier Navigation Tabs */}
-          <div className="flex items-center gap-6 px-6 border-b border-white/10 bg-black/40 text-xs font-medium">
+          {/* Dossier Navigation Tabs (Linea Pill Capsule) */}
+          <div className="flex items-center gap-2 p-1.5 bg-[#0a0c12] rounded-full mx-6 my-4 border border-white/[0.08] text-xs font-mono">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`py-3.5 border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 ${
                 activeTab === 'profile'
-                  ? 'border-amber-500 text-amber-400 font-bold'
-                  : 'border-transparent text-white/50 hover:text-white'
+                  ? 'bg-amber-400 text-black font-bold shadow-sm'
+                  : 'text-stone-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <UserCheck className="w-4 h-4" />
-              Dossier & Archetype
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Dossier & Archetype</span>
             </button>
             <button
               onClick={() => setActiveTab('psychology')}
-              className={`py-3.5 border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 ${
                 activeTab === 'psychology'
-                  ? 'border-amber-500 text-amber-400 font-bold'
-                  : 'border-transparent text-white/50 hover:text-white'
+                  ? 'bg-amber-400 text-black font-bold shadow-sm'
+                  : 'text-stone-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Activity className="w-4 h-4" />
-              Psychometric Core & Arc
+              <Activity className="w-3.5 h-3.5" />
+              <span>Psychometric Core</span>
             </button>
             <button
               onClick={() => setActiveTab('relationships')}
-              className={`py-3.5 border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 ${
                 activeTab === 'relationships'
-                  ? 'border-amber-500 text-amber-400 font-bold'
-                  : 'border-transparent text-white/50 hover:text-white'
+                  ? 'bg-amber-400 text-black font-bold shadow-sm'
+                  : 'text-stone-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Network className="w-4 h-4" />
-              Relationship Graph ({selectedChar.relationships.length})
+              <Network className="w-3.5 h-3.5" />
+              <span>Relationships ({selectedChar.relationships.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('ai-tools')}
-              className={`py-3.5 border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 ${
                 activeTab === 'ai-tools'
-                  ? 'border-amber-500 text-amber-400 font-bold'
-                  : 'border-transparent text-white/50 hover:text-white'
+                  ? 'bg-amber-400 text-black font-bold shadow-sm'
+                  : 'text-stone-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              Voice Synthesis & Variations
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Voice & Variations</span>
             </button>
           </div>
 

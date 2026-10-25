@@ -8,23 +8,16 @@ import {
   Sparkles, 
   Award, 
   FileText, 
-  ArrowRight, 
-  ExternalLink, 
-  Clock, 
-  Share2, 
-  Printer, 
   Copy, 
   Brain, 
   BookOpen, 
-  Users, 
-  Layers, 
   ShieldAlert, 
   UserCheck, 
   Check,
-  AlertCircle
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { DeliverableCard, StakeholderApproval } from '../../types/project';
+import { LineaButton, BentoCard, LineaCaption } from '../common/LineaUI';
 
 export const PackageDeliveryScreen: React.FC = () => {
   const { currentProject, submitGreenlight, setActiveScreen } = useProject();
@@ -191,47 +184,52 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
   const auditPercent = Math.round((completedSteps / checklist.length) * 100);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fadeIn">
-      {/* Top Header Card */}
-      <div className="relative rounded-2xl bg-gradient-to-br from-[#121624] via-[#0f121d] to-[#151a2d] border border-amber-500/30 p-6 lg:p-8 shadow-2xl overflow-hidden">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 animate-fadeIn">
+      {/* Top Bento Hero Banner */}
+      <BentoCard className="relative overflow-hidden p-6 lg:p-8 border-white/[0.08]">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
-                <Package className="w-3.5 h-3.5" />
-                V1 North-Star Deliverable • Final Step 16
-              </span>
-              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono bg-white/10 text-white/70 border border-white/10">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <LineaCaption variant="mint" icon={<Package className="w-3.5 h-3.5" />}>
+                North-Star Deliverable • Final Step 16
+              </LineaCaption>
+              <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-white/[0.04] text-stone-400 border border-white/[0.08]">
                 {currentProject.canonicalVersion || 'v0.1'}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#fbf8f3]">
               Story Development Package & Greenlight Sign-Off
             </h1>
-            <p className="text-sm text-white/70 max-w-3xl leading-relaxed">
-              The synthesized V1 end-product for <strong className="text-white">"{currentProject.title}"</strong>: 
+            
+            <p className="text-xs sm:text-sm text-stone-300/80 max-w-3xl leading-relaxed">
+              The synthesized production-grade end-product for <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong>: 
               structured Story Brain, traceable research, character bibles, treatment synopsis, continuity verification, and evaluation clearance.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <LineaButton
+              variant="ghost"
+              size="md"
               onClick={() => setDossierModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-2 transition-all border border-white/20 shadow-md"
+              icon={<FileText className="w-4 h-4 text-amber-400" />}
             >
-              <FileText className="w-4 h-4 text-amber-400" />
-              <span>Inspect Master Dossier</span>
-            </button>
+              Inspect Master Dossier
+            </LineaButton>
 
             {pkg.isGreenlit ? (
-              <div className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold text-xs flex items-center gap-2 shadow-xl shadow-emerald-500/20">
+              <div className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-stone-950 font-bold text-xs flex items-center gap-2 shadow-xl shadow-emerald-500/20">
                 <Award className="w-4 h-4" />
                 <span>PROJECT GREENLIT FOR PRODUCTION</span>
               </div>
             ) : (
-              <button
+              <LineaButton
+                variant="primary"
+                size="md"
                 onClick={handleGreenlightClick}
                 disabled={!canGreenlight}
                 title={
@@ -241,18 +239,17 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
                     ? 'Cannot greenlight: Run AI Evaluation in Validation phase first.' 
                     : 'Submit for Official Greenlight'
                 }
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 shadow-xl shadow-amber-500/30 transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
+                icon={<Sparkles className="w-4 h-4 fill-black" />}
               >
-                <Sparkles className="w-4 h-4 fill-black" />
-                <span>Submit for Official Greenlight</span>
-              </button>
+                Submit for Official Greenlight
+              </LineaButton>
             )}
           </div>
         </div>
 
         {/* Greenlight Gate Warning if Blocked */}
         {hasCriticalBlockers && (
-          <div className="mt-4 p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs flex items-center justify-between">
+          <div className="mt-4 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs flex items-center justify-between backdrop-blur-md">
             <div className="flex items-center gap-2.5">
               <ShieldAlert className="w-4 h-4 text-rose-400 flex-shrink-0" />
               <span>
@@ -261,7 +258,7 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
             </div>
             <button
               onClick={() => setActiveScreen('continuity')}
-              className="text-xs font-bold text-rose-300 underline hover:text-white shrink-0 ml-3 cursor-pointer"
+              className="text-xs font-semibold text-rose-300 underline hover:text-white shrink-0 ml-3 cursor-pointer"
             >
               Resolve in Continuity →
             </button>
@@ -269,78 +266,79 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
         )}
 
         {/* Live Operational Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Readiness Index</span>
-            <span className="text-xl font-black text-emerald-400 flex items-center gap-1.5 mt-0.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/[0.08]">
+          <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm">
+            <span className="text-[11px] text-stone-400 block font-medium">Readiness Index</span>
+            <span className="text-xl font-bold text-emerald-400 flex items-center gap-2 mt-1">
+              <ShieldCheck className="w-4 h-4" />
               {currentProject.evaluation ? Math.round(currentProject.evaluation.overallScore) + '%' : 'Pending'}
             </span>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Story Brain Canon</span>
-            <span className="text-xl font-black text-amber-400 flex items-center gap-1.5 mt-0.5">
-              <Brain className="w-4 h-4 text-amber-400" />
+          <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm">
+            <span className="text-[11px] text-stone-400 block font-medium">Story Brain Canon</span>
+            <span className="text-xl font-bold text-amber-400 flex items-center gap-2 mt-1">
+              <Brain className="w-4 h-4" />
               {canonCount} Facts Locked
             </span>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Verified Research</span>
-            <span className="text-xl font-black text-cyan-400 flex items-center gap-1.5 mt-0.5">
-              <BookOpen className="w-4 h-4 text-cyan-400" />
+          <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm">
+            <span className="text-[11px] text-stone-400 block font-medium">Verified Research</span>
+            <span className="text-xl font-bold text-sky-400 flex items-center gap-2 mt-1">
+              <BookOpen className="w-4 h-4" />
               {researchCount} Citations
             </span>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-3 border border-white/5">
-            <span className="text-[11px] text-white/50 block font-medium">Audit Completion</span>
-            <span className="text-xl font-black text-white flex items-center gap-1.5 mt-0.5">
+          <div className="bg-[#0a0c12]/60 rounded-2xl p-4 border border-white/[0.06] backdrop-blur-sm">
+            <span className="text-[11px] text-stone-400 block font-medium">Audit Completion</span>
+            <span className="text-xl font-bold text-[#fbf8f3] flex items-center gap-2 mt-1">
               <UserCheck className="w-4 h-4 text-emerald-400" />
               {auditPercent}%
             </span>
           </div>
         </div>
-      </div>
+      </BentoCard>
 
       {/* Greenlit Celebration Banner */}
       {showGreenlitCelebration && (
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-teal-900/40 to-black/80 border border-emerald-500/40 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeIn">
+        <BentoCard className="p-6 border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-[#0e1119] to-black/80 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fadeIn">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 flex-shrink-0">
               <Award className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Project Officially Approved for Greenlight</h3>
-              <p className="text-xs text-white/70">
+              <h3 className="text-base font-bold text-[#fbf8f3]">Project Officially Approved for Greenlight</h3>
+              <p className="text-xs text-stone-300">
                 All development stages completed, canon verified, and sign-offs recorded in attributable audit log.
               </p>
             </div>
           </div>
-          <button
+          <LineaButton
+            variant="mint"
+            size="md"
             onClick={() => handleDownload('master-pkg', 'Master_Story_Development_Package')}
-            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold flex items-center gap-2 whitespace-nowrap shadow-lg transition-colors"
+            icon={<Download className="w-4 h-4" />}
           >
-            <Download className="w-4 h-4" />
-            <span>Download Certified Dossier</span>
-          </button>
-        </div>
+            Download Certified Dossier
+          </LineaButton>
+        </BentoCard>
       )}
 
       {/* Two Column Layout: Completeness Audit vs Deliverables */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Completeness Audit (5 cols) */}
-        <div className="lg:col-span-5 bg-[#131624] border border-white/10 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <BentoCard className="lg:col-span-5 p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
             <div>
-              <h3 className="text-sm font-bold text-white">Story Development Completeness Audit</h3>
-              <p className="text-[11px] text-white/60">Verification checklist derived from current project state.</p>
+              <h3 className="text-sm font-bold text-[#fbf8f3]">Story Development Completeness Audit</h3>
+              <p className="text-[11px] text-stone-400">Verification checklist derived from current project state.</p>
             </div>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
               auditPercent >= 80 
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
             }`}>
               {auditPercent}% Passed
             </span>
@@ -350,39 +348,39 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
             {checklist.map((item, idx) => (
               <div 
                 key={idx}
-                className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between gap-3 text-xs"
+                className="p-3 rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] flex items-center justify-between gap-3 text-xs"
               >
                 <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${item.completed ? 'text-emerald-400' : 'text-white/20'}`} />
-                  <span className={`font-medium ${item.completed ? 'text-white/90' : 'text-white/40'}`}>{item.label}</span>
+                  <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${item.completed ? 'text-emerald-400' : 'text-stone-600'}`} />
+                  <span className={`font-medium ${item.completed ? 'text-stone-200' : 'text-stone-500'}`}>{item.label}</span>
                 </div>
-                <span className="text-[10px] font-mono text-white/40 px-2 py-0.5 rounded bg-white/5">
+                <span className="text-[10px] font-mono text-stone-400 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
                   {item.stage}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
             <strong className="text-amber-300 block mb-0.5">Pilot Governance Note:</strong>
             All narrative materials pass through the 5-stage Canonical State Machine: 
-            <span className="font-mono text-[10px] block mt-1 text-white/70">
+            <span className="font-mono text-[10px] block mt-1 text-stone-300">
               AI_PROPOSAL → CANDIDATE → HUMAN_EDITED → APPROVED → CANONICAL
             </span>
           </div>
-        </div>
+        </BentoCard>
 
         {/* Right Column: Exportable Deliverables (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-[#131624] border border-white/10 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <BentoCard className="p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div>
-                <h3 className="text-sm font-bold text-white">Exportable Story Deliverables</h3>
-                <p className="text-[11px] text-white/60">Structured dossiers assembled from approved Project Intelligence.</p>
+                <h3 className="text-sm font-bold text-[#fbf8f3]">Exportable Story Deliverables</h3>
+                <p className="text-[11px] text-stone-400">Structured dossiers assembled from approved Project Intelligence.</p>
               </div>
               <button
                 onClick={() => handleDownload('all', `${currentProject.title}_Full_Dossier`)}
-                className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1"
+                className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export Master Dossier (.txt)</span>
@@ -396,18 +394,18 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
                 return (
                   <div 
                     key={del.id}
-                    className="p-4 rounded-xl bg-black/30 border border-white/5 hover:border-amber-500/30 flex items-center justify-between gap-4 transition-all"
+                    className="p-4 rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] hover:border-amber-500/30 flex items-center justify-between gap-4 transition-all"
                   >
                     <div className="flex items-center gap-3">
                       <div 
-                        className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs text-white"
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-xs text-white"
                         style={{ backgroundColor: `${del.color}25`, border: `1px solid ${del.color}60` }}
                       >
                         {del.type}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-white">{del.title}</h4>
-                        <div className="flex items-center gap-2 text-[10px] text-white/40 mt-0.5 font-mono">
+                        <h4 className="text-xs font-bold text-[#fbf8f3]">{del.title}</h4>
+                        <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5 font-mono">
                           <span>{del.version}</span>
                           <span>•</span>
                           <span>{del.size}</span>
@@ -418,7 +416,7 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
                     <button
                       onClick={() => handleDownload(del.id, del.title)}
                       disabled={isDownloading}
-                      className="px-3.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                      className="px-3.5 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-stone-300 hover:text-white border border-white/[0.1] text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       <Download className={`w-3.5 h-3.5 ${isDownloading ? 'animate-bounce' : ''}`} />
                       <span>{isDownloading ? 'Exporting...' : 'Download'}</span>
@@ -427,50 +425,50 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
                 );
               })}
             </div>
-          </div>
+          </BentoCard>
 
           {/* Producer Sign-off Status */}
-          <div className="bg-[#131624] border border-white/10 rounded-2xl p-6 space-y-3">
-            <h3 className="text-sm font-bold text-white">Attributable Stakeholder Sign-Off</h3>
+          <BentoCard className="p-6 space-y-3">
+            <h3 className="text-sm font-bold text-[#fbf8f3]">Attributable Stakeholder Sign-Off</h3>
             {currentProject.evaluation?.humanSignOff ? (
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
                 <div>
-                  <span className="font-bold text-white block">{currentProject.evaluation.humanSignOff.approvedBy}</span>
+                  <span className="font-bold text-[#fbf8f3] block">{currentProject.evaluation.humanSignOff.approvedBy}</span>
                   <span className="text-[11px] text-emerald-300">{currentProject.evaluation.humanSignOff.role} • Approved on {currentProject.evaluation.humanSignOff.date}</span>
                   {currentProject.evaluation.humanSignOff.comments && (
-                    <p className="text-[11px] text-white/70 mt-1 italic">"{currentProject.evaluation.humanSignOff.comments}"</p>
+                    <p className="text-[11px] text-stone-300 mt-1 italic">"{currentProject.evaluation.humanSignOff.comments}"</p>
                   )}
                 </div>
-                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/30">
                   APPROVED
                 </span>
               </div>
             ) : (
-              <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-xs text-white/50">
+              <div className="p-4 rounded-2xl bg-[#0a0c12]/60 border border-white/[0.06] flex items-center justify-between text-xs text-stone-400">
                 <span>Formal producer sign-off pending in Evaluation module.</span>
                 <button
                   onClick={() => setActiveScreen('evaluation')}
-                  className="text-amber-400 hover:text-amber-300 font-semibold"
+                  className="text-amber-400 hover:text-amber-300 font-semibold cursor-pointer"
                 >
                   Review & Sign Off →
                 </button>
               </div>
             )}
-          </div>
+          </BentoCard>
         </div>
       </div>
 
       {/* MASTER DOSSIER MODAL */}
       {dossierModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#131624] border border-amber-500/40 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-5 border-b border-white/10 flex items-center justify-between bg-black/40">
+          <BentoCard className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 bg-[#0e1119]/95 border-amber-500/40 shadow-2xl">
+            <div className="p-5 border-b border-white/[0.08] flex items-center justify-between bg-black/40">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <h3 className="text-base font-bold text-[#fbf8f3] flex items-center gap-2">
                   <FileText className="w-4 h-4 text-amber-400" />
                   Master Story Development Dossier • {currentProject.title}
                 </h3>
-                <span className="text-xs text-white/50 font-mono">
+                <span className="text-xs text-stone-400 font-mono">
                   {currentProject.canonicalVersion || 'v0.1'} • Approved Canonical State
                 </span>
               </div>
@@ -478,92 +476,93 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
               <div className="flex items-center gap-2">
                 <button
                   onClick={copyDossier}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  className="px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] text-[#fbf8f3] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
                 </button>
                 <button
                   onClick={() => setDossierModalOpen(false)}
-                  className="text-white/40 hover:text-white p-1"
+                  className="text-stone-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-white/80 leading-relaxed font-sans">
-              <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-stone-300 leading-relaxed font-sans">
+              <div className="p-4 rounded-2xl bg-[#0a0c12]/80 border border-white/[0.06] space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">1. Executive Overview</h4>
-                <p><strong className="text-white">Premise:</strong> {currentProject.intent?.premise || 'Not specified'}</p>
-                <p><strong className="text-white">Content Type:</strong> {currentProject.contentType || 'Feature Film'}</p>
-                <p><strong className="text-white">Genre:</strong> {currentProject.genre || 'Drama'}</p>
+                <p><strong className="text-[#fbf8f3]">Premise:</strong> {currentProject.intent?.premise || 'Not specified'}</p>
+                <p><strong className="text-[#fbf8f3]">Content Type:</strong> {currentProject.contentType || 'Feature Film'}</p>
+                <p><strong className="text-[#fbf8f3]">Genre:</strong> {currentProject.genre || 'Drama'}</p>
               </div>
 
-              <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+              <div className="p-4 rounded-2xl bg-[#0a0c12]/80 border border-white/[0.06] space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">2. Canonical Story Brain Truths ({canonCount})</h4>
                 <div className="space-y-1.5">
                   {currentProject.storyBrain?.canonFacts?.length ? (
                     currentProject.storyBrain.canonFacts.map((fact, idx) => (
-                      <div key={fact.id} className="text-xs text-white/80 pl-2 border-l border-amber-500/40">
+                      <div key={fact.id} className="text-xs text-stone-300 pl-3 border-l-2 border-amber-500/40">
                         <span className="font-mono text-[10px] text-amber-300 font-bold block">#CF-0{idx+1} • {fact.category}</span>
                         "{fact.statement}"
                       </div>
                     ))
                   ) : (
-                    <p className="text-white/40 italic">No canon facts locked yet.</p>
+                    <p className="text-stone-500 italic">No canon facts locked yet.</p>
                   )}
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+              <div className="p-4 rounded-2xl bg-[#0a0c12]/80 border border-white/[0.06] space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">3. Registered Characters ({charCount})</h4>
                 {currentProject.characters?.length ? (
                   <div className="space-y-2">
                     {currentProject.characters.map(c => (
-                      <div key={c.id} className="p-2.5 rounded-lg bg-black/30 border border-white/5">
-                        <span className="font-bold text-white">{c.name} ({c.role}, Age {c.age})</span>
-                        <p className="text-[11px] text-white/70 mt-0.5">Want: {c.want} • Need: {c.need} • Flaw: {c.flaw}</p>
+                      <div key={c.id} className="p-3 rounded-xl bg-black/40 border border-white/[0.06]">
+                        <span className="font-bold text-[#fbf8f3]">{c.name} ({c.role}, Age {c.age})</span>
+                        <p className="text-[11px] text-stone-400 mt-0.5">Want: {c.want} • Need: {c.need} • Flaw: {c.flaw}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-white/40 italic">No characters registered yet.</p>
+                  <p className="text-stone-500 italic">No characters registered yet.</p>
                 )}
               </div>
 
-              <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+              <div className="p-4 rounded-2xl bg-[#0a0c12]/80 border border-white/[0.06] space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">4. AI Narrative Evaluation Quality Index</h4>
                 {currentProject.evaluation ? (
                   <>
-                    <p><strong className="text-white">Readiness Score:</strong> {Math.round(currentProject.evaluation.overallScore)}% ({currentProject.evaluation.readinessStatus})</p>
-                    <p><strong className="text-white">Evaluator Model:</strong> {currentProject.evaluation.evaluatorModel}</p>
+                    <p><strong className="text-[#fbf8f3]">Readiness Score:</strong> {Math.round(currentProject.evaluation.overallScore)}% ({currentProject.evaluation.readinessStatus})</p>
+                    <p><strong className="text-[#fbf8f3]">Evaluator Model:</strong> {currentProject.evaluation.evaluatorModel}</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
                       {currentProject.evaluation.dimensions?.map(dim => (
-                        <div key={dim.id} className="p-2 rounded bg-black/30 text-[11px]">
-                          <span className="text-white/50 block">{dim.name}</span>
+                        <div key={dim.id} className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06] text-[11px]">
+                          <span className="text-stone-400 block">{dim.name}</span>
                           <span className="text-amber-400 font-bold">{dim.score}%</span>
                         </div>
                       ))}
                     </div>
                   </>
                 ) : (
-                  <p className="text-white/40 italic">Evaluation not yet executed.</p>
+                  <p className="text-stone-500 italic">Evaluation not yet executed.</p>
                 )}
               </div>
             </div>
 
-            <div className="p-4 border-t border-white/10 bg-black/40 flex items-center justify-between text-xs text-white/50">
+            <div className="p-4 border-t border-white/[0.08] bg-black/40 flex items-center justify-between text-xs text-stone-400">
               <span>Ready for Export • Tattava Copilot Certified State</span>
-              <button
+              <LineaButton
+                variant="primary"
+                size="sm"
                 onClick={() => handleDownload('master-dossier', `${currentProject.title}_Master_Dossier`)}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-1.5"
+                icon={<Download className="w-3.5 h-3.5" />}
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download Certified Text File</span>
-              </button>
+                Download Certified Text File
+              </LineaButton>
             </div>
-          </div>
+          </BentoCard>
         </div>
       )}
     </div>
