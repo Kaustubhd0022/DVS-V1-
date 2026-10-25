@@ -1,0 +1,9 @@
+{
+  "name": "dvs-v1-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd client && npm install && npm run build && mkdir -p ../dist && cp -r dist/* ../dist/",
+    "dev": "npm --prefix client run dev"
+  }
+}
