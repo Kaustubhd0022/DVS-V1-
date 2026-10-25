@@ -35,7 +35,7 @@ import { createEmptyProject } from '../data/emptyProject';
 import { askCopilot } from '../services/geminiService';
 import { inferMediaFormat, inferContentMode, DEFAULT_PROJECT_CONFIGURATION } from '../domain/tattvacoProject';
 import { applyCanonicalConfiguration, getCanonicalConfiguration, isSeriesFormat, invalidateDownstreamArtifacts } from '../services/projectConfiguration';
-import { evaluateProjectNarrative, generateEvaluationRepairPlan, getGroqApiKey, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
+import { evaluateProjectNarrative, generateEvaluationRepairPlan, DiscoveryTurnResult, generateResearchUniverse, synthesizeProjectInsights, generateProjectDirections as synthesizeProjectDirections } from '../services/aiService';
 import { orchestrateCreatorTurn } from '../services/conversationalOrchestrator';
 import { resolveProjectContext } from '../services/contextResolver';
 import { resolveDependencyImpact } from '../services/dependencyImpactService';
@@ -43,6 +43,8 @@ import { buildRegenerationPlan } from '../services/regenerationPlanner';
 import { executeRegenerationItem, RegenerationResult } from '../services/regenerationExecutor';
 import { syncDirectionStores, withoutUnapprovedStoryDirections } from '../services/directionSync';
 import { getResumeScreen } from '../services/projectProgress';
+import { useAuth } from './AuthContext';
+import { useProjectSync, SyncState } from './useProjectSync';
 
 export type ScreenId = 
   | 'home' 
@@ -99,6 +101,9 @@ export const PIPELINE_STEPS: StepMeta[] = [
 
 interface ProjectContextType {
   projects: TattavaProject[];
+  sync: SyncState;
+  importLocalProjects: () => Promise<number>;
+  reloadProject: (projectId: string) => Promise<void>;
   currentProject: TattavaProject;
   activeScreen: ScreenId;
   currentStepIndex: number;
@@ -245,6 +250,17 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return projects[0]?.id || null;
   });
 
+  const auth = useAuth();
+  const { sync, importLocalProjects, reloadProject, forgetProject } = useProjectSync({
+    remote: auth.status === 'ready',
+    userId: auth.user?.id ?? null,
+    projects,
+    setProjects,
+    setCurrentProjectId,
+    normalize: normalizePersistedProjectForConfiguration,
+    localStorageKey: STORAGE_KEY,
+  });
+
   const [activeScreen, setActiveScreen] = useState<ScreenId>('home');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isContextResolverOpen, setIsContextResolverOpen] = useState<boolean>(false);
@@ -277,9 +293,12 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Sync to local storage
   useEffect(() => {
+    // With sign-in enabled the backend is the source of truth. localStorage is then left
+    // untouched (it is the source for the one-time import) and must not be overwritten.
+    if (auth.status !== 'disabled') return;
     // Persist only user projects. Demo/reference workspaces remain session-scoped.
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects.filter(project => !project.isDemo)));
-  }, [projects]);
+  }, [projects, auth.status]);
 
   // Clean empty fallback project if no project has been created yet
   const fallbackEmpty = createEmptyProject('default-empty', 'Welcome to Tattava', 'Start a new project or explore the demo.');
@@ -639,7 +658,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const updatedEval: StoryEvaluation = {
           overallScore: evalRes.overallScore,
           readinessStatus: evalRes.readinessStatus,
-          evaluatorModel: 'openai/gpt-oss-120b (Groq LPU)',
+          evaluatorModel: 'HuggingFace (server-side)',
           evaluatedAt: new Date().toLocaleDateString() + ' (tattvaCo Evaluator v1.0)',
           dimensions: fullDimensions,
           keyStrengths: evalRes.keyStrengths?.length > 0 ? evalRes.keyStrengths : (evalRes.strengths?.length ? evalRes.strengths : ['Original premise hook', 'Grounded dramatic conflict']),
@@ -1948,6 +1967,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const deleteProject = (projectId: string) => {
+    forgetProject(projectId);
     setProjects(prev => prev.filter(p => p.id !== projectId));
     if (currentProjectId === projectId) {
       setCurrentProjectId(projects[0]?.id || seedProject.id);
@@ -2459,16 +2479,16 @@ Format: ${currentProject.format}
       setCopilotMessages(prev => [...prev, { sender: 'tattvaCo', text: reply, time: 'Just now' }]);
     } catch (e: any) {
       const errMsg = e?.message || 'AI Copilot inference error';
-      const isMissingKey = errMsg.includes('AI_CONFIGURATION_REQUIRED') || !getGroqApiKey();
+      const friendly = errMsg.includes('AI_SIGN_IN_REQUIRED')
+        ? '[SIGN IN REQUIRED]: Sign in to use the AI Copilot.'
+        : errMsg.includes('AI_CONFIGURATION_REQUIRED')
+          ? '[AI CONFIGURATION REQUIRED]: The server has no working HuggingFace token. Set HUGGINGFACE_API_TOKEN in server/.env.'
+          : errMsg.includes('AI_CREDITS_REQUIRED')
+            ? '[AI CREDITS REQUIRED]: The HuggingFace account has no Inference Providers credits left. Add credits at huggingface.co/settings/billing.'
+            : `[AI SERVICE UNAVAILABLE]: Could not complete request: ${errMsg}`;
       setCopilotMessages(prev => [
         ...prev,
-        {
-          sender: 'tattvaCo',
-          text: isMissingKey 
-            ? `[AI CONFIGURATION REQUIRED]: No API key detected. Please configure your Groq or Gemini API key in Settings to converse dynamically with Tattava Copilot.`
-            : `[AI SERVICE UNAVAILABLE]: Could not complete request: ${errMsg}. Please check network or API key status.`,
-          time: 'Just now'
-        }
+        { sender: 'tattvaCo', text: friendly, time: 'Just now' }
       ]);
     }
   };
@@ -2655,6 +2675,9 @@ Format: ${currentProject.format}
         goToStep,
         nextStep,
         prevStep,
+        sync,
+        importLocalProjects,
+        reloadProject,
         openProject,
         openDemoProject,
         createNewProject,

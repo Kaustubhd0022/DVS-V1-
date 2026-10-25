@@ -218,7 +218,9 @@ class Character(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     project = relationship('Project', back_populates='characters')
-    relationships = relationship('Relationship', back_populates='character')
+    relationships = relationship(
+        'Relationship', back_populates='character', foreign_keys='Relationship.from_entity_id'
+    )
 
 
 class Relationship(Base):
@@ -234,7 +236,7 @@ class Relationship(Base):
     status = Column(String(50), default='active')
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    project = relationship('Project', back_populates='dependencies')
+    project = relationship('Project')
     character = relationship('Character', back_populates='relationships', foreign_keys=[from_entity_id])
 
 
@@ -449,4 +451,22 @@ class RetrievalRecord(Base):
     ranking_metadata = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    project = relationship('Project', back_populates='ai_runs')
+    project = relationship('Project')
+
+
+class ProjectSnapshot(Base):
+    """The whole frontend project document (client `TattavaProject`), one row per project.
+
+    `version` is an optimistic-concurrency counter: a write must name the version it was
+    based on, and loses with 409 if someone else saved first.
+    """
+    __tablename__ = 'project_snapshot'
+
+    project_id = Column(
+        UUID(as_uuid=True), ForeignKey('project.id', ondelete='CASCADE'), primary_key=True
+    )
+    schema_version = Column(Integer, nullable=False, default=1)
+    version = Column(Integer, nullable=False, default=1)
+    data = Column(JSON, nullable=False)
+    updated_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

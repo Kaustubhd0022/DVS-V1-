@@ -17,7 +17,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
-import { analyzeConceptIntake, askCopilot, IntakeAnalysisResult, getGroqApiKey } from '../../services/aiService';
+import { analyzeConceptIntake, askCopilot, IntakeAnalysisResult } from '../../services/aiService';
 
 export const IntakeScreen: React.FC = () => {
   const { 
@@ -227,7 +227,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
               <strong className="block font-bold text-white mb-0.5">AI Inference Notice</strong>
               <p>{analysisError}</p>
               <p className="mt-1 text-white/60">
-                You can configure your Groq or Gemini API key in Settings, or edit the project understanding manually below.
+                Check the AI status in Settings, or edit the project understanding manually below.
               </p>
             </div>
           </div>
@@ -317,7 +317,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
               <div className="p-8 text-center space-y-3">
                 <RefreshCw className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
                 <p className="text-xs font-semibold text-white">
-                  Analyzing raw concept with Groq LPU inference...
+                  Analyzing raw concept with AI...
                 </p>
                 <p className="text-[11px] text-white/40">
                   Extracting protagonist psychometrics, world setting, and dramatic conflicts

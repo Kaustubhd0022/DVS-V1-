@@ -15,7 +15,7 @@ import {
   Key
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
-import { getLastAiDebugTrace, getGroqApiKey, testGroqConnection } from '../../services/aiService';
+import { getLastAiDebugTrace, getAiStatus, testAiConnection } from '../../services/aiService';
 
 interface DebugInspectorModalProps {
   isOpen: boolean;
@@ -30,8 +30,13 @@ export const DebugInspectorModal: React.FC<DebugInspectorModalProps> = ({ isOpen
   const [isTesting, setIsTesting] = useState(false);
 
   const debugTrace = getLastAiDebugTrace();
-  const apiKey = getGroqApiKey();
-  const hasKey = !!apiKey;
+  const [aiConfigured, setAiConfigured] = useState(false);
+  const hasKey = aiConfigured;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    getAiStatus().then(s => setAiConfigured(s.configured)).catch(() => setAiConfigured(false));
+  }, [isOpen]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -42,7 +47,7 @@ export const DebugInspectorModal: React.FC<DebugInspectorModalProps> = ({ isOpen
   const handleTestConnection = async () => {
     setIsTesting(true);
     setTestResult(null);
-    const res = await testGroqConnection();
+    const res = await testAiConnection();
     setTestResult(res.message);
     setIsTesting(false);
   };
@@ -79,7 +84,7 @@ export const DebugInspectorModal: React.FC<DebugInspectorModalProps> = ({ isOpen
               className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 text-[10px] flex items-center gap-1.5 transition-all"
             >
               <Cpu className="w-3 h-3 text-cyan-400" />
-              <span>{isTesting ? 'Testing LPU...' : 'Test Groq LPU'}</span>
+              <span>{isTesting ? 'Testing AI...' : 'Test AI Connection'}</span>
             </button>
             <button
               onClick={onClose}
@@ -114,7 +119,7 @@ export const DebugInspectorModal: React.FC<DebugInspectorModalProps> = ({ isOpen
           <div className="flex items-center gap-3">
             <span className={`flex items-center gap-1 font-bold ${hasKey ? 'text-emerald-400' : 'text-rose-400'}`}>
               <Key className="w-3 h-3" />
-              <span>{hasKey ? 'Groq Key Active' : 'Key Missing'}</span>
+              <span>{hasKey ? 'AI Server Ready' : 'AI Not Configured'}</span>
             </span>
             <span className="text-white/40">Screen: {activeScreen}</span>
           </div>

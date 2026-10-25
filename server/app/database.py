@@ -13,14 +13,14 @@ from app.models import Base
 # Supabase connection string
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    f"postgresql://{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+    f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 
 # Create engine with pgvector support
 engine = create_engine(
     DATABASE_URL,
-    echo=settings.debug,
-    poolclass=NullPool if settings.environment == "testing" else None,
+    echo=settings.DEBUG,
+    poolclass=NullPool if settings.ENVIRONMENT == "testing" else None,
     pool_pre_ping=True,  # Verify connections before using
 )
 
@@ -31,7 +31,7 @@ def enable_extensions(dbapi_conn, connection_record):
     cursor = dbapi_conn.cursor()
     try:
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        cursor.execute("CREATE EXTENSION IF NOT EXISTS uuid-ossp")
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"")
         dbapi_conn.commit()
     except Exception as e:
         dbapi_conn.rollback()

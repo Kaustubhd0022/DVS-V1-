@@ -1,5 +1,5 @@
 /**
- * Re-export tattvaCo AI Service powered by Groq LPU Ultra-Fast Inference
+ * Re-export of the tattvaCo AI service (server-side, HuggingFace)
  * Maintains 100% backward compatibility for existing imports
  */
 

@@ -25,9 +25,19 @@ class Settings(BaseSettings):
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "password"
 
+    # Auth - Supabase (set SUPABASE_URL for ES256/RS256 tokens, SUPABASE_JWT_SECRET for HS256)
+    SUPABASE_URL: str = ""
+    SUPABASE_JWT_SECRET: str = ""
+    SUPABASE_JWT_AUDIENCE: str = "authenticated"
+
     # LLM - Huggingface
     HUGGINGFACE_API_TOKEN: str = ""
-    HUGGINGFACE_MODEL: str = "mistralai/Mistral-7B-Instruct-v0.1"
+    HUGGINGFACE_MODEL: str = "meta-llama/Llama-3.1-8B-Instruct"
+    HUGGINGFACE_FALLBACK_MODEL: str = "Qwen/Qwen2.5-72B-Instruct"
+    HUGGINGFACE_BASE_URL: str = "https://router.huggingface.co/v1"
+
+    # Max AI requests per user per minute (in-memory limiter)
+    AI_REQUESTS_PER_MINUTE: int = 30
 
     # Embeddings - Huggingface
     EMBEDDINGS_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"

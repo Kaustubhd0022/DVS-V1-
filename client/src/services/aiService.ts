@@ -1,6 +1,6 @@
 /**
- * tattvaCo AI Service — Powered by Groq LPU Ultra-Fast Inference
- * Flagship Models: openai/gpt-oss-120b & openai/gpt-oss-20b
+ * tattvaCo AI Service - all model calls go through the backend (/api/ai/generate)
+ * which talks to HuggingFace Inference Providers. No provider keys exist in the browser.
  * 
  * CORE PRINCIPLE:
  * NO PROJECT INPUT = NO PROJECT-SPECIFIC INTELLIGENCE.
@@ -27,13 +27,8 @@ import {
 } from '../types/project';
 import { resolveProjectContext } from './contextResolver';
 import { getCanonicalConfiguration } from './projectConfiguration';
+import { ApiError, apiClient } from './apiClient';
 
-const DEFAULT_GROQ_KEY = '';
-const ENV_KEY = (import.meta as any).env?.VITE_GROQ_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
-
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const PRIMARY_MODEL = 'openai/gpt-oss-120b';
-const FALLBACK_MODEL = 'openai/gpt-oss-20b';
 
 // Global debug telemetry for Section 25 Developer Inspector
 export interface AiDebugTrace {
@@ -73,28 +68,6 @@ export interface ProjectConfigurationCandidate {
   ambiguities: string[];
 }
 
-export const getGroqApiKey = (): string => {
-  if (typeof localStorage !== 'undefined') {
-    const custom = localStorage.getItem('tattvaco_groq_api_key') || localStorage.getItem('tattvaco_gemini_api_key');
-    if (custom) return custom;
-  }
-  return (
-    ENV_KEY ||
-    DEFAULT_GROQ_KEY ||
-    (typeof process !== 'undefined' ? process.env?.VITE_GROQ_API_KEY : '') ||
-    ''
-  );
-};
-
-export const setGroqApiKey = (key: string): void => {
-  const trimmed = key.trim();
-  localStorage.setItem('tattvaco_groq_api_key', trimmed);
-  localStorage.setItem('tattvaco_gemini_api_key', trimmed);
-};
-
-// Compatibility aliases
-export const getGeminiApiKey = getGroqApiKey;
-export const setGeminiApiKey = setGroqApiKey;
 
 /**
  * Robust JSON extraction helper
@@ -410,9 +383,35 @@ export const resolveCanonicalGenerationContext = (
   return { ...resolved, contextText: buildContextPackagePrompt(resolved.pkg) };
 };
 /**
- * Generic Groq API caller with model fallback and strict error reporting
+ * Maps a failed backend call to an Error whose message starts with a stable code that the UI
+ * can test for (AI_CONFIGURATION_REQUIRED, AI_CREDITS_REQUIRED, AI_SIGN_IN_REQUIRED, AI_SERVICE_ERROR).
  */
-async function callGroq(
+const toAiError = (err: unknown): Error => {
+  let code = 'AI_SERVICE_ERROR';
+  let message = 'The AI service is unavailable.';
+  if (err instanceof ApiError) {
+    message = err.message;
+    if (err.status === 401 || err.status === 403) {
+      code = 'AI_SIGN_IN_REQUIRED';
+      message = 'Sign in to use AI features.';
+    } else if (err.status === 503) {
+      code = 'AI_CONFIGURATION_REQUIRED';
+    } else if (err.status === 402) {
+      code = 'AI_CREDITS_REQUIRED';
+    }
+  } else if (err instanceof Error) {
+    message = err.message;
+  }
+  const error = new Error(`${code}: ${message}`);
+  (error as any).code = code;
+  return error;
+};
+
+/**
+ * Calls the backend AI proxy (POST /api/ai/generate). The model provider token (HuggingFace)
+ * lives on the server; the browser never sees it. Model selection and fallback happen server-side.
+ */
+async function callAI(
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   options: {
     temperature?: number;
@@ -422,145 +421,62 @@ async function callGroq(
     contextSnapshot?: string;
   } = {}
 ): Promise<string> {
-  const apiKey = getGroqApiKey();
-  if (!apiKey) {
-    const err = new Error('AI_CONFIGURATION_REQUIRED: No Groq or Gemini API key found. Please configure your API key in Settings.');
-    (err as any).code = 'AI_CONFIGURATION_REQUIRED';
-    throw err;
-  }
-
   const { temperature = 0.7, max_tokens = 2000, jsonMode = false, taskName = 'General Inference', contextSnapshot = '' } = options;
   const startTime = performance.now();
 
-  const modelsToTry = [PRIMARY_MODEL, FALLBACK_MODEL];
-  let lastError: any = null;
+  try {
+    const result = await apiClient.generate({
+      messages,
+      temperature,
+      maxTokens: max_tokens,
+      jsonMode,
+      task: taskName,
+    });
 
-  for (const model of modelsToTry) {
-    try {
-      const payload: any = {
-        model,
-        messages,
-        temperature,
-        max_tokens
-      };
-
-      if (jsonMode) {
-        payload.response_format = { type: 'json_object' };
-      }
-
-      const res = await fetch(GROQ_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const elapsed = Math.round(performance.now() - startTime);
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const errMsg = errJson.error?.message || `HTTP ${res.status}`;
-        console.warn(`Groq model ${model} failed: ${errMsg}`);
-        lastError = new Error(`AI_SERVICE_ERROR: ${errMsg}`);
-        continue;
-      }
-
-      const data = await res.json();
-      const choice = data.choices?.[0];
-      if (!choice) continue;
-
-      let content = choice.message?.content?.trim() || '';
-      // If reasoning model left content blank but produced reasoning, extract text
-      if (!content && choice.message?.reasoning) {
-        content = choice.message.reasoning.trim();
-      }
-
-      if (content) {
-        // Record debug trace for Section 25 Developer Inspector
-        lastAiDebugTrace = {
-          timestamp: new Date().toLocaleTimeString(),
-          task: taskName,
-          model,
-          contextSent: contextSnapshot || messages[0]?.content || '',
-          prompt: messages[messages.length - 1]?.content || '',
-          rawResponse: content,
-          latencyMs: elapsed,
-          status: 'SUCCESS'
-        };
-        return content;
-      }
-    } catch (err: any) {
-      console.warn(`Error invoking ${model}:`, err);
-      lastError = err;
-    }
+    // Record debug trace for Section 25 Developer Inspector
+    lastAiDebugTrace = {
+      timestamp: new Date().toLocaleTimeString(),
+      task: taskName,
+      model: result.model,
+      contextSent: contextSnapshot || messages[0]?.content || '',
+      prompt: messages[messages.length - 1]?.content || '',
+      rawResponse: result.content,
+      latencyMs: result.latency_ms,
+      status: 'SUCCESS'
+    };
+    return result.content;
+  } catch (err) {
+    const error = toAiError(err);
+    lastAiDebugTrace = {
+      timestamp: new Date().toLocaleTimeString(),
+      task: taskName,
+      model: 'server',
+      contextSent: contextSnapshot || '',
+      prompt: messages[messages.length - 1]?.content || '',
+      rawResponse: '',
+      latencyMs: Math.round(performance.now() - startTime),
+      status: 'ERROR',
+      errorMessage: error.message
+    };
+    throw error;
   }
-
-  const finalElapsed = Math.round(performance.now() - startTime);
-  lastAiDebugTrace = {
-    timestamp: new Date().toLocaleTimeString(),
-    task: taskName,
-    model: PRIMARY_MODEL,
-    contextSent: contextSnapshot || '',
-    prompt: messages[messages.length - 1]?.content || '',
-    rawResponse: '',
-    latencyMs: finalElapsed,
-    status: 'ERROR',
-    errorMessage: lastError?.message || 'Groq connection failed'
-  };
-
-  throw lastError || new Error('AI_UNAVAILABLE: All attempts to connect to Groq inference failed.');
 }
 
 /**
- * Test connection to Groq API and measure latency
+ * Ask the backend whether AI works (token configured, credits available) and how fast it is.
  */
-export const testGroqConnection = async (): Promise<{ success: boolean; message: string; latencyMs?: number }> => {
-  const apiKey = getGroqApiKey();
-  if (!apiKey) {
-    return { success: false, message: 'No API Key configured. Please enter your Groq API key.' };
-  }
-
-  const startTime = performance.now();
-
+export const testAiConnection = async (): Promise<{ success: boolean; message: string; latencyMs?: number }> => {
   try {
-    const res = await fetch(GROQ_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: PRIMARY_MODEL,
-        messages: [{ role: 'user', content: 'Say "tattvaCo Online" and nothing else.' }],
-        max_tokens: 300
-      })
-    });
-
-    const elapsed = Math.round(performance.now() - startTime);
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { 
-        success: false, 
-        message: err.error?.message || `HTTP ${res.status}: Connection failed` 
-      };
-    }
-
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content?.trim() || data.choices?.[0]?.message?.reasoning?.trim() || 'Online';
-    return {
-      success: true,
-      message: `Connected: Groq LPU (${PRIMARY_MODEL}) • ${elapsed}ms latency • "${reply.slice(0, 30)}"`,
-      latencyMs: elapsed
-    };
-  } catch (e: any) {
-    return { success: false, message: e.message || 'Network error connecting to Groq' };
+    const result = await apiClient.testAi();
+    return { success: result.success, message: result.message, latencyMs: result.latency_ms ?? undefined };
+  } catch (err) {
+    return { success: false, message: toAiError(err).message };
   }
 };
 
-export const testGeminiConnection = testGroqConnection;
+/** Which provider/model the server is configured with. */
+export const getAiStatus = () => apiClient.aiStatus();
+
 
 /**
  * Contextual Film Intelligence Copilot
@@ -599,7 +515,7 @@ RULES:
     content: userPrompt
   });
 
-  return await callGroq(messages, {
+  return await callAI(messages, {
     temperature: 0.7,
     max_tokens: 1500,
     taskName: 'Copilot Chat',
@@ -663,7 +579,7 @@ Return ONLY valid JSON matching this exact structure:
   ]
 }`;
 
-  const rawJson = await callGroq(
+  const rawJson = await callAI(
     [
       { role: 'system', content: 'You are an elite Hollywood and Indian cinema development executive. You output clean, valid JSON only.' },
       { role: 'user', content: prompt }
@@ -742,7 +658,7 @@ Return ONLY valid JSON matching:
   ]
 }`;
 
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are an elite screenwriting character consultant. Return JSON only.' },
     { role: 'user', content: prompt }
   ], {
@@ -841,7 +757,7 @@ Return ONLY valid JSON matching:
   ]
 }`;
 
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are an elite film development strategist. Return JSON only.' },
     { role: 'user', content: prompt }
   ], {
@@ -909,7 +825,7 @@ Return ONLY valid JSON matching:
 }`;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       {
         role: 'system',
         content: 'You are Tattava, an elite cinematic intelligence development engine. You flesh out creator-specified narrative engines into high-fidelity story architectures. Return JSON only.'
@@ -998,7 +914,7 @@ Return ONLY valid JSON matching:
   ]
 }`;
 
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are a research journalist and film dramaturge. Return JSON only.' },
     { role: 'user', content: prompt }
   ], {
@@ -1063,7 +979,7 @@ Rules:
 - coveragePercent reflects current evidence coverage, not AI confidence.
 - Prefer 8-15 useful dimensions over generic categories.
 `;
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are Tattava Research Architect. Map knowledge spaces without fabricating evidence. Return JSON only.' },
     { role: 'user', content: prompt }
   ], {
@@ -1130,7 +1046,7 @@ Return ONLY valid JSON matching:
   ]
 }`;
 
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are a script continuity supervisor and narrative logic auditor. Return JSON only.' },
     { role: 'user', content: prompt }
   ], {
@@ -1210,7 +1126,7 @@ Return ONLY valid JSON:
   ]
 }`;
 
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are an executive film development evaluator. Return JSON only.' },
     { role: 'user', content: prompt }
   ], {
@@ -1272,7 +1188,7 @@ Return ONLY valid JSON:
   ]
 }`;
 
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are a senior film development repair planner. Return JSON only. Diagnose and route work; never make canon decisions.' },
     { role: 'user', content: prompt }
   ], {
@@ -1330,7 +1246,7 @@ Doctor's Instruction: ${instruction}
 
 Return ONLY the punched-up dialogue line itself in quotation marks. No other text.`;
 
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are an elite screenplay dialogue doctor. Output only the revised line.' },
     { role: 'user', content: prompt }
   ], {
@@ -1585,7 +1501,7 @@ Return ONLY a valid JSON object matching this schema:
 }`;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { 
         role: 'system', 
         content: 'You are Tattava, an AI-native creative development partner for film and series creators. You return JSON only.' 
@@ -1616,7 +1532,7 @@ Return ONLY a valid JSON object matching this schema:
       projectUpdates: parsed.projectUpdates
     };
   } catch (err: any) {
-    console.warn('Live Groq discovery call encountered an issue, generating grounded contextual response:', err);
+    console.warn('Live AI discovery call encountered an issue, generating grounded contextual response:', err);
 
     // Contextual Fallback Engine for smooth user experience under network latency or rate limit
     const lower = userMessage.toLowerCase();
@@ -1830,7 +1746,7 @@ Return ONLY valid JSON matching:
 }`;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are an elite cinematic worldbuilder. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -1927,7 +1843,7 @@ Return ONLY valid JSON matching:
 }
 `;
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are an elite narrative dramaturge. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -2065,7 +1981,7 @@ Return ONLY valid JSON:
 }`;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are an elite script supervisor. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -2251,7 +2167,7 @@ Output purely JSON matching this schema:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are a veteran development executive and story editor. Return only clean valid JSON.' },
       { role: 'user', content: prompt }
     ], {
@@ -2341,7 +2257,7 @@ export const synthesizeProjectInsights = async (project: TattavaProject): Promis
     'Do not invent facts, sources, quotes, or findings. Do not convert a creative implication into factual truth. Do not create or modify canon, characters, story directions, or decisions. Every evidence-backed insight MUST reference one or more supplied finding IDs.\\n\\n' +
     'Return ONLY valid JSON: {"insights":[{"title":"Short insight title","statement":"Precise insight","basedOnFindingIds":["finding-id"],"type":"INTERPRETATION","rationale":"Why this follows from evidence"}]}\\n' +
     'TYPE RULES: INTERPRETATION=project meaning; PATTERN=recurring relationship; CREATIVE_OPPORTUNITY=grounded creative opportunity, not fact; HYPOTHESIS=plausible but unproven interpretation.';
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are Tattava Project Intelligence. Separate evidence from interpretation and never fabricate support. Return JSON only.' },
     { role: 'user', content: prompt }
   ], { temperature: 0.3, max_tokens: 3200, jsonMode: true, taskName: 'Project Insight Synthesis', contextSnapshot: context });
@@ -2372,7 +2288,7 @@ export const generateProjectDirections = async (project: TattavaProject): Promis
     '\\n\\nTASK:\\nGenerate 2-4 meaningfully different candidate directions. Directions may shape narrative angle, documentary thesis, investigation path, episode premise, or another format-appropriate development path.\\n' +
     'Do not present a direction as established fact. Do not invent evidence. Every direction must cite accepted insight IDs. Include trade-offs and unresolved questions.\\n' +
     'Return ONLY valid JSON: {"directions":[{"title":"Direction title","statement":"What this direction would pursue","basedOnInsightIds":["insight-id"],"strengths":["Grounded strength"],"risks":["Creative or evidence risk"],"openQuestions":["Question still requiring answer"]}]}';
-  const raw = await callGroq([
+  const raw = await callAI([
     { role: 'system', content: 'You are a senior creative development strategist. Generate alternatives without selecting or canonizing one. Return JSON only.' },
     { role: 'user', content: prompt }
   ], { temperature: 0.55, max_tokens: 3200, jsonMode: true, taskName: 'Project Direction Synthesis', contextSnapshot: context });
@@ -2439,7 +2355,7 @@ export const generateScreenplayDraft = async (
     context
   ].join('\n');
 
-  const raw = await callGroq(
+  const raw = await callAI(
     [
       {
         role: 'system',

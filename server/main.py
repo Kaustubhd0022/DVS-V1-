@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from app.config import settings
 from app.database import init_db
-from app.api import health, projects
+from app.api import ai, health, me, projects, workflows, approvals, artifacts, characters, stories, research, organizations, analytics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,12 +20,15 @@ async def lifespan(app: FastAPI):
     """Initialize database and manage app lifecycle"""
     logger.info("🚀 TattvaCo Backend Starting")
 
-    # Initialize database schema
+    # Schema is managed by Alembic outside development/testing (`alembic upgrade head`)
     try:
-        init_db()
-        logger.info("✓ Database schema initialized")
-    except Exception as e:
-        logger.error(f"✗ Database initialization failed: {e}")
+        if settings.ENVIRONMENT in ("development", "testing"):
+            init_db()
+            logger.info("✓ Database schema initialized")
+    except Exception:
+        # Fail fast: a server that cannot reach its database would only return 500s.
+        logger.exception("✗ Database initialization failed")
+        raise
 
     yield
 
@@ -50,7 +53,17 @@ app.add_middleware(
 
 # API routes
 app.include_router(health.router, prefix="/api/health", tags=["health"])
+app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(me.router, prefix="/api/me", tags=["me"])
+app.include_router(organizations.router, prefix="/api/organizations", tags=["organizations"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
+app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
+app.include_router(approvals.router, prefix="/api/approvals", tags=["approvals"])
+app.include_router(artifacts.router, prefix="/api/artifacts", tags=["artifacts"])
+app.include_router(characters.router, prefix="/api/characters", tags=["characters"])
+app.include_router(stories.router, prefix="/api/stories", tags=["stories"])
+app.include_router(research.router, prefix="/api/research", tags=["research"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 
 
 @app.get("/")

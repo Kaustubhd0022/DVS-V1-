@@ -110,14 +110,14 @@ class IntentCreate(BaseModel):
     intent: str
     knowns: Optional[Dict[str, Any]] = None
     unknowns: Optional[Dict[str, Any]] = None
-    assumptions: Optional[Dict[str, Any]] = None
+    assumptions: Optional[List[str]] = None
 
 
 class IntentUpdate(BaseModel):
     intent: Optional[str] = None
     knowns: Optional[Dict[str, Any]] = None
     unknowns: Optional[Dict[str, Any]] = None
-    assumptions: Optional[Dict[str, Any]] = None
+    assumptions: Optional[List[str]] = None
     status: Optional[ArtifactStatus] = None
 
 
@@ -127,7 +127,7 @@ class IntentRead(BaseModel):
     intent: str
     knowns: Optional[Dict[str, Any]]
     unknowns: Optional[Dict[str, Any]]
-    assumptions: Optional[Dict[str, Any]]
+    assumptions: Optional[List[str]]
     status: ArtifactStatus
     created_at: datetime
 
@@ -152,6 +152,12 @@ class ResearchPlanRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ResearchPlanUpdate(BaseModel):
+    questions: Optional[List[str]] = None
+    scope: Optional[str] = None
+    status: Optional[str] = None
 
 
 class EvidenceCreate(BaseModel):
@@ -182,6 +188,18 @@ class EvidenceRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class EvidenceUpdate(BaseModel):
+    source_url: Optional[str] = None
+    source_type: Optional[str] = None
+    publisher: Optional[str] = None
+    author: Optional[str] = None
+    claim: Optional[str] = None
+    supporting_excerpt: Optional[str] = None
+    relevance: Optional[str] = None
+    confidence: Optional[str] = None
+    validation_status: Optional[str] = None
 
 
 # ============ Character ============
@@ -402,3 +420,38 @@ class ProjectIntelligenceRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ============ Project Snapshot (frontend project document) ============
+
+class SnapshotWrite(BaseModel):
+    """Save the project document. `base_version` is the version this edit was based on."""
+    data: Dict[str, Any]
+    base_version: int = Field(ge=1)
+    schema_version: int = Field(default=1, ge=1)
+
+
+class SnapshotRead(BaseModel):
+    project_id: UUID
+    version: int
+    schema_version: int
+    data: Dict[str, Any]
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ProjectImport(BaseModel):
+    """Create a project together with its document (new project or localStorage import)."""
+    id: Optional[UUID] = None
+    title: str = Field(min_length=1, max_length=255)
+    format: Optional[str] = None
+    genre: Optional[str] = None
+    data: Dict[str, Any]
+    schema_version: int = Field(default=1, ge=1)
+
+
+class ProjectImportResult(BaseModel):
+    project: ProjectRead
+    snapshot: SnapshotRead

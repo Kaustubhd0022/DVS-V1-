@@ -6,6 +6,9 @@ import { ProjectSubheader } from './components/layout/ProjectSubheader';
 import { ContextualCopilot } from './components/copilot/ContextualCopilot';
 import { ChangeImpactModal } from './components/modals/ChangeImpactModal';
 import { ContextResolverModal } from './components/modals/ContextResolverModal';
+import { AuthScreen } from './components/screens/AuthScreen';
+import { SyncBanner } from './components/layout/SyncBanner';
+import { useAuth } from './context/AuthContext';
 
 // Marketing / public product showcase
 import { LandingScreen } from './components/screens/LandingScreen';
@@ -36,12 +39,25 @@ import { VisualDevScreen } from './components/screens/VisualDevScreen';
 import { ProductionPlanningScreen } from './components/screens/ProductionPlanningScreen';
 
 export const App: React.FC = () => {
-  const { activeScreen, setActiveScreen, impactState, isContextResolverOpen } = useProject();
+  const { activeScreen, setActiveScreen, impactState, isContextResolverOpen, sync } = useProject();
+  const auth = useAuth();
   // The product opens directly; the marketing page is kept at ?landing=1.
   const [showProduct, setShowProduct] = useState(() => new URLSearchParams(window.location.search).get('landing') !== '1');
 
   if (!showProduct) {
     return <LandingScreen onEnterProduct={() => setShowProduct(true)} />;
+  }
+
+  // Sign-in is required whenever Supabase is configured; otherwise the app runs local-only.
+  if (auth.status !== 'disabled' && auth.status !== 'ready') {
+    return <AuthScreen />;
+  }
+  if (auth.status === 'ready' && sync.status === 'loading') {
+    return (
+      <div className="min-h-screen bg-[#0c0e12] text-white/60 flex items-center justify-center text-sm" role="status">
+        Loading your projects…
+      </div>
+    );
   }
 
   const renderActiveScreen = () => {
@@ -98,6 +114,7 @@ export const App: React.FC = () => {
 
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <TopHeader />
+        <SyncBanner />
         {activeScreen !== 'home' && <ProjectSubheader />}
 
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">

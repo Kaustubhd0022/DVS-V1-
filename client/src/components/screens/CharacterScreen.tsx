@@ -683,7 +683,7 @@ export const CharacterScreen: React.FC = () => {
                 {aiGenerating && (
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Running Groq LPU character engine for {aiGenerating}...</span>
+                    <span>Running AI character engine for {aiGenerating}...</span>
                   </div>
                 )}
 

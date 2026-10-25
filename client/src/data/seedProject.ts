@@ -221,7 +221,7 @@ export const seedProject: TattvaCoProject = {
   evaluation: {
     overallScore: 87.3,
     readinessStatus: 'Pilot Ready',
-    evaluatorModel: 'Tattava Narrative Evaluator v1.0 (Groq LPU / GPT-OSS-120B)',
+    evaluatorModel: 'Tattava Narrative Evaluator v1.0 (HuggingFace)',
     evaluatedAt: '28 Sep 2026, 17:00 IST',
     dimensions: [
       {
