@@ -20,11 +20,12 @@ import {
   Sparkles, 
   Database,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  Trash2
 } from 'lucide-react';
 
 export const StoryBrainScreen: React.FC = () => {
-  const { currentProject, addCanonFact, toggleLockCanonFact, logCreativeDecision, resolveDependencyStaleness, setActiveScreen, openContextResolver } = useProject();
+  const { currentProject, addCanonFact, deleteCanonFact, toggleLockCanonFact, logCreativeDecision, resolveDependencyStaleness, setActiveScreen, openContextResolver } = useProject();
   
   const [activeTab, setActiveTab] = useState<'canon' | 'entities' | 'decisions' | 'dependencies'>('canon');
   const [searchQuery, setSearchQuery] = useState('');
@@ -315,6 +316,25 @@ export const StoryBrainScreen: React.FC = () => {
                   </button>
                 </div>
               </div>
+            ) : filteredFacts.length === 0 ? (
+              <div className="col-span-1 md:col-span-2 p-12 rounded-2xl bg-[#141724] border border-white/10 text-center space-y-3">
+                <Search className="w-8 h-8 text-slate-500 mx-auto" />
+                <h3 className="text-sm font-bold text-white">No Matching Canon Facts Found</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  No canonical facts matched your search query <span className="text-amber-400">"{searchQuery}"</span>{categoryFilter !== 'All' ? ` in category "${categoryFilter}"` : ''}.
+                </p>
+                <div className="pt-1">
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setCategoryFilter('All');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-amber-300 border border-amber-500/30 transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Reset All Filters</span>
+                  </button>
+                </div>
+              </div>
             ) : filteredFacts.map(fact => (
               <div 
                 key={fact.id}
@@ -330,17 +350,35 @@ export const StoryBrainScreen: React.FC = () => {
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => toggleLockCanonFact(fact.id)}
-                    className="p-1.5 rounded-lg text-white/40 hover:text-amber-400 transition-colors"
-                    title={fact.isLocked ? 'Locked (Immutable truth)' : 'Unlocked'}
-                  >
-                    {fact.isLocked ? (
-                      <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    ) : (
-                      <Unlock className="w-3.5 h-3.5 text-white/30" />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => toggleLockCanonFact(fact.id)}
+                      className="p-1.5 rounded-lg text-white/40 hover:text-amber-400 transition-colors"
+                      title={fact.isLocked ? 'Locked (Immutable truth) - Click to unlock' : 'Unlocked - Click to lock'}
+                    >
+                      {fact.isLocked ? (
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                      ) : (
+                        <Unlock className="w-3.5 h-3.5 text-white/30" />
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (fact.isLocked) {
+                          alert(`Canon fact "${fact.id}" is locked. Please unlock it before deleting.`);
+                          return;
+                        }
+                        if (confirm(`Delete canonical fact "${fact.statement}"?`)) {
+                          deleteCanonFact(fact.id);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg text-white/30 hover:text-rose-400 transition-colors"
+                      title="Delete Canon Fact"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <p className="text-sm text-white font-medium leading-relaxed">

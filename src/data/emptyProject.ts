@@ -183,6 +183,11 @@ export const createEmptyProject = (
     continuityIssues: [],
     qaIssues: [],
 
+    // V1.1 Dynamic Architecture Modules — Clean empty baselines
+    episodes: [],
+    candidatePool: [],
+    canonConflicts: [],
+
     // Deferred Modules (preview placeholders)
     visualDev: {
       colorPalette: [],

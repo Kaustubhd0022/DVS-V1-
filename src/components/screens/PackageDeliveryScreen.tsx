@@ -170,6 +170,12 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
   const researchCount = currentProject.researchFindings?.length || 0;
   const charCount = currentProject.characters?.length || 0;
   const openBlockers = (currentProject.continuityIssues || []).filter(i => i.resolutionState === 'Open').length;
+  const criticalBlockers = (currentProject.continuityIssues || []).filter(
+    i => i.resolutionState === 'Open' && i.severity === 'Critical Blocker'
+  );
+  const hasCriticalBlockers = criticalBlockers.length > 0;
+  const hasEvaluation = !!currentProject.evaluation;
+  const canGreenlight = !hasCriticalBlockers && hasEvaluation;
 
   const checklist = [
     { label: 'Project Intent & Ambiguity Clarified', completed: !!currentProject.intent?.premise, stage: 'Intake' },
@@ -227,7 +233,15 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
             ) : (
               <button
                 onClick={handleGreenlightClick}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 shadow-xl shadow-amber-500/30 transition-all hover:scale-105"
+                disabled={!canGreenlight}
+                title={
+                  hasCriticalBlockers 
+                    ? `Cannot greenlight: ${criticalBlockers.length} Critical Continuity Blocker(s) open.` 
+                    : !hasEvaluation 
+                    ? 'Cannot greenlight: Run AI Evaluation in Validation phase first.' 
+                    : 'Submit for Official Greenlight'
+                }
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 shadow-xl shadow-amber-500/30 transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 fill-black" />
                 <span>Submit for Official Greenlight</span>
@@ -235,6 +249,24 @@ Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-
             )}
           </div>
         </div>
+
+        {/* Greenlight Gate Warning if Blocked */}
+        {hasCriticalBlockers && (
+          <div className="mt-4 p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              <span>
+                <strong>Greenlight Stage Gate Locked:</strong> {criticalBlockers.length} Critical Continuity Blocker(s) must be reconciled in Canon & Continuity before studio greenlight.
+              </span>
+            </div>
+            <button
+              onClick={() => setActiveScreen('continuity')}
+              className="text-xs font-bold text-rose-300 underline hover:text-white shrink-0 ml-3 cursor-pointer"
+            >
+              Resolve in Continuity →
+            </button>
+          </div>
+        )}
 
         {/* Live Operational Metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">

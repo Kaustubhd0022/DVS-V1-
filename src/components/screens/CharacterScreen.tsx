@@ -146,19 +146,20 @@ export const CharacterScreen: React.FC = () => {
   const handleAgeChangeSubmit = () => {
     if (!selectedChar) return;
     if (tempAge !== selectedChar.age) {
-      if (selectedChar.id === 'char-aanya' && tempAge === 34) {
-        triggerChangeImpact('Protagonist Age Modification (24 → 34)');
-      } else {
-        updateCharacter(selectedChar.id, { age: tempAge });
-      }
+      triggerChangeImpact(selectedChar.id, 'age', selectedChar.age, tempAge);
+      updateCharacter(selectedChar.id, { age: tempAge });
     }
     setIsEditingAge(false);
   };
 
-  const handleTriggerAanyaAgeImpactDemo = () => {
-    setTempAge(34);
-    triggerChangeImpact('Protagonist Age Modification (24 → 34)');
+  const handleTriggerImpactSimulation = () => {
+    if (!selectedChar) return;
+    const targetAge = selectedChar.age === 34 ? 24 : 34;
+    setTempAge(targetAge);
+    triggerChangeImpact(selectedChar.id, 'age', selectedChar.age, targetAge);
   };
+
+  const handleTriggerAanyaAgeImpactDemo = handleTriggerImpactSimulation;
 
   const [aiResult, setAiResult] = useState<{ tool: string; text: string } | null>(null);
 
@@ -232,17 +233,17 @@ export const CharacterScreen: React.FC = () => {
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Reactive Engine Active</span>
+            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Reactive Impact Engine Active</span>
             <p className="text-xs text-white/80">
-              Modifying core character attributes (e.g. Aanya’s age or relationships) triggers the <span className="text-amber-400 font-semibold">Change Impact Engine</span> across Dialogue, Screenplay, Scenes, and Costing.
+              Modifying core character attributes (age, flaw, or relationships) triggers the <span className="text-amber-400 font-semibold">Change Impact Engine</span> across Story Canon, Scenes, Dialogue, and Continuity.
             </p>
           </div>
         </div>
         <button
-          onClick={handleTriggerAanyaAgeImpactDemo}
-          className="text-xs font-semibold text-amber-400 underline hover:text-amber-300 shrink-0"
+          onClick={handleTriggerImpactSimulation}
+          className="text-xs font-semibold text-amber-400 underline hover:text-amber-300 shrink-0 cursor-pointer"
         >
-          Simulate Impact Now →
+          Simulate Impact for {selectedChar?.name || 'Selected Character'} →
         </button>
       </div>
 

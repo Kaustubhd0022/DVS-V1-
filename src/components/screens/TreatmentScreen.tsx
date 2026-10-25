@@ -59,11 +59,24 @@ export const TreatmentScreen: React.FC = () => {
     }
   };
 
-  const runAiEnhancement = () => {
+  const runAiEnhancement = async () => {
     setAiEnhancing(true);
-    setTimeout(() => {
+    try {
+      const generated = await generateTreatmentData(currentProject);
+      updateTreatment({
+        synopsis: generated.synopsis,
+        wordCount: generated.synopsis.split(/\s+/).filter(Boolean).length,
+        tone: generated.tone,
+        themes: generated.themes,
+        plotBeats: generated.plotBeats,
+        status: 'IN_REVIEW'
+      });
+      setSynopsisText(generated.synopsis);
+    } catch (e) {
+      console.warn('AI treatment enhancement error:', e);
+    } finally {
       setAiEnhancing(false);
-    }, 1000);
+    }
   };
 
   const filteredBeats = activeAct === 'ALL'

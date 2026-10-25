@@ -119,8 +119,8 @@ export const Sidebar: React.FC = () => {
         {/* Navigation list */}
         <nav className="space-y-1">
           {!isCollapsed && (
-            <span className="text-[10px] uppercase font-bold tracking-wider text-white/30 px-3 py-1 block">
-              V1 Golden Workflow
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 py-1 block font-mono">
+              Creative Milestones
             </span>
           )}
 
@@ -133,13 +133,14 @@ export const Sidebar: React.FC = () => {
                   key={item.id}
                   onClick={() => handleNav(item)}
                   title={`${item.label}${item.badge ? ` (${item.badge})` : ''}`}
-                  className={`w-full flex items-center justify-center p-2.5 rounded-xl transition-all relative group ${
+                  aria-label={`${item.label}${item.badge ? ` (${item.badge})` : ''}`}
+                  className={`w-full flex items-center justify-center p-2.5 rounded-xl transition-all relative group cursor-pointer ${
                     isSelected
                       ? 'bg-[#1e2330] text-amber-400 shadow-sm border border-amber-500/40'
-                      : 'text-[#8b96a8] hover:text-white hover:bg-[#151922]'
+                      : 'text-slate-400 hover:text-white hover:bg-[#151922]'
                   }`}
                 >
-                  <span className={isSelected ? 'text-amber-400' : 'text-[#8b96a8] group-hover:text-white'}>
+                  <span className={isSelected ? 'text-amber-400' : 'text-slate-400 group-hover:text-white'}>
                     {item.icon}
                   </span>
 
@@ -158,14 +159,15 @@ export const Sidebar: React.FC = () => {
               <button
                 key={item.label}
                 onClick={() => handleNav(item)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                aria-label={`${item.label}${item.badge ? ` (${item.badge})` : ''}`}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   isSelected
                     ? 'bg-[#1e2330] text-white shadow-sm border border-amber-500/40 text-amber-400'
-                    : 'text-[#8b96a8] hover:text-white hover:bg-[#151922]'
+                    : 'text-slate-300 hover:text-white hover:bg-[#151922]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className={isSelected ? 'text-amber-400' : 'text-[#8b96a8]'}>
+                  <span className={isSelected ? 'text-amber-400' : 'text-slate-400'}>
                     {item.icon}
                   </span>
                   <span>{item.label}</span>

@@ -67,11 +67,30 @@ export const StructureScreen: React.FC = () => {
     }
   };
 
-  const runAiPacingTool = () => {
+  const runAiPacingTool = async () => {
     setAiOptimizing(true);
-    setTimeout(() => {
+    try {
+      const generated = await generateStructureBeats(currentProject);
+      updateCurrentProject(prev => ({
+        ...prev,
+        structure: {
+          ...prev.structure,
+          acts: {
+            act1: { title: 'Act I - Setup & Inciting Incident', time: '0-25m', beats: generated.act1 },
+            act2: { title: 'Act II - Rising Stakes & Confrontation', time: '25-85m', beats: generated.act2 },
+            act3: { title: 'Act III - Climax & Resolution', time: '85-110m', beats: generated.act3 }
+          }
+        },
+        pilotMetrics: {
+          ...prev.pilotMetrics,
+          totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1
+        }
+      }));
+    } catch (err) {
+      console.warn('AI Pacing recalculation error:', err);
+    } finally {
       setAiOptimizing(false);
-    }, 900);
+    }
   };
 
   const filteredBeats = activeActFilter === 'ALL'

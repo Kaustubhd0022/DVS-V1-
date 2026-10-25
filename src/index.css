@@ -22,7 +22,13 @@
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #f25b2a;
+    background: #f59e0b;
+  }
+
+  /* Accessible high-contrast focus rings (WCAG 2.4.7) */
+  :focus-visible {
+    outline: 2px solid #f59e0b !important;
+    outline-offset: 2px !important;
   }
 }
 

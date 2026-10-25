@@ -22,7 +22,8 @@ import {
   FileText,
   Paperclip,
   Send,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 
@@ -38,6 +39,7 @@ export const HomeScreen: React.FC = () => {
   } = useProject();
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; title: string } | null>(null);
   const [ideaInput, setIdeaInput] = useState('');
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -445,12 +447,13 @@ export const HomeScreen: React.FC = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteProject(proj.id);
+                                setProjectToDelete({ id: proj.id, title: proj.title });
                                 setActiveMenuId(null);
                               }}
-                              className="w-full text-left px-2.5 py-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                              className="w-full text-left px-2.5 py-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg flex items-center justify-between"
                             >
-                              Delete Project
+                              <span>Delete Project</span>
+                              <AlertTriangle className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -573,6 +576,48 @@ export const HomeScreen: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Deletion Confirmation Dialog */}
+      {projectToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#161a24] border border-rose-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30">
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Delete Story Project?</h3>
+                <span className="text-[11px] text-rose-400 font-mono uppercase tracking-wider">Permanent Action</span>
+              </div>
+            </div>
+            
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-white">"{projectToDelete.title}"</strong>? 
+              All locked Story Brain canon, character graphs, research citations, and scenes will be permanently erased.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setProjectToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteProject(projectToDelete.id);
+                  setProjectToDelete(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-xs font-bold text-white shadow-lg shadow-rose-500/25 transition-all active:scale-95 cursor-pointer"
+              >
+                Yes, Delete Project
+              </button>
             </div>
           </div>
         </div>

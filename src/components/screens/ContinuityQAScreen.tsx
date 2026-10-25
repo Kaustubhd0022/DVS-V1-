@@ -20,7 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { ContinuityIssue } from '../../types/project';
-import { checkProjectContinuity } from '../../services/aiService';
+import { checkProjectContinuity, repairContinuityIssueWithCanon } from '../../services/aiService';
 
 export const ContinuityQAScreen: React.FC = () => {
   const { currentProject, resolveContinuityIssue, repairSceneWithCanon, setActiveScreen, updateCurrentProject } = useProject();
@@ -33,6 +33,8 @@ export const ContinuityQAScreen: React.FC = () => {
   const [exceptionModalOpen, setExceptionModalOpen] = useState(false);
   const [exceptionNotes, setExceptionNotes] = useState('');
   const [checkStatusMessage, setCheckStatusMessage] = useState<string | null>(null);
+  const [diffModalOpen, setDiffModalOpen] = useState(false);
+  const [proposedRepairText, setProposedRepairText] = useState('');
 
   const selectedIssue: ContinuityIssue | undefined = issues.find(i => i.id === selectedIssueId) || issues[0];
 
@@ -86,13 +88,30 @@ export const ContinuityQAScreen: React.FC = () => {
     }
   };
 
-  const handleAutoRepair = () => {
+  const handleOpenRepairDiff = async () => {
     if (!selectedIssue) return;
     setIsRepairing(true);
-    setTimeout(() => {
-      repairSceneWithCanon(selectedIssue.id);
+    setCheckError(null);
+    try {
+      const res = await repairContinuityIssueWithCanon(currentProject, selectedIssue);
+      setProposedRepairText(res.repairedText);
+      setDiffModalOpen(true);
+    } catch (e: any) {
+      setCheckError(e.message || 'Failed to generate repair preview.');
+    } finally {
       setIsRepairing(false);
-    }, 700);
+    }
+  };
+
+  const handleAcceptRepair = async () => {
+    if (!selectedIssue) return;
+    try {
+      await repairSceneWithCanon(selectedIssue.id);
+      setDiffModalOpen(false);
+      setCheckStatusMessage(`Contradiction "${selectedIssue.title}" successfully reconciled with Story Brain canon.`);
+    } catch (e: any) {
+      setCheckError(e.message || 'Failed to apply repair.');
+    }
   };
 
   const handleGrantException = () => {
@@ -425,12 +444,12 @@ export const ContinuityQAScreen: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={handleAutoRepair}
+                    onClick={handleOpenRepairDiff}
                     disabled={isRepairing || selectedIssue.resolutionState !== 'Open'}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all cursor-pointer"
                   >
                     <Wrench className={`w-4 h-4 ${isRepairing ? 'animate-spin' : ''}`} />
-                    <span>{isRepairing ? 'Reconciling Draft with Canon...' : 'Auto-Repair Draft with AI'}</span>
+                    <span>{isRepairing ? 'Synthesizing Canon Fix...' : 'Inspect & Auto-Repair with AI'}</span>
                   </button>
                 </div>
               </div>
@@ -439,36 +458,89 @@ export const ContinuityQAScreen: React.FC = () => {
         </div>
       )}
 
-      {/* EXCEPTION MODAL */}
-      {exceptionModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#141724] border border-amber-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">Grant Creative License / Exception</h3>
-            <p className="text-xs text-white/70">
-              Record why this apparent discrepancy is an intentional creative choice (e.g. character lying, unreliable memory, subjective flashback).
-            </p>
-
-            <textarea
-              value={exceptionNotes}
-              onChange={e => setExceptionNotes(e.target.value)}
-              placeholder="e.g. Protagonist is intentionally distorting the truth in this scene to protect a colleague..."
-              rows={3}
-              className="w-full p-2.5 rounded-lg bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-amber-500"
-            />
-
-            <div className="flex items-center justify-end gap-2 pt-2">
+      {/* SIDE-BY-SIDE DIFF RECONCILIATION MODAL */}
+      {diffModalOpen && selectedIssue && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 lg:p-8 animate-fadeIn">
+          <div className="bg-[#12151f] border border-amber-500/40 rounded-3xl w-full max-w-4xl p-6 lg:p-8 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                  <ArrowLeftRight className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Canon Reconciliation & Diff Inspector</h3>
+                  <p className="text-xs text-slate-400">
+                    Compare conflicting draft against proposed canon-aligned rewrite for <strong className="text-white">{selectedIssue.contentLocation}</strong>
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={() => setExceptionModalOpen(false)}
-                className="px-3 py-1.5 rounded-lg text-xs text-white/60 hover:text-white"
+                onClick={() => setDiffModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
               >
-                Cancel
+                <X className="w-5 h-5" />
               </button>
-              <button
-                onClick={handleGrantException}
-                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold"
-              >
-                Record Exception
-              </button>
+            </div>
+
+            {/* Side by side comparison */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left: Original Conflicting Content */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    Current Draft (Inconsistent)
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">BEFORE</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-500/30 text-xs text-rose-200 leading-relaxed font-mono min-h-[140px]">
+                  "{selectedIssue.conflictingContentEvidence}"
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Contradicts locked Canon Truth: <span className="text-amber-300">"{selectedIssue.establishedCanonEvidence}"</span>
+                </p>
+              </div>
+
+              {/* Right: Proposed AI Canon Repair */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Proposed Canon-Aligned Draft
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-mono">AFTER (AI REWRITTEN)</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/40 text-xs text-emerald-100 leading-relaxed font-mono min-h-[140px]">
+                  "{proposedRepairText || selectedIssue.description}"
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Fully honors Story Brain canon rule without breaking dramatic stakes.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <span className="text-xs text-slate-400">
+                Approving will automatically update Scene {selectedIssue.sceneNumber} in your Outline & mark this contradiction as Resolved.
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDiffModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition-colors"
+                >
+                  Cancel & Keep Draft
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAcceptRepair}
+                  className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Check className="w-4 h-4 stroke-[2.5]" />
+                  <span>Accept & Apply to Draft</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { ScreenplayLine } from '../../types/project';
-import { punchUpDialogue } from '../../services/geminiService';
+import { punchUpDialogue, generateSceneDraftScript } from '../../services/aiService';
 
 export const ScreenplayScreen: React.FC = () => {
   const { currentProject, updateScreenplayLine, addScreenplayLine, nextStep, openContextResolver } = useProject();
@@ -16,6 +16,7 @@ export const ScreenplayScreen: React.FC = () => {
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [aiPunchingUp, setAiPunchingUp] = useState(false);
   const [isDraftingScene, setIsDraftingScene] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   const filteredLines = scriptLines.filter(l => l.sceneNumber === activeSceneNumber);
 
@@ -37,60 +38,22 @@ export const ScreenplayScreen: React.FC = () => {
     addScreenplayLine(newLine);
   };
 
-  const handleDraftSceneWithAi = () => {
+  const handleDraftSceneWithAi = async () => {
     setIsDraftingScene(true);
-    setTimeout(() => {
-      const locName = currentProject.world?.locations?.[0]?.name?.toUpperCase() || 'COMMAND CENTER';
-      const sampleLines: ScreenplayLine[] = [
-        {
-          id: `scr-gen-${Date.now()}-1`,
-          sceneNumber: activeSceneNumber,
-          type: 'scene_heading',
-          content: `INT. ${locName} - NIGHT`
-        },
-        {
-          id: `scr-gen-${Date.now()}-2`,
-          sceneNumber: activeSceneNumber,
-          type: 'action',
-          content: `Monsoon rain lashes against the reinforced windows. The glow of surveillance monitors bathes ${leadName} in cold cyan light.`
-        },
-        {
-          id: `scr-gen-${Date.now()}-3`,
-          sceneNumber: activeSceneNumber,
-          type: 'character',
-          content: leadName
-        },
-        {
-          id: `scr-gen-${Date.now()}-4`,
-          sceneNumber: activeSceneNumber,
-          type: 'dialogue',
-          content: `The telemetry reports were manipulated before the breach occurred. Someone signed off on the bypass.`,
-          characterName: leadName
-        },
-        {
-          id: `scr-gen-${Date.now()}-5`,
-          sceneNumber: activeSceneNumber,
-          type: 'character',
-          content: secondCharName
-        },
-        {
-          id: `scr-gen-${Date.now()}-6`,
-          sceneNumber: activeSceneNumber,
-          type: 'parenthetical',
-          content: '(calm, measuring every word)'
-        },
-        {
-          id: `scr-gen-${Date.now()}-7`,
-          sceneNumber: activeSceneNumber,
-          type: 'dialogue',
-          content: `And who do you think authorized that bypass? Some questions don't have survivable answers.`,
-          characterName: secondCharName
-        }
-      ];
-
-      sampleLines.forEach(l => addScreenplayLine(l));
+    setDraftError(null);
+    try {
+      const generatedLines = await generateSceneDraftScript(
+        currentProject,
+        activeSceneNumber,
+        leadName,
+        secondCharName
+      );
+      generatedLines.forEach(l => addScreenplayLine(l));
+    } catch (err: any) {
+      setDraftError(err?.message || 'Failed to draft scene lines via AI.');
+    } finally {
       setIsDraftingScene(false);
-    }, 600);
+    }
   };
 
   const runAiDialoguePunchUp = async () => {

@@ -1,36 +1,264 @@
-import React, { useState } from 'react';
-import { Search, Plus, Bell, ChevronDown, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Search, 
+  Plus, 
+  Bell, 
+  ChevronDown, 
+  Sparkles, 
+  Users, 
+  Shield, 
+  FileText, 
+  Film, 
+  X,
+  ArrowRight
+} from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 
 export const TopHeader: React.FC = () => {
-  const { setActiveScreen, toggleCopilot, isCopilotOpen } = useProject();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { 
+    projects, 
+    currentProject, 
+    openProject, 
+    setActiveScreen, 
+    toggleCopilot, 
+    isCopilotOpen 
+  } = useProject();
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      toggleCopilot();
-    }
-  };
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Keyboard shortcut: ⌘K or Ctrl+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setIsSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Close search dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Search results calculation
+  const query = searchQuery.trim().toLowerCase();
+  
+  const matchedCharacters = query 
+    ? (currentProject.characters || []).filter(c => 
+        c.name.toLowerCase().includes(query) || 
+        c.role.toLowerCase().includes(query) ||
+        (c.want && c.want.toLowerCase().includes(query))
+      )
+    : [];
+
+  const matchedCanonFacts = query
+    ? (currentProject.storyBrain?.canonFacts || []).filter(f =>
+        f.statement.toLowerCase().includes(query) ||
+        f.category.toLowerCase().includes(query) ||
+        f.tags.some(t => t.toLowerCase().includes(query))
+      )
+    : [];
+
+  const matchedScenes = query
+    ? (currentProject.scenes || []).filter(s =>
+        (s.slugline && s.slugline.toLowerCase().includes(query)) ||
+        (s.subheading && s.subheading.toLowerCase().includes(query)) ||
+        (s.summary && s.summary.toLowerCase().includes(query))
+      )
+    : [];
+
+  const matchedProjects = query
+    ? projects.filter(p =>
+        p.id !== currentProject.id && (
+          p.title.toLowerCase().includes(query) ||
+          p.genre.toLowerCase().includes(query)
+        )
+      )
+    : [];
+
+  const totalResults = matchedCharacters.length + matchedCanonFacts.length + matchedScenes.length + matchedProjects.length;
 
   return (
-    <header className="h-16 border-b border-[#222834] bg-[#0f1217]/95 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Search bar */}
-      <div className="flex-1 max-w-xl">
+    <header className="h-16 border-b border-[#222834] bg-[#0f1217]/95 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
+      {/* Search bar & Dropdown */}
+      <div ref={searchContainerRef} className="flex-1 max-w-xl relative">
         <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-[#758296] absolute left-3.5 pointer-events-none" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Search projects, characters, scenes, or ask tattvaCo..."
-            className="w-full bg-[#171b24] border border-[#272e3d] rounded-xl pl-10 pr-4 py-2 text-sm text-[#f1f3f7] placeholder-[#6b788e] focus:outline-none focus:border-[#f25b2a] focus:ring-1 focus:ring-[#f25b2a] transition-all"
+            onFocus={() => setIsSearchOpen(true)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setIsSearchOpen(true);
+            }}
+            placeholder="Search characters, canon facts, scenes, or projects..."
+            className="w-full bg-[#171b24] border border-[#272e3d] rounded-xl pl-10 pr-20 py-2 text-sm text-[#f1f3f7] placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
           />
-          <kbd className="hidden sm:inline-block absolute right-3 text-[10px] text-[#6b788e] bg-[#222836] px-1.5 py-0.5 rounded border border-[#2e3648]">
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                searchInputRef.current?.focus();
+              }}
+              className="absolute right-12 text-slate-400 hover:text-white p-1"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <kbd className="hidden sm:inline-block absolute right-3 text-[10px] text-slate-400 bg-[#222836] px-1.5 py-0.5 rounded border border-[#2e3648]">
             ⌘K
           </kbd>
         </div>
+
+        {/* Global Search Results Dropdown */}
+        {isSearchOpen && searchQuery.trim().length > 0 && (
+          <div className="absolute top-12 left-0 w-full bg-[#151922] border border-[#2d3648] rounded-2xl shadow-2xl p-3 z-50 max-h-[460px] overflow-y-auto space-y-3 animate-fadeIn">
+            {totalResults === 0 ? (
+              <div className="p-6 text-center space-y-2">
+                <Search className="w-6 h-6 text-slate-500 mx-auto" />
+                <p className="text-sm font-semibold text-white">No story elements found</p>
+                <p className="text-xs text-slate-400">
+                  No characters, canon facts, or scenes matched <span className="text-amber-400">"{searchQuery}"</span>.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Matched Characters */}
+                {matchedCharacters.length > 0 && (
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                      <Users className="w-3 h-3 text-cyan-400" />
+                      Characters ({matchedCharacters.length})
+                    </span>
+                    <div className="space-y-1 mt-1">
+                      {matchedCharacters.slice(0, 3).map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => {
+                            setActiveScreen('characters');
+                            setIsSearchOpen(false);
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-amber-500/15 hover:border-amber-500/30 border border-transparent flex items-center justify-between text-xs transition-colors group"
+                        >
+                          <div>
+                            <span className="font-bold text-white group-hover:text-amber-300">{c.name}</span>
+                            <span className="text-slate-400 ml-2">({c.role}, Age {c.age})</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 group-hover:text-amber-400 flex items-center gap-1">
+                            View Arc <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Matched Canon Facts */}
+                {matchedCanonFacts.length > 0 && (
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                      <Shield className="w-3 h-3 text-amber-400" />
+                      Story Brain Canon Facts ({matchedCanonFacts.length})
+                    </span>
+                    <div className="space-y-1 mt-1">
+                      {matchedCanonFacts.slice(0, 3).map(f => (
+                        <button
+                          key={f.id}
+                          onClick={() => {
+                            setActiveScreen('story-brain');
+                            setIsSearchOpen(false);
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-amber-500/15 hover:border-amber-500/30 border border-transparent text-xs transition-colors group"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">
+                              {f.category}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">{f.id}</span>
+                          </div>
+                          <p className="text-white/90 group-hover:text-amber-200 line-clamp-1">{f.statement}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Matched Scenes */}
+                {matchedScenes.length > 0 && (
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                      <FileText className="w-3 h-3 text-emerald-400" />
+                      Script Outline & Scenes ({matchedScenes.length})
+                    </span>
+                    <div className="space-y-1 mt-1">
+                      {matchedScenes.slice(0, 3).map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            setActiveScreen('scene-outline');
+                            setIsSearchOpen(false);
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-emerald-500/15 hover:border-emerald-500/30 border border-transparent text-xs transition-colors group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-white group-hover:text-emerald-300">{s.slugline || s.subheading || `Scene ${s.sceneNumber}`}</span>
+                            <span className="text-[10px] text-slate-400">Scene {s.sceneNumber}</span>
+                          </div>
+                          <p className="text-slate-400 line-clamp-1 text-[11px] mt-0.5">{s.summary}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Other Projects */}
+                {matchedProjects.length > 0 && (
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-2 py-1 flex items-center gap-1.5">
+                      <Film className="w-3 h-3 text-purple-400" />
+                      Other Workspaces ({matchedProjects.length})
+                    </span>
+                    <div className="space-y-1 mt-1">
+                      {matchedProjects.slice(0, 2).map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            openProject(p.id, 'story-brain');
+                            setIsSearchOpen(false);
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-purple-500/15 hover:border-purple-500/30 border border-transparent flex items-center justify-between text-xs transition-colors group"
+                        >
+                          <span className="font-semibold text-white group-hover:text-purple-300">{p.title}</span>
+                          <span className="text-[10px] text-purple-400 font-mono">Switch Workspace →</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Right controls */}
@@ -40,7 +268,7 @@ export const TopHeader: React.FC = () => {
           onClick={() => setActiveScreen('create-project')}
           className="flex items-center gap-2 bg-[#1f2533] hover:bg-[#283042] text-white px-3.5 py-2 rounded-xl text-xs font-semibold border border-[#323d54] shadow-sm transition-all active:scale-95"
         >
-          <Plus className="w-4 h-4 text-[#f25b2a]" />
+          <Plus className="w-4 h-4 text-amber-400" />
           <span>New Project</span>
         </button>
 
@@ -49,8 +277,8 @@ export const TopHeader: React.FC = () => {
           onClick={toggleCopilot}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
             isCopilotOpen
-              ? 'bg-[#f25b2a]/15 text-[#f25b2a] border-[#f25b2a]/40 shadow-glow-orange'
-              : 'bg-[#171b24] text-[#8b96a8] hover:text-white border-[#272e3d]'
+              ? 'bg-amber-500/15 text-amber-400 border-amber-500/40 shadow-sm'
+              : 'bg-[#171b24] text-slate-300 hover:text-white border-[#272e3d]'
           }`}
           title="Toggle Contextual AI Copilot"
         >
@@ -59,9 +287,9 @@ export const TopHeader: React.FC = () => {
         </button>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-xl bg-[#171b24] hover:bg-[#222836] border border-[#272e3d] text-[#8b96a8] hover:text-white transition-colors">
+        <button className="relative p-2 rounded-xl bg-[#171b24] hover:bg-[#222836] border border-[#272e3d] text-slate-300 hover:text-white transition-colors">
           <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#f25b2a]" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400" />
         </button>
 
         {/* User profile dropdown */}
@@ -70,21 +298,21 @@ export const TopHeader: React.FC = () => {
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2.5 pl-2 py-1 pr-1.5 rounded-xl hover:bg-[#181c26] transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#8b5cf6] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-black flex items-center justify-center font-bold text-xs shadow-sm">
               KD
             </div>
             <div className="hidden lg:block text-left">
               <p className="text-xs font-semibold text-[#f1f3f7] leading-tight">Kaustubh Deshmukh</p>
-              <p className="text-[10px] text-[#7d8b9f]">AI Product Manager</p>
+              <p className="text-[10px] text-slate-400">Story Development Lead</p>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#7d8b9f]" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
           {showUserMenu && (
             <div className="absolute right-0 mt-2 w-56 bg-[#161a22] border border-[#2a3243] rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
               <div className="px-3 py-2 border-b border-[#252c3c]">
                 <p className="text-xs font-bold text-white">Kaustubh Deshmukh</p>
-                <p className="text-[11px] text-[#8b96a8]">kaustubh@donvanzara.film</p>
+                <p className="text-[11px] text-slate-400">kaustubh@donvanzara.film</p>
               </div>
               <div className="py-1">
                 <button 
@@ -107,3 +335,4 @@ export const TopHeader: React.FC = () => {
     </header>
   );
 };
+
