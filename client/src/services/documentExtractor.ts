@@ -16,6 +16,9 @@ if (typeof window !== 'undefined') {
 /**
  * Extracts plain text from a PDF file using pdfjs-dist with fallback
  */
+/**
+ * Extracts plain text from a PDF file using pdfjs-dist with Y-coordinate newline preservation
+ */
 export const extractTextFromPdf = async (file: File): Promise<string> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -30,12 +33,37 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const pageStrings = textContent.items
-        .map((item: any) => ('str' in item ? item.str : ''))
-        .filter(Boolean);
       
-      if (pageStrings.length > 0) {
-        pageTexts.push(pageStrings.join(' '));
+      let lastY: number | null = null;
+      const pageLines: string[] = [];
+      let currentLine = '';
+
+      for (const item of textContent.items as any[]) {
+        if (!('str' in item)) continue;
+        const str = item.str || '';
+        const y = item.transform ? item.transform[5] : null;
+
+        // If vertical position changes by more than 3pt or hasEOL is set, break line
+        if (lastY !== null && y !== null && Math.abs(y - lastY) > 3) {
+          if (currentLine.trim()) pageLines.push(currentLine.trim());
+          currentLine = str;
+        } else {
+          currentLine += (currentLine.length > 0 && !currentLine.endsWith(' ') && !str.startsWith(' ') ? ' ' : '') + str;
+        }
+
+        if (item.hasEOL) {
+          if (currentLine.trim()) pageLines.push(currentLine.trim());
+          currentLine = '';
+        }
+        lastY = y;
+      }
+
+      if (currentLine.trim()) {
+        pageLines.push(currentLine.trim());
+      }
+
+      if (pageLines.length > 0) {
+        pageTexts.push(pageLines.join('\n'));
       }
     }
 
@@ -73,6 +101,70 @@ export const extractTextFromPdf = async (file: File): Promise<string> => {
 };
 
 /**
+ * Extracts plain text from DOCX archives (unzipping word/document.xml)
+ */
+export const extractTextFromDocx = async (file: File): Promise<string> => {
+  try {
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+
+    // Scan for local file header (PK\x03\x04) matching "word/document.xml"
+    let docXmlBytes: Uint8Array | null = null;
+    let pos = 0;
+    while (pos < bytes.length - 30) {
+      if (bytes[pos] === 0x50 && bytes[pos + 1] === 0x4b && bytes[pos + 2] === 0x03 && bytes[pos + 3] === 0x04) {
+        const compressionMethod = bytes[pos + 8] | (bytes[pos + 9] << 8);
+        const compressedSize = bytes[pos + 18] | (bytes[pos + 19] << 8) | (bytes[pos + 20] << 16) | (bytes[pos + 21] << 24);
+        const fileNameLength = bytes[pos + 26] | (bytes[pos + 27] << 8);
+        const extraLength = bytes[pos + 28] | (bytes[pos + 29] << 8);
+
+        const fileNameBytes = bytes.slice(pos + 30, pos + 30 + fileNameLength);
+        const fileName = new TextDecoder().decode(fileNameBytes);
+
+        const dataOffset = pos + 30 + fileNameLength + extraLength;
+        if (fileName === 'word/document.xml') {
+          const compData = bytes.slice(dataOffset, dataOffset + compressedSize);
+          if (compressionMethod === 8 && typeof DecompressionStream !== 'undefined') {
+            // Deflate raw decompression
+            const ds = new DecompressionStream('deflate-raw');
+            const writer = ds.writable.getWriter();
+            writer.write(compData);
+            writer.close();
+            const decompressedArrayBuffer = await new Response(ds.readable).arrayBuffer();
+            docXmlBytes = new Uint8Array(decompressedArrayBuffer);
+          } else if (compressionMethod === 0) {
+            docXmlBytes = compData;
+          }
+          break;
+        }
+        pos = dataOffset + compressedSize;
+      } else {
+        pos++;
+      }
+    }
+
+    if (docXmlBytes) {
+      const xmlStr = new TextDecoder('utf-8').decode(docXmlBytes);
+      // Extract paragraphs and text runs: <w:p>...</w:p> with <w:t> tags
+      const paragraphs = xmlStr.match(/<w:p[\s>].*?<\/w:p>/g) || [];
+      const lines = paragraphs.map(p => {
+        const textRuns = p.match(/<w:t[^>]*>(.*?)<\/w:t>/g) || [];
+        return textRuns.map(t => t.replace(/<[^>]+>/g, '')).join('');
+      }).filter(Boolean);
+
+      if (lines.length > 0) {
+        return lines.join('\n');
+      }
+    }
+  } catch (err) {
+    console.warn('[DocumentExtractor] DOCX extraction error:', err);
+  }
+
+  // Fallback: If decompression is unavailable, inform user cleanly
+  throw new Error(`Could not parse Word document "${file.name}". Please upload as PDF, TXT, or Fountain format.`);
+};
+
+/**
  * Universal file text extractor for user uploads
  */
 export const extractTextFromFile = async (file: File): Promise<string> => {
@@ -80,6 +172,10 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
 
   if (extension === 'pdf') {
     return extractTextFromPdf(file);
+  }
+
+  if (extension === 'docx') {
+    return extractTextFromDocx(file);
   }
 
   // Text-based formats (.txt, .md, .fountain, .fdx, etc.)

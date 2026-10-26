@@ -369,7 +369,10 @@ export function buildProjectContext(
   }
 
   if (project.intent?.uploadedMaterialContent) {
-    parts.push(`\n=== UPLOADED SOURCE MATERIAL (${project.intent.uploadedMaterialName || 'User Doc'}) ===\n${project.intent.uploadedMaterialContent.slice(0, 1500)}`);
+    const content = project.intent.uploadedMaterialContent.length > 25000
+      ? project.intent.uploadedMaterialContent.slice(0, 25000) + '\n...[End of script window]'
+      : project.intent.uploadedMaterialContent;
+    parts.push(`\n=== UPLOADED SOURCE MATERIAL / SCRIPT (${project.intent.uploadedMaterialName || 'User Document'}) ===\n${content}`);
   }
 
   // Story Brain Canon Facts
@@ -596,7 +599,7 @@ const toAiError = (err: unknown): Error => {
  * Calls the backend AI proxy (POST /api/ai/generate). The model provider token (HuggingFace)
  * lives on the server; the browser never sees it. Model selection and fallback happen server-side.
  */
-async function callAI(
+export async function callAI(
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   options: {
     temperature?: number;
@@ -1720,7 +1723,10 @@ export function buildScopedDiscoveryContext(
   }
 
   if (project.intent?.uploadedMaterialContent) {
-    parts.push(`Source Material (${project.intent.uploadedMaterialName || 'Attached Doc'}): ${project.intent.uploadedMaterialContent.slice(0, 800)}...`);
+    const snippet = project.intent.uploadedMaterialContent.length > 12000
+      ? project.intent.uploadedMaterialContent.slice(0, 12000) + '...'
+      : project.intent.uploadedMaterialContent;
+    parts.push(`Source Material / Script (${project.intent.uploadedMaterialName || 'Attached Doc'}):\n${snippet}`);
   }
 
   if (project.intent?.knownInformation?.length) {

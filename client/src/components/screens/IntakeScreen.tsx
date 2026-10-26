@@ -22,6 +22,7 @@ import {
 import { useProject } from '../../context/ProjectContext';
 import { analyzeConceptIntake, askCopilot, IntakeAnalysisResult } from '../../services/aiService';
 import { extractTextFromFile } from '../../services/documentExtractor';
+import { parseUploadedScript, buildCharactersFromScript } from '../../services/scriptParser';
 
 export const IntakeScreen: React.FC = () => {
   const { 
@@ -94,17 +95,27 @@ export const IntakeScreen: React.FC = () => {
       );
       setUnderstanding(result);
 
+      // Parse full script if uploaded or pasted
+      const parsedScript = rawMaterial && rawMaterial.length > 50 ? parseUploadedScript(rawMaterial, rawName) : null;
+      const scriptChars = parsedScript ? buildCharactersFromScript(parsedScript) : [];
+
       // Save into project draft intent and update title & format if detected from script
       updateCurrentProject(prev => {
-        const newTitle = result.title && (prev.title === 'The Cartridge Conspiracy' || prev.title.startsWith('Untitled') || overrideContent)
-          ? result.title 
-          : (result.title || prev.title);
+        const newTitle = (parsedScript?.title && parsedScript.title !== 'Uploaded Production Script') 
+          ? parsedScript.title 
+          : (result.title && (prev.title === 'The Cartridge Conspiracy' || prev.title.startsWith('Untitled') || overrideContent)
+            ? result.title 
+            : (result.title || prev.title));
         
         return {
           ...prev,
           title: newTitle,
-          contentType: result.detectedFormat || prev.contentType,
-          genre: result.detectedGenre || prev.genre,
+          contentType: parsedScript?.format || result.detectedFormat || prev.contentType,
+          genre: parsedScript?.genre || result.detectedGenre || prev.genre,
+          characters: scriptChars.length > 0 ? scriptChars : prev.characters,
+          scenes: parsedScript?.scenes && parsedScript.scenes.length > 0 ? parsedScript.scenes : prev.scenes,
+          screenplay: parsedScript?.screenplayLines && parsedScript.screenplayLines.length > 0 ? parsedScript.screenplayLines : prev.screenplay,
+          screenplayLines: parsedScript?.screenplayLines && parsedScript.screenplayLines.length > 0 ? parsedScript.screenplayLines : prev.screenplayLines,
           intent: {
             ...prev.intent,
             uploadedMaterialName: rawName || prev.intent?.uploadedMaterialName,
