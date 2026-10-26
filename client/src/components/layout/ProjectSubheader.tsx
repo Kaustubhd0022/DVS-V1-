@@ -101,7 +101,7 @@ export const ProjectSubheader: React.FC = () => {
   ) || CREATIVE_MILESTONES[0];
 
   return (
-    <div className="bg-[#0e1119]/95 border-b border-white/[0.08] px-6 pt-3.5 pb-2.5 select-none sticky top-16 z-20 backdrop-blur-xl transition-colors">
+    <div className="bg-[#1b1411]/95 border-b border-white/[0.08] px-6 pt-3.5 pb-2.5 select-none sticky top-16 z-20 backdrop-blur-xl transition-colors">
       {/* Top row: Project Identity & Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
         {/* Project Selector / Info */}
@@ -203,11 +203,11 @@ export const ProjectSubheader: React.FC = () => {
           {/* AI Copilot Button with Audio Wave */}
           <button 
             onClick={toggleCopilot}
-            className="linea-pill-btn linea-pill-primary px-4 py-1.5 text-xs font-semibold gap-2"
+            className="linea-pill-btn bg-[#33cc7a] text-[#1b1411] hover:bg-[#2eb76e] font-bold px-4 py-1.5 text-xs gap-2 shadow-md shadow-[#33cc7a]/25"
           >
-            <Sparkles className="w-3.5 h-3.5 text-black" />
+            <Sparkles className="w-3.5 h-3.5 text-[#1b1411]" />
             <span>AI Copilot</span>
-            <span className="linea-btn-wave" aria-hidden="true">
+            <span className="linea-btn-wave text-[#1b1411]" aria-hidden="true">
               <span />
               <span />
               <span />
@@ -230,7 +230,7 @@ export const ProjectSubheader: React.FC = () => {
                   onClick={() => setActiveScreen(milestone.primaryScreen)}
                   className={`group flex items-center gap-2 px-3.5 py-1 rounded-full transition-all text-xs cursor-pointer ${
                     isMilestoneActive
-                      ? 'bg-amber-500/20 text-amber-200 border border-amber-500/50 font-bold shadow-[0_2px_12px_rgba(245,158,11,0.2)]'
+                      ? 'bg-[#33cc7a]/20 text-[#33cc7a] border border-[#33cc7a]/50 font-bold shadow-[0_2px_12px_rgba(51,204,122,0.2)]'
                       : isMilestoneCompleted
                       ? 'text-stone-300 hover:text-white hover:bg-white/5 font-semibold'
                       : 'text-stone-400 hover:text-stone-200 hover:bg-white/5'
@@ -240,9 +240,9 @@ export const ProjectSubheader: React.FC = () => {
                   <div
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
                       isMilestoneActive
-                        ? 'bg-amber-400 text-black shadow-md shadow-amber-500/40'
+                        ? 'bg-[#33cc7a] text-[#1b1411] shadow-md shadow-[#33cc7a]/40'
                         : isMilestoneCompleted
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                        ? 'bg-[#33cc7a]/20 text-[#33cc7a] border border-[#33cc7a]/40'
                         : 'bg-white/5 text-stone-400 border border-white/10'
                     }`}
                   >

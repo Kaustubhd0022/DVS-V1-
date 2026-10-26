@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion, useScroll, useSpring, useTransform } from 'framer-motion';
-import type { Variants } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowDown,
   ArrowRight,
   Brain,
   Check,
@@ -19,6 +17,8 @@ import {
   Sparkles,
   X,
   Wand2,
+  ShieldCheck,
+  Compass,
 } from 'lucide-react';
 
 type ModalMode = 'signin' | 'waitlist' | 'feature' | null;
@@ -45,7 +45,7 @@ const roadmap = [
     flow: 'Idea → Understand → Research → Direction → Canon → Generate → Evaluate',
     status: 'LIVE PILOT',
     icon: Brain,
-    accent: 'from-amber-400/20 to-transparent',
+    accent: 'border-[#33cc7a]/30 bg-[#33cc7a]/5',
     features: ['Project Intelligence', 'Story Brain', 'Research & Evidence', 'Character Intelligence', 'Screenplay & Dialogue', 'Canon & Continuity', 'Evaluation → Repair'],
   },
   {
@@ -56,7 +56,7 @@ const roadmap = [
     flow: 'Story → Character World → Art Direction → References → Storyboards',
     status: 'COMING SOON',
     icon: Layers3,
-    accent: 'from-cyan-400/15 to-transparent',
+    accent: 'border-[#bacde0]/20 bg-[#bacde0]/5',
     features: ['Story World', 'Character Visuals', 'Locations', 'Art Direction', 'Concept Development', 'Storyboarding'],
   },
   {
@@ -67,7 +67,7 @@ const roadmap = [
     flow: 'Visualisation → Shots → Video → Sound → Assembly → QC',
     status: 'COMING SOON',
     icon: Film,
-    accent: 'from-purple-400/15 to-transparent',
+    accent: 'border-[#b8aba3]/20 bg-[#b8aba3]/5',
     features: ['Shot Planning', 'AI Visual Generation', 'Video Generation', 'Sound & Performance', 'Assembly', 'Human QC'],
   },
   {
@@ -78,7 +78,7 @@ const roadmap = [
     flow: 'Original → Culture → Language → Dialogue → Performance → Adaptation',
     status: 'COMING SOON',
     icon: Globe2,
-    accent: 'from-rose-400/15 to-transparent',
+    accent: 'border-[#33cc7a]/20 bg-[#33cc7a]/5',
     features: ['Language Intelligence', 'Cultural Context', 'Character Voice', 'Regional Idiom', 'Dubbing', 'Adaptation Rules'],
   },
 ];
@@ -90,10 +90,8 @@ const capabilities: Feature[] = [
   { title: 'Canon & Continuity', eyebrow: 'V1 · LIVE', description: 'Approved decisions become project truth. Contradictions and downstream dependencies stay visible.', live: true },
   { title: 'Evaluation → Repair', eyebrow: 'V1 · LIVE', description: 'Diagnose narrative problems, propose repairs, regenerate and re-evaluate against canonical context.', live: true },
   { title: 'Character Intelligence', eyebrow: 'V1 · LIVE', description: 'Motivation, relationships, arcs and consequences stay connected to the evolving story world.', live: true },
-  { title: 'Story Doctor', eyebrow: 'ROADMAP', description: 'Deep structural, thematic and pacing diagnostics across the whole project.' },
   { title: 'Visual Development', eyebrow: 'V2 · ROADMAP', description: 'Turn story intelligence into visual language, art direction and references.' },
   { title: 'AI Filmmaking', eyebrow: 'V3 · ROADMAP', description: 'Carry canonical story intent into generated shots, video, sound and assembly.' },
-  { title: 'Localization', eyebrow: 'V4 · ROADMAP', description: 'Create culturally adapted versions without losing character or narrative intent.' },
 ];
 
 function track(event: string, properties: Record<string, string> = {}) {
@@ -107,16 +105,6 @@ function track(event: string, properties: Record<string, string> = {}) {
   }
 }
 
-const reveal: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
-};
-
-const stagger: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
-};
-
 export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnterProduct }) => {
   const [modal, setModal] = useState<ModalMode>(null);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
@@ -126,27 +114,22 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
   const [videoFailed, setVideoFailed] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
 
-  const { scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 28 });
-  const heroY = useTransform(scrollYProgress, [0, 0.18], [0, -80]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.18], [1, 0.25]);
-
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowIntro(false), 3200);
+    const timer = window.setTimeout(() => setShowIntro(false), 2400);
     return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     track('landing_view');
-    const timer = window.setInterval(() => setDemoStep((value) => (value + 1) % 4), 4200);
+    const timer = window.setInterval(() => setDemoStep((value) => (value + 1) % 4), 4500);
     return () => window.clearInterval(timer);
   }, []);
 
   const demoSteps = useMemo(() => [
-    { label: 'UNDERSTAND', title: 'What is still unresolved?', copy: 'Tattava identifies the creative question that blocks the next meaningful decision.', meta: '1 unresolved question' },
-    { label: 'RESEARCH', title: 'What does the evidence say?', copy: 'Research is gathered and connected to the project instead of living in a separate browser tab.', meta: '12 evidence links' },
-    { label: 'DIRECTION', title: 'Which story direction do we choose?', copy: 'Candidate directions are compared with character, world and narrative consequences visible.', meta: '3 candidate directions' },
-    { label: 'CANON', title: 'What becomes true?', copy: 'The human decision is approved, recorded and carried forward into every future generation.', meta: 'Human approval required' },
+    { label: 'UNDERSTAND', title: 'What is still unresolved?', copy: 'Tattava detects the core creative question blocking the next meaningful decision.', meta: '1 blocking creative dilemma' },
+    { label: 'RESEARCH', title: 'What does the evidence say?', copy: 'Primary evidence, historical precedents, and sources stay permanently tethered to the project.', meta: '12 verified source citations' },
+    { label: 'DIRECTION', title: 'Which story direction do we choose?', copy: 'Competing story directions are compared with consequences across characters, tone, and budget.', meta: '3 explored directions' },
+    { label: 'CANON', title: 'What becomes established truth?', copy: 'The creator explicitly approves the choice. Approved truth becomes canon and locks downstream dependencies.', meta: 'Human gate enforced' },
   ], []);
 
   const openWaitlist = () => {
@@ -173,89 +156,103 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#0a0c12] text-[#fbf8f3] selection:bg-amber-400/30 selection:text-white">
+    <div className="min-h-screen overflow-x-hidden bg-[#1b1411] text-[#faf5f0] selection:bg-[#33cc7a] selection:text-[#1b1411]">
+      {/* Intro Splash */}
       <AnimatePresence>
         {showIntro && (
           <motion.div
             key="tattava-intro"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden bg-black"
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden bg-[#1b1411]"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(245,158,11,.12),transparent_34%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(51,204,122,0.15),transparent_40%)]" />
             <div className="relative flex w-full max-w-4xl flex-col items-center justify-center px-8">
-              <motion.img
-                src="https://raw.githubusercontent.com/Kaustubhd0022/DVS-V1-/main/TattvaCO.png"
+              <img
+                src="/tattvaCo-logo.png"
                 alt="TattvaCo"
                 onError={(event) => {
-                  event.currentTarget.src = "/tattvaCo-logo.png";
+                  event.currentTarget.src = "https://raw.githubusercontent.com/Kaustubhd0022/DVS-V1-/main/tattvaCo-logo.png";
                 }}
-                initial={{ opacity: 0, scale: 0.82, filter: 'blur(14px)' }}
-                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                transition={{ duration: 1.45, ease: [0.16, 1, 0.3, 1] }}
-                className="h-auto w-[min(72vw,680px)] object-contain"
+                className="h-auto w-[min(72vw,620px)] object-contain"
               />
-              <motion.div
-                initial={{ opacity: 0, y: 22, letterSpacing: '0.55em' }}
-                animate={{ opacity: 1, y: 0, letterSpacing: '0.18em' }}
-                transition={{ delay: 1.05, duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
-                className="-mt-4 text-center text-[11px] font-medium uppercase text-stone-300 sm:text-sm"
-              >
+              <div className="-mt-3 text-center text-xs font-bold uppercase tracking-[0.25em] text-[#33cc7a]">
                 The essence of every story
-              </motion.div>
-              <motion.div
-                initial={{ scaleX: 0, opacity: 0 }}
-                animate={{ scaleX: 1, opacity: 1 }}
-                transition={{ delay: 1.65, duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
-                className="mt-7 h-px w-28 origin-center bg-gradient-to-r from-transparent via-amber-500 to-transparent"
-              />
+              </div>
+              <div className="mt-6 h-0.5 w-24 bg-gradient-to-r from-transparent via-[#33cc7a] to-transparent" />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-      <motion.div className="fixed left-0 right-0 top-0 z-[70] h-[2px] origin-left bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400" style={{ scaleX: progress }} />
 
-      <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.08] bg-[#0a0c12]/80 backdrop-blur-2xl">
-        <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-5 lg:px-10">
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="group flex items-center">
-            <img
-              src="/tattvaCo-logo.png"
-              alt="TattvaCo"
-              className="h-10 w-auto max-w-[170px] object-contain transition duration-300 group-hover:opacity-90"
-              onError={(event) => {
-                event.currentTarget.src = "https://raw.githubusercontent.com/Kaustubhd0022/DVS-V1-/main/tattvaCo-logo.png";
-              }}
-            />
+      {/* Linea Floating Island Navigation Bar */}
+      <header className="fixed left-0 right-0 top-3 z-50 px-4 sm:px-6 pointer-events-none">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between rounded-full border border-white/[0.12] bg-[#1b1411]/85 px-3 sm:px-5 backdrop-blur-xl shadow-2xl pointer-events-auto">
+          {/* Brand mark & Word */}
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="group flex items-center gap-2.5">
+            <svg className="w-8 h-5 fill-none stroke-current stroke-2 stroke-linecap-round" viewBox="0 0 36 24">
+              <path d="M4 18 C12 6, 20 20, 32 6" className="stroke-[#33cc7a]" strokeWidth="3" />
+              <path d="M4 12 C14 2, 22 16, 32 12" className="stroke-[#faf5f0]/70" strokeWidth="2" />
+            </svg>
+            <span className="text-base font-bold tracking-tight text-[#faf5f0]">TattvaCo</span>
           </button>
 
-          <nav className="hidden items-center gap-8 text-[11px] uppercase tracking-[0.16em] text-stone-400 font-medium lg:flex">
-            <a href="#product" className="transition hover:text-[#fbf8f3]">Product</a>
-            <a href="#roadmap" className="transition hover:text-[#fbf8f3]">V1–V4</a>
-            <a href="#intelligence" className="transition hover:text-[#fbf8f3]">Intelligence</a>
-            <a href="#models" className="transition hover:text-[#fbf8f3]">Models</a>
-            <a href="#studios" className="transition hover:text-[#fbf8f3]">Capabilities</a>
+          {/* Links */}
+          <nav className="hidden items-center gap-7 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#faf5f0]/70 md:flex">
+            <a href="#hero" className="transition hover:text-[#33cc7a]">Product</a>
+            <a href="#stage" className="transition hover:text-[#33cc7a]">Intelligence</a>
+            <a href="#roadmap" className="transition hover:text-[#33cc7a]">V1–V4</a>
+            <a href="#capabilities" className="transition hover:text-[#33cc7a]">Capabilities</a>
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <button onClick={openSignin} className="px-4 py-2 text-[12px] uppercase tracking-[0.12em] text-stone-400 font-medium transition hover:text-[#fbf8f3]">Sign in</button>
-            <button onClick={openWaitlist} className="rounded-full border border-amber-400/30 bg-amber-400 px-6 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-stone-950 transition hover:bg-amber-300 shadow-md shadow-amber-400/20">Join Early Access</button>
+          {/* Action CTAs */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openSignin}
+              className="px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#faf5f0]/80 transition hover:text-white"
+            >
+              Sign in
+            </button>
+            <button
+              onClick={openWaitlist}
+              className="group relative inline-flex items-center justify-center rounded-full bg-[#33cc7a] px-5 py-2 text-xs font-bold uppercase tracking-wider text-[#1b1411] transition hover:bg-[#2eb76e] shadow-md shadow-[#33cc7a]/25"
+            >
+              <span>Early Access</span>
+              <div className="linea-btn-wave h-3 text-[#1b1411] ml-1.5">
+                <span className="h-1.5" />
+                <span className="h-3" />
+                <span className="h-2" />
+              </div>
+            </button>
+            <button
+              className="md:hidden p-1.5 text-[#faf5f0]"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Open menu"
+            >
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
-
-          <button className="md:hidden text-stone-300 hover:text-white" onClick={() => setMenuOpen((v) => !v)} aria-label="Open menu">
-            {menuOpen ? <X /> : <Menu />}
-          </button>
         </div>
+
+        {/* Mobile Dropdown */}
         <AnimatePresence>
           {menuOpen && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden border-t border-white/[0.08] bg-[#0e1119] md:hidden">
-              <div className="flex flex-col gap-5 px-5 py-6 text-sm text-stone-300">
-                <a href="#product" onClick={() => setMenuOpen(false)}>Product</a>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mx-auto mt-2 max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-[#1b1411]/95 p-6 backdrop-blur-2xl md:hidden shadow-2xl pointer-events-auto"
+            >
+              <div className="flex flex-col gap-4 text-sm font-semibold text-[#faf5f0]">
+                <a href="#hero" onClick={() => setMenuOpen(false)}>Product</a>
+                <a href="#stage" onClick={() => setMenuOpen(false)}>Intelligence</a>
                 <a href="#roadmap" onClick={() => setMenuOpen(false)}>V1–V4</a>
-                <a href="#intelligence" onClick={() => setMenuOpen(false)}>Intelligence</a>
-                <a href="#models" onClick={() => setMenuOpen(false)}>Models</a>
-                <button className="text-left" onClick={() => { setMenuOpen(false); openSignin(); }}>Sign in</button>
-                <button onClick={() => { setMenuOpen(false); openWaitlist(); }} className="w-fit rounded-full bg-amber-400 px-6 py-2.5 text-sm font-bold text-stone-950">Join Early Access</button>
+                <a href="#capabilities" onClick={() => setMenuOpen(false)}>Capabilities</a>
+                <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
+                  <button className="text-left py-1 text-xs uppercase" onClick={() => { setMenuOpen(false); openSignin(); }}>Sign in</button>
+                  <button onClick={() => { setMenuOpen(false); openWaitlist(); }} className="rounded-full bg-[#33cc7a] px-5 py-2.5 text-xs font-bold text-[#1b1411]">Join Early Access</button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -263,9 +260,13 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
       </header>
 
       <main>
-        {/* Hero Section */}
-        <section className="relative min-h-[920px] overflow-hidden border-b border-white/[0.08]">
-          <div className="absolute inset-0">
+        {/* =====================================================================
+            SECTION 1: LINEA SLATE NAVY HERO (#1f3954)
+            With Orbital SVG Flow Curves & Floating Soundwave Chips
+            ===================================================================== */}
+        <section id="hero" className="relative min-h-[960px] overflow-hidden bg-[#1f3954] text-[#faf5f0] pt-28 pb-24">
+          {/* Background Cinematic Texture & Gradient Shading */}
+          <div className="absolute inset-0 pointer-events-none">
             {!videoFailed ? (
               <video
                 autoPlay
@@ -274,121 +275,259 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
                 playsInline
                 poster={cinematicImages.set}
                 onError={() => setVideoFailed(true)}
-                className="h-full w-full object-cover opacity-35"
+                className="h-full w-full object-cover opacity-25"
               >
                 <source src="https://cdn.coverr.co/videos/coverr-film-director-s-pov-7972/1080p.mp4" type="video/mp4" />
               </video>
             ) : (
-              <img src={cinematicImages.set} alt="" className="h-full w-full object-cover opacity-35" />
+              <img src={cinematicImages.set} alt="" className="h-full w-full object-cover opacity-25" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c12]/80 via-[#0a0c12]/55 to-[#0a0c12]" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0a0c12] via-transparent to-[#0a0c12]/80" />
-            <div className="absolute left-1/2 top-1/3 h-[520px] w-[760px] -translate-x-1/2 rounded-full bg-amber-400/[0.07] blur-[150px]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1f3954] via-[#1f3954]/85 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1f3954] via-transparent to-[#1f3954]/40" />
           </div>
 
-          <motion.div style={{ y: heroY, opacity: heroOpacity }} className="relative mx-auto flex min-h-[920px] max-w-[1440px] flex-col justify-center px-5 pb-20 pt-32 lg:px-10">
-            <motion.div initial="hidden" animate="visible" variants={stagger} className="max-w-5xl">
-              <motion.div variants={reveal} className="mb-7 flex items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-amber-300 font-semibold">
-                <div className="linea-btn-wave h-3 text-amber-400">
+          {/* Linea Signature Orbital SVG Lines */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <svg className="absolute w-full h-full inset-0" preserveAspectRatio="none" viewBox="0 0 1440 960">
+              <ellipse cx="1080" cy="1150" rx="640" ry="850" fill="none" stroke="rgba(250, 245, 240, 0.22)" strokeWidth="1.5" />
+              <ellipse cx="1080" cy="1150" rx="640" ry="850" fill="none" stroke="#33cc7a" strokeWidth="2.5" className="linea-hero-flow" />
+
+              <ellipse cx="780" cy="1380" rx="980" ry="1100" fill="none" stroke="rgba(250, 245, 240, 0.16)" strokeWidth="1.5" />
+              <ellipse cx="780" cy="1380" rx="980" ry="1100" fill="none" stroke="#33cc7a" strokeWidth="2" className="linea-hero-flow" />
+            </svg>
+          </div>
+
+          {/* Floating Soundwave Chips */}
+          <div className="absolute right-8 top-36 hidden lg:flex flex-col gap-5 z-20 pointer-events-none max-w-sm">
+            {/* Chip 1: Warm Cream Card with Green Soundwave */}
+            <div className="linea-caption-pill animate-bounce-slow shadow-2xl">
+              <div className="linea-wave-bars text-[#33cc7a]">
+                <span className="h-2" />
+                <span className="h-4" />
+                <span className="h-3" />
+                <span className="h-2" />
+              </div>
+              <span className="text-xs font-semibold">Who holds legitimate succession if the King is lost?</span>
+            </div>
+
+            {/* Chip 2: Signal Mint Card with Espresso Text */}
+            <div className="linea-caption-pill-mint self-end shadow-2xl">
+              <div className="linea-wave-bars text-[#1b1411]">
+                <span className="h-3" />
+                <span className="h-4" />
+                <span className="h-2" />
+              </div>
+              <span className="text-xs font-bold">12 sources verified · Ancient dynastic law</span>
+            </div>
+
+            {/* Chip 3: Warm Cream Card with Green Soundwave */}
+            <div className="linea-caption-pill self-start shadow-2xl">
+              <div className="linea-wave-bars text-[#33cc7a]">
+                <span className="h-2" />
+                <span className="h-3" />
+                <span className="h-4" />
+              </div>
+              <span className="text-xs font-semibold">Canon locked: The Regent assumes provisional rule</span>
+            </div>
+          </div>
+
+          {/* Hero Content */}
+          <div className="relative mx-auto flex min-h-[760px] max-w-6xl flex-col justify-center px-6 lg:px-12 z-10">
+            <div className="max-w-3xl">
+              <div className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-[#33cc7a]/30 bg-[#33cc7a]/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-[#33cc7a]">
+                <div className="linea-btn-wave h-3 text-[#33cc7a]">
                   <span className="h-1.5" />
                   <span className="h-3" />
                   <span className="h-2" />
                 </div>
                 <span>AI-Native Film Development & Production OS</span>
-              </motion.div>
-              <motion.h1 variants={reveal} className="max-w-5xl text-[clamp(4rem,9vw,9rem)] font-bold leading-[0.84] tracking-[-0.07em] text-[#fbf8f3]">
+              </div>
+
+              <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold leading-[0.94] tracking-[-0.04em] text-[#faf5f0]">
                 Develop stories
                 <br />
-                <span className="text-stone-400/60 font-light">with an AI that</span>
+                <span className="text-[#bacde0]/65 font-light">with an AI that</span>
                 <br />
-                <span className="text-amber-400">remembers.</span>
-              </motion.h1>
-              <motion.p variants={reveal} className="mt-9 max-w-2xl text-base leading-7 text-stone-300 sm:text-lg">
-                Tattava turns ideas into researched, structured and continuously grounded story worlds — keeping every creative decision in creator hands.
-              </motion.p>
-              <motion.div variants={reveal} className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button onClick={enterProduct} className="group flex items-center justify-center gap-3 rounded-full bg-[#fbf8f3] px-8 py-3.5 text-sm font-bold text-stone-950 transition hover:bg-amber-300 shadow-lg shadow-white/10">
-                  Start Developing <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-                </button>
-                <a href="#roadmap" className="flex items-center justify-center gap-2 rounded-full border border-white/[0.12] bg-[#141824]/60 px-8 py-3.5 text-sm font-medium text-stone-200 backdrop-blur transition hover:border-white/25 hover:bg-[#141824]/90">
-                  Explore the system <ChevronRight className="h-4 w-4" />
-                </a>
-              </motion.div>
-            </motion.div>
+                <span className="text-[#33cc7a]">remembers.</span>
+              </h1>
 
-            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65, duration: 1 }} className="absolute bottom-10 right-5 hidden items-end gap-10 lg:flex">
-              <div className="max-w-[210px] text-right text-[10px] uppercase leading-5 tracking-[0.18em] text-stone-400">One persistent intelligence layer from idea to production.</div>
-              <ArrowDown className="h-4 w-4 animate-bounce text-stone-400" />
-            </motion.div>
-          </motion.div>
+              <p className="mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-[#bacde0]/90">
+                Tattava turns ideas into researched, structured and continuously grounded story worlds — keeping every creative decision in creator hands.
+              </p>
+
+              <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <button
+                  onClick={enterProduct}
+                  className="group relative inline-flex items-center justify-center gap-3 rounded-full bg-[#33cc7a] px-8 py-4 text-sm font-bold text-[#1b1411] transition hover:bg-[#2eb76e] shadow-xl shadow-[#33cc7a]/30"
+                >
+                  <span>Start Developing</span>
+                  <div className="linea-btn-wave h-3 text-[#1b1411]">
+                    <span className="h-1.5" />
+                    <span className="h-3" />
+                    <span className="h-2" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 transition group-hover:translate-x-1" />
+                </button>
+
+                <a
+                  href="#stage"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.06] px-8 py-4 text-sm font-semibold text-[#faf5f0] backdrop-blur transition hover:bg-white/10"
+                >
+                  <span>Explore Architecture</span>
+                  <ChevronRight className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+
+            {/* Micro Metrics Proof */}
+            <div className="mt-16 pt-8 border-t border-white/[0.12] grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-2xl text-xs">
+              <div>
+                <div className="text-lg font-bold text-[#33cc7a]">100%</div>
+                <div className="text-[#bacde0]/70 uppercase tracking-wider text-[10px] mt-0.5">Authoritative Canon</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-[#faf5f0]">Persistent</div>
+                <div className="text-[#bacde0]/70 uppercase tracking-wider text-[10px] mt-0.5">Story Brain Memory</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-[#33cc7a]">Zero</div>
+                <div className="text-[#bacde0]/70 uppercase tracking-wider text-[10px] mt-0.5">Hallucinated Canon</div>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-[#faf5f0]">16 Episodes</div>
+                <div className="text-[#bacde0]/70 uppercase tracking-wider text-[10px] mt-0.5">Coordinated State</div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Product Section */}
-        <section id="product" className="relative border-b border-white/[0.08] bg-[#0a0c12] px-5 py-24 lg:px-10 lg:py-32">
-          <div className="mx-auto max-w-[1240px]">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }} variants={reveal} className="mb-12 max-w-3xl">
-              <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-amber-400">The Architecture</p>
-              <h2 className="mt-4 text-4xl font-bold tracking-tight text-[#fbf8f3] sm:text-6xl">Not another prompt box.<br /><span className="text-stone-400/60 font-light">A story development system.</span></h2>
-            </motion.div>
+        {/* =====================================================================
+            SECTION 2: LINEA DUAL-TONE SPLIT STAGE (#stage)
+            Curved Sheet Layer in Warm Cream (#faf5f0) & Espresso (#1b1411)
+            ===================================================================== */}
+        <section id="stage" className="relative -mt-10 rounded-t-[3.5rem] bg-[#faf5f0] text-[#1b1411] px-6 py-24 lg:px-12 z-30 shadow-2xl">
+          <div className="mx-auto max-w-6xl">
+            {/* Header */}
+            <div className="max-w-2xl">
+              <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#33cc7a] bg-[#1b1411] px-3 py-1 rounded-full">
+                Interactive System Stage
+              </span>
+              <h2 className="mt-4 text-4xl sm:text-6xl font-bold tracking-tight text-[#1b1411]">
+                Not another prompt box.
+                <br />
+                <span className="text-[#66574f] font-light">A story development OS.</span>
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-[#66574f]">
+                Every creative choice progresses through a verified epistemic loop from unresolved question to verified evidence, candidate direction, and human-approved canon.
+              </p>
+            </div>
 
-            <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0e1119]/90 shadow-2xl shadow-black/80">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_10%,rgba(245,158,11,.08),transparent_35%)]" />
-              <div className="relative grid min-h-[650px] lg:grid-cols-[1.15fr_0.85fr]">
-                <div className="p-7 sm:p-10 lg:p-14">
-                  <div className="flex items-center justify-between border-b border-white/[0.08] pb-5">
-                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-400 font-semibold"><Lock className="h-3 w-3 text-amber-400" /> TATTAVA / RAJYAM</div>
-                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-bold">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live intelligence
+            {/* Split Stage Card Container */}
+            <div className="mt-12 overflow-hidden rounded-[2.5rem] border border-[#1b1411]/10 bg-[#eee5dc] p-3 shadow-2xl">
+              <div className="grid lg:grid-cols-2 gap-3 min-h-[520px]">
+                {/* Left Panel: Deep Espresso Voice & Dilemma Stage */}
+                <div className="relative rounded-[2rem] bg-[#1b1411] p-8 sm:p-10 text-[#faf5f0] flex flex-col justify-between overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-[#33cc7a]/5 rounded-full blur-[80px]" />
+                  <div>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#33cc7a]">
+                        <Lock className="w-3.5 h-3.5" /> Discovery & Research State
+                      </div>
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-[#faf5f0]">
+                        Episode 1 Pilot
+                      </span>
                     </div>
-                  </div>
 
-                  <div className="mt-10 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] font-medium text-stone-400">
-                    {['Understand', 'Research', 'Direction', 'Canon'].map((step, i) => (
-                      <React.Fragment key={step}>
+                    <div className="mt-6 flex flex-wrap gap-2 text-[10px] uppercase font-bold tracking-wider">
+                      {['Understand', 'Research', 'Direction', 'Canon'].map((step, i) => (
                         <button
+                          key={step}
                           onClick={() => setDemoStep(i)}
-                          className={`rounded-full px-3 py-1.5 transition ${demoStep === i ? 'bg-amber-400/15 border border-amber-400/30 text-amber-300 font-bold' : 'hover:text-[#fbf8f3]'}`}
+                          className={`rounded-full px-3.5 py-1.5 transition ${demoStep === i ? 'bg-[#33cc7a] text-[#1b1411]' : 'bg-white/5 text-[#faf5f0]/60 hover:text-white'}`}
                         >
                           {String(i + 1).padStart(2, '0')} {step}
                         </button>
-                        {i < 3 && <span className="text-stone-600">→</span>}
-                      </React.Fragment>
-                    ))}
-                  </div>
-
-                  <AnimatePresence mode="wait">
-                    <motion.div key={demoStep} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -18 }} transition={{ duration: 0.35 }} className="mt-12">
-                      <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-amber-400">{demoSteps[demoStep].label}</p>
-                      <h3 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-[#fbf8f3] sm:text-5xl">{demoSteps[demoStep].title}</h3>
-                      <p className="mt-4 max-w-xl text-sm leading-7 text-stone-300">{demoSteps[demoStep].copy}</p>
-                      <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-1.5 text-[10px] uppercase tracking-[0.14em] text-amber-300 font-semibold">
-                        {demoSteps[demoStep].meta}
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-
-                <div className="relative min-h-[340px] overflow-hidden border-t border-white/[0.08] lg:border-l lg:border-t-0">
-                  <img src={cinematicImages.crew} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20 grayscale" />
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#0e1119] via-[#0e1119]/80 to-[#0e1119]/90" />
-                  <div className="relative flex h-full flex-col justify-between p-7 sm:p-10">
-                    <div>
-                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400">
-                        <Brain className="w-3.5 h-3.5 text-amber-400" /> Story Brain
-                      </div>
-                      <div className="mt-5 rounded-2xl border border-white/[0.08] bg-[#141824]/80 p-5 backdrop-blur-xl">
-                        <div className="text-[9px] uppercase tracking-[0.18em] text-amber-400 font-semibold">Next unresolved creative question</div>
-                        <div className="mt-2.5 text-base leading-6 text-[#fbf8f3] font-medium">Who controls the kingdom when the king disappears?</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-6">
-                      {['Known', 'Unknown', 'Evidence', 'Decision'].map((label, i) => (
-                        <div key={label} className="rounded-2xl border border-white/[0.06] bg-[#141824]/60 p-3.5">
-                          <div className="text-[9px] uppercase tracking-[0.18em] font-bold text-amber-300/80">{label}</div>
-                          <div className="mt-1.5 text-xs text-stone-300">{['Festival disappearance', 'Succession authority', '12 linked sources', 'Human approval'][i]}</div>
-                        </div>
                       ))}
                     </div>
+
+                    <div className="mt-8">
+                      <div className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#33cc7a]">
+                        {demoSteps[demoStep].label}
+                      </div>
+                      <h3 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-[#faf5f0]">
+                        {demoSteps[demoStep].title}
+                      </h3>
+                      <p className="mt-3 text-xs sm:text-sm leading-relaxed text-[#faf5f0]/70">
+                        {demoSteps[demoStep].copy}
+                      </p>
+                      <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#33cc7a]/15 border border-[#33cc7a]/30 px-3.5 py-1.5 text-[11px] font-bold text-[#33cc7a]">
+                        {demoSteps[demoStep].meta}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Equalizer Waveform Stage at bottom of Left Panel */}
+                  <div className="mt-10 pt-6 border-t border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex items-end gap-1 h-6">
+                        <span className="w-1 bg-[#33cc7a] rounded-full animate-pulse h-4" />
+                        <span className="w-1 bg-[#33cc7a] rounded-full animate-pulse h-6 delay-75" />
+                        <span className="w-1 bg-[#33cc7a] rounded-full animate-pulse h-3 delay-150" />
+                        <span className="w-1 bg-[#33cc7a] rounded-full animate-pulse h-5 delay-200" />
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#faf5f0]/80">Active Reasoning Loop</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-[#faf5f0]/40">LATENCY 42ms</span>
+                  </div>
+                </div>
+
+                {/* Right Panel: Signal Mint Canon Truth Stage */}
+                <div className="relative rounded-[2rem] bg-[#33cc7a] p-8 sm:p-10 text-[#1b1411] flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-[#1b1411]/15 pb-4">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#1b1411]">
+                        <ShieldCheck className="w-4 h-4 text-[#1b1411]" /> Canonical Project Truth
+                      </div>
+                      <span className="rounded-full bg-[#1b1411]/10 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-[#1b1411]">
+                        Locked Canon
+                      </span>
+                    </div>
+
+                    <div className="mt-6 rounded-2xl bg-[#faf5f0] p-6 shadow-xl">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#66574f]">
+                        Approved Authoritative Fact
+                      </div>
+                      <h4 className="mt-2 text-lg font-bold text-[#1b1411] leading-snug">
+                        The Regent assumes provisional rule under the 14-day Regency Council charter.
+                      </h4>
+                      <div className="mt-4 flex flex-wrap gap-2 text-[10px]">
+                        <span className="rounded-full bg-[#33cc7a]/20 px-2.5 py-0.5 font-bold text-[#1b1411]">
+                          Plot Anchor
+                        </span>
+                        <span className="rounded-full bg-[#1b1411]/10 px-2.5 py-0.5 font-semibold text-[#1b1411]">
+                          Ep 1 · Scene 4
+                        </span>
+                        <span className="rounded-full bg-[#1b1411]/10 px-2.5 py-0.5 font-semibold text-[#1b1411]">
+                          Verified by Creator
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2.5">
+                      <div className="rounded-2xl bg-[#1b1411]/10 p-4">
+                        <div className="text-[9px] uppercase font-bold tracking-wider text-[#1b1411]/70">Evidence Chain</div>
+                        <div className="text-xs font-bold text-[#1b1411] mt-1">12 Historical Laws</div>
+                      </div>
+                      <div className="rounded-2xl bg-[#1b1411]/10 p-4">
+                        <div className="text-[9px] uppercase font-bold tracking-wider text-[#1b1411]/70">Protected Deps</div>
+                        <div className="text-xs font-bold text-[#1b1411] mt-1">4 Downstream Scenes</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-4 border-t border-[#1b1411]/15 flex items-center justify-between text-xs font-bold text-[#1b1411]">
+                    <span>Human Approval Required</span>
+                    <Check className="w-5 h-5 text-[#1b1411]" />
                   </div>
                 </div>
               </div>
@@ -396,253 +535,251 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
           </div>
         </section>
 
-        {/* Intelligence Section */}
-        <section id="intelligence" className="border-b border-white/[0.08] px-5 py-24 lg:px-10 lg:py-32">
-          <div className="mx-auto max-w-[1240px]">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger}>
-              <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-amber-400">How Tattava Thinks</p>
-              <h2 className="mt-4 max-w-4xl text-4xl font-bold tracking-tight text-[#fbf8f3] sm:text-7xl">The intelligence compounds<br /><span className="text-stone-400/60 font-light">as the project evolves.</span></h2>
-            </motion.div>
-
-            <div className="mt-16 grid gap-px overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.06] sm:grid-cols-2 lg:grid-cols-4">
-              {['IDEA', 'UNDERSTAND', 'IDENTIFY UNKNOWN', 'RESEARCH', 'EVIDENCE', 'INSIGHT', 'DIRECTION', 'HUMAN DECISION', 'CANON', 'GENERATE', 'EVALUATE', 'REPAIR'].map((step, i) => (
-                <motion.div key={step} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.035 }} className="group bg-[#0e1119] p-6 transition hover:bg-[#141824]">
-                  <div className="text-[9px] font-mono text-stone-500">{String(i + 1).padStart(2, '0')}</div>
-                  <div className="mt-10 text-xs font-bold tracking-[0.15em] text-stone-300 transition group-hover:text-amber-400">{step}</div>
-                  <div className="mt-3 h-px w-8 bg-white/10 transition group-hover:w-14 group-hover:bg-amber-400" />
-                </motion.div>
-              ))}
+        {/* =====================================================================
+            SECTION 3: LINEA BENTO CAPABILITIES (#capabilities)
+            Curved Sheet Layer in Dark Espresso (#1b1411)
+            ===================================================================== */}
+        <section id="capabilities" className="relative -mt-10 rounded-t-[3.5rem] bg-[#1b1411] text-[#faf5f0] px-6 py-28 lg:px-12 z-30">
+          <div className="mx-auto max-w-6xl">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#33cc7a]">
+                  System Architecture
+                </span>
+                <h2 className="mt-3 text-4xl sm:text-6xl font-bold tracking-tight text-[#faf5f0]">
+                  Capabilities, not checklists.
+                </h2>
+              </div>
+              <p className="max-w-md text-xs sm:text-sm text-[#b8aba3] leading-relaxed">
+                Tattava builds persistent narrative memory so your project intelligence deepens as your script and season unfold.
+              </p>
             </div>
 
-            <div className="mt-16 grid gap-5 lg:grid-cols-3">
-              {[
-                ['01', 'Context over prompts', 'The project remembers the work that happened before this moment.'],
-                ['02', 'Evidence before confidence', 'Research, inference and uncertainty stay distinguishable.'],
-                ['03', 'Human authority', 'AI proposes. The creative team decides what becomes canon.'],
-              ].map(([number, title, copy]) => (
-                <motion.div key={number} whileHover={{ y: -4 }} className="rounded-3xl border border-white/[0.08] bg-[#0e1119]/80 p-8 shadow-xl">
-                  <div className="text-[10px] tracking-[0.18em] font-mono text-amber-400">{number}</div>
-                  <div className="mt-8 text-xl font-bold text-[#fbf8f3] tracking-tight">{title}</div>
-                  <p className="mt-3 text-xs leading-6 text-stone-400">{copy}</p>
-                </motion.div>
+            {/* Bento Grid */}
+            <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {capabilities.map((cap) => (
+                <button
+                  key={cap.title}
+                  onClick={() => openFeature(cap)}
+                  className="group rounded-3xl border border-white/[0.08] bg-[#2e241f] p-6 text-left transition hover:border-[#33cc7a]/50 hover:bg-[#382b25] shadow-xl flex flex-col justify-between min-h-[220px]"
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className={cap.live ? 'rounded-full bg-[#33cc7a]/15 text-[#33cc7a] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider' : 'rounded-full bg-white/[0.06] text-[#b8aba3] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider'}>
+                        {cap.eyebrow}
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-[#b8aba3] transition group-hover:translate-x-1 group-hover:text-[#33cc7a]" />
+                    </div>
+                    <h3 className="mt-8 text-xl font-bold text-[#faf5f0] tracking-tight">{cap.title}</h3>
+                    <p className="mt-2 text-xs text-[#b8aba3] leading-relaxed">{cap.description}</p>
+                  </div>
+                </button>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Roadmap Section */}
-        <section id="roadmap" className="border-b border-white/[0.08] bg-[#0a0c12] px-5 py-24 lg:px-10 lg:py-32">
-          <div className="mx-auto max-w-[1240px]">
-            <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+        {/* =====================================================================
+            SECTION 4: ROADMAP V1–V4 (#roadmap)
+            Curved Sheet Layer in Warm Sand (#eee5dc) & Espresso (#1b1411)
+            ===================================================================== */}
+        <section id="roadmap" className="relative -mt-10 rounded-t-[3.5rem] bg-[#eee5dc] text-[#1b1411] px-6 py-28 lg:px-12 z-30 shadow-2xl">
+          <div className="mx-auto max-w-6xl">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-amber-400">The Full System</p>
-                <h2 className="mt-4 text-4xl font-bold tracking-tight text-[#fbf8f3] sm:text-7xl">One intelligence layer.<br /><span className="text-stone-400/60 font-light">Four stages of creation.</span></h2>
+                <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#1b1411] bg-[#33cc7a] px-3 py-1 rounded-full">
+                  Four Stages of Creation
+                </span>
+                <h2 className="mt-4 text-4xl sm:text-6xl font-bold tracking-tight text-[#1b1411]">
+                  One intelligence layer.
+                  <br />
+                  <span className="text-[#66574f] font-light">From seed to screen.</span>
+                </h2>
               </div>
-              <div className="text-xs uppercase tracking-[0.2em] text-stone-400 font-mono">V1 → V2 → V3 → V4</div>
+              <div className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#66574f]">
+                V1 → V2 → V3 → V4
+              </div>
             </div>
 
-            <div className="mt-16 space-y-4">
-              {roadmap.map((stage, index) => {
+            <div className="mt-14 space-y-4">
+              {roadmap.map((stage, idx) => {
                 const Icon = stage.icon;
                 return (
-                  <motion.article key={stage.id} initial={{ opacity: 0, y: 35 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.12 }} transition={{ duration: 0.65, delay: index * 0.06 }} whileHover={{ y: -3 }} className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0e1119]/90 shadow-xl">
-                    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${stage.accent} opacity-30`} />
-                    <div className="relative grid lg:grid-cols-[140px_1fr_320px]">
-                      <div className="border-b border-white/[0.08] p-7 lg:border-b-0 lg:border-r">
-                        <div className="text-5xl font-bold tracking-tight text-[#fbf8f3]">{stage.id}</div>
-                        <div className="mt-3 text-[9px] uppercase tracking-[0.2em] font-bold text-amber-400">{stage.eyebrow}</div>
-                        <Icon className="mt-10 h-6 w-6 text-stone-500 transition group-hover:text-amber-400" />
+                  <article
+                    key={stage.id}
+                    className="group rounded-3xl border border-[#1b1411]/15 bg-[#faf5f0] p-7 sm:p-10 shadow-lg hover:shadow-2xl transition grid lg:grid-cols-[140px_1fr_300px] gap-6 items-center"
+                  >
+                    <div>
+                      <div className="text-5xl font-bold tracking-tight text-[#1b1411]">{stage.id}</div>
+                      <div className="mt-2 text-[9px] uppercase tracking-wider font-bold text-[#33cc7a] bg-[#1b1411] px-2 py-0.5 rounded-full inline-block">
+                        {stage.eyebrow}
                       </div>
-                      <div className="p-7 sm:p-10">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="text-2xl font-bold tracking-tight text-[#fbf8f3]">{stage.title}</h3>
-                          <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[9px] uppercase tracking-[0.15em] font-semibold text-stone-400">{stage.status}</span>
-                        </div>
-                        <p className="mt-3 max-w-2xl text-xs leading-6 text-stone-400">{stage.description}</p>
-                        <div className="mt-6 flex flex-wrap gap-2">
-                          {stage.features.map((feature) => (
-                            <span key={feature} className="rounded-full border border-white/[0.08] bg-[#141824]/60 px-3 py-1 text-[10px] text-stone-300">
-                              {feature}
-                            </span>
-                          ))}
-                        </div>
+                      <Icon className="mt-4 w-6 h-6 text-[#66574f] group-hover:text-[#33cc7a] transition" />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-2xl font-bold text-[#1b1411]">{stage.title}</h3>
+                        <span className="rounded-full bg-[#1b1411]/10 px-3 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#1b1411]">
+                          {stage.status}
+                        </span>
                       </div>
-                      <div className="border-t border-white/[0.08] p-7 lg:border-l lg:border-t-0">
-                        <div className="text-[9px] uppercase tracking-[0.2em] font-bold text-stone-400">Creative Flow</div>
-                        <div className="mt-3 text-xs leading-6 text-stone-300">{stage.flow}</div>
-                        <div className="mt-6 h-px bg-gradient-to-r from-amber-400/40 to-transparent" />
-                        <div className="mt-3 text-[10px] uppercase tracking-[0.16em] font-medium text-stone-500">{index === 0 ? 'Available now in Pilot' : 'Product roadmap'}</div>
+                      <p className="mt-2 text-xs sm:text-sm text-[#66574f] leading-relaxed max-w-xl">
+                        {stage.description}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        {stage.features.map((f) => (
+                          <span key={f} className="rounded-full bg-[#eee5dc] px-3 py-1 text-[10px] font-semibold text-[#1b1411]">
+                            {f}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  </motion.article>
+
+                    <div className="lg:border-l lg:border-[#1b1411]/10 lg:pl-6">
+                      <div className="text-[9px] uppercase font-bold tracking-wider text-[#66574f]">Creative Flow</div>
+                      <div className="mt-2 text-xs font-medium text-[#1b1411] leading-relaxed">{stage.flow}</div>
+                      <div className="mt-4 text-[10px] uppercase font-bold tracking-wider text-[#33cc7a]">
+                        {idx === 0 ? '✓ Available Now in Pilot' : 'Roadmap Validation'}
+                      </div>
+                    </div>
+                  </article>
                 );
               })}
             </div>
           </div>
         </section>
 
-        {/* Visual Intelligence Section */}
-        <section className="relative overflow-hidden border-b border-white/[0.08] px-5 py-24 lg:px-10 lg:py-32">
-          <div className="absolute inset-0">
-            <img src={cinematicImages.palace} alt="" className="h-full w-full object-cover opacity-15" />
-            <div className="absolute inset-0 bg-[#0a0c12]/85" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0a0c12] via-transparent to-[#0a0c12]" />
-          </div>
-          <div className="relative mx-auto max-w-[1240px]">
-            <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-amber-400">Visual Intelligence</p>
-                <h2 className="mt-4 text-4xl font-bold tracking-tight text-[#fbf8f3] sm:text-6xl">The story becomes<br /><span className="text-amber-400">a world.</span></h2>
-                <p className="mt-4 max-w-lg text-xs leading-7 text-stone-300">The same project intelligence that understands narrative reasons through visual language, character designs, mood, locations, and art direction.</p>
-              </div>
-              <motion.div whileHover={{ scale: 1.01 }} className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0e1119]/80 p-3 backdrop-blur-xl shadow-2xl">
-                <div className="relative aspect-video overflow-hidden rounded-2xl">
-                  <img src={cinematicImages.palace} alt="Cinematic story world" className="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
-                  <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between">
-                    <div>
-                      <div className="text-[9px] uppercase tracking-[0.2em] font-bold text-amber-400">V2 · Story World</div>
-                      <div className="mt-1.5 text-base font-bold text-[#fbf8f3]">From narrative intent to visual canon.</div>
-                    </div>
-                    <div className="rounded-full border border-white/20 bg-black/40 p-3 backdrop-blur"><Play className="h-4 w-4 fill-white text-white" /></div>
-                  </div>
+        {/* =====================================================================
+            SECTION 5: HEROIC FINAL CTA SECTION
+            Deep Roasted Espresso (#1b1411) with Signature Mint Button
+            ===================================================================== */}
+        <section className="relative -mt-10 rounded-t-[3.5rem] bg-[#1b1411] text-[#faf5f0] px-6 py-32 lg:px-12 z-30 text-center">
+          <div className="mx-auto max-w-4xl">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#33cc7a]/15 text-[#33cc7a] mb-8">
+              <Clapperboard className="w-7 h-7" />
+            </div>
+
+            <h2 className="text-5xl sm:text-7xl lg:text-8xl font-bold leading-[0.95] tracking-tight text-[#faf5f0]">
+              Build the project.
+              <br />
+              <span className="text-[#b8aba3]/60 font-light">Not another prompt.</span>
+            </h2>
+
+            <p className="mx-auto mt-6 max-w-xl text-sm sm:text-base leading-relaxed text-[#b8aba3]">
+              Start with your idea. Lock canonical ground truth. Explore directions. Evaluate and repair continuity. Carry project intelligence into production.
+            </p>
+
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={enterProduct}
+                className="group relative inline-flex items-center justify-center gap-3 rounded-full bg-[#33cc7a] px-9 py-4 text-sm font-bold text-[#1b1411] transition hover:bg-[#2eb76e] shadow-2xl shadow-[#33cc7a]/40"
+              >
+                <span>Start Developing Now</span>
+                <div className="linea-btn-wave h-3 text-[#1b1411]">
+                  <span className="h-1.5" />
+                  <span className="h-3" />
+                  <span className="h-2" />
                 </div>
-              </motion.div>
+              </button>
+
+              <button
+                onClick={openWaitlist}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-9 py-4 text-sm font-semibold text-[#faf5f0] transition hover:bg-white/[0.08]"
+              >
+                <span>Request Early Access</span>
+              </button>
             </div>
           </div>
-        </section>
-
-        {/* Model Orchestration Section */}
-        <section id="models" className="border-b border-white/[0.08] bg-[#0a0c12] px-5 py-24 lg:px-10 lg:py-32">
-          <div className="mx-auto max-w-[1240px]">
-            <div className="grid gap-14 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-amber-400">Model Orchestration</p>
-                <h2 className="mt-4 text-4xl font-bold tracking-tight text-[#fbf8f3] sm:text-6xl">Multiple models.<br /><span className="text-stone-400/60 font-light">One Story Intelligence.</span></h2>
-                <p className="mt-4 text-xs leading-7 text-stone-300">Tattava's durable intelligence layer sits above individual LLM providers: project state, retrieval, multi-step reasoning, evidence, workflow orchestration and human approval.</p>
-              </div>
-              <div className="relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0e1119]/90 p-8 shadow-2xl">
-                <div className="absolute h-72 w-72 rounded-full border border-amber-400/10" />
-                <div className="absolute h-52 w-52 rounded-full border border-amber-400/10" />
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 28, repeat: Infinity, ease: 'linear' }} className="absolute h-80 w-80">
-                  <span className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-amber-400 shadow-[0_0_22px_rgba(245,158,11,.8)]" />
-                  <span className="absolute bottom-8 right-2 h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_18px_rgba(34,211,238,.8)]" />
-                  <span className="absolute bottom-10 left-2 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,.8)]" />
-                </motion.div>
-                <motion.div animate={{ scale: [1, 1.04, 1] }} transition={{ duration: 4, repeat: Infinity }} className="relative z-10 flex h-36 w-36 flex-col items-center justify-center rounded-full border border-amber-400/25 bg-amber-400/10 text-center shadow-[0_0_80px_rgba(245,158,11,.15)]">
-                  <Network className="h-6 w-6 text-amber-400" />
-                  <div className="mt-2 text-[10px] font-bold tracking-[0.14em] text-[#fbf8f3]">PROJECT</div>
-                  <div className="text-[10px] font-bold tracking-[0.14em] text-[#fbf8f3]">INTELLIGENCE</div>
-                </motion.div>
-                {[
-                  ['REASONING', Brain, 'Narrative decisions', 'left-8 top-8'],
-                  ['RESEARCH', Search, 'Evidence synthesis', 'right-8 top-8'],
-                  ['WRITING', Wand2, 'Creative generation', 'left-8 bottom-8'],
-                  ['EVALUATION', Check, 'Narrative diagnostics', 'right-8 bottom-8'],
-                ].map(([title, Icon, sub, pos]) => (
-                  <motion.div key={title as string} whileHover={{ y: -4 }} className={`absolute ${pos as string} rounded-2xl border border-white/[0.08] bg-[#141824]/80 p-3.5 backdrop-blur-xl shadow-lg`}>
-                    {React.createElement(Icon as React.ElementType, { className: 'h-4 w-4 text-amber-400' })}
-                    <div className="mt-2 text-[10px] font-bold tracking-[0.14em] text-[#fbf8f3]">{title as string}</div>
-                    <div className="mt-0.5 text-[10px] text-stone-400">{sub as string}</div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Capabilities Section */}
-        <section id="studios" className="border-b border-white/[0.08] px-5 py-24 lg:px-10 lg:py-32">
-          <div className="mx-auto max-w-[1240px]">
-            <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] font-bold text-amber-400">Explore the System</p>
-                <h2 className="mt-4 text-4xl font-bold tracking-tight text-[#fbf8f3] sm:text-6xl">Capabilities, not checklists.</h2>
-              </div>
-              <p className="max-w-md text-xs leading-6 text-stone-400">Live capabilities open the pilot. Roadmap capabilities represent upcoming pipeline extensions.</p>
-            </div>
-
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={stagger} className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {capabilities.map((feature) => (
-                <motion.button key={feature.title} variants={reveal} whileHover={{ y: -4 }} onClick={() => openFeature(feature)} className="group min-h-[220px] rounded-3xl border border-white/[0.08] bg-[#0e1119]/80 p-6 text-left transition hover:border-amber-400/30 hover:bg-[#141824]/60 shadow-xl">
-                  <div className="flex items-center justify-between">
-                    <span className={feature.live ? 'rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 text-[8px] uppercase tracking-[0.16em] text-emerald-300 font-bold' : 'rounded-full bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 text-[8px] uppercase tracking-[0.16em] text-stone-400 font-semibold'}>{feature.eyebrow}</span>
-                    <ArrowRight className="h-4 w-4 text-stone-500 transition group-hover:translate-x-1 group-hover:text-amber-400" />
-                  </div>
-                  <div className="mt-10 text-base font-bold text-[#fbf8f3] tracking-tight">{feature.title}</div>
-                  <p className="mt-2 text-xs leading-5 text-stone-400">{feature.description}</p>
-                </motion.button>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="relative overflow-hidden bg-[#0a0c12] px-5 py-28 lg:px-10 lg:py-40">
-          <div className="absolute left-1/2 top-1/2 h-[500px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-400/[0.06] blur-[150px]" />
-          <motion.div initial={{ opacity: 0, y: 35 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.8 }} className="relative mx-auto max-w-4xl text-center">
-            <Clapperboard className="mx-auto h-8 w-8 text-amber-400" />
-            <h2 className="mt-6 text-5xl font-bold leading-[0.95] tracking-tight text-[#fbf8f3] sm:text-8xl">Build the project.<br /><span className="text-stone-400/60 font-light">Not another prompt.</span></h2>
-            <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-stone-300">Start with an idea. Keep the research. Make the decision. Build the canon. Carry the intelligence forward.</p>
-            <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-              <button onClick={enterProduct} className="rounded-full bg-[#fbf8f3] px-8 py-3.5 text-sm font-bold text-stone-950 transition hover:bg-amber-300 shadow-lg shadow-white/10">Start Developing</button>
-              <button onClick={openWaitlist} className="rounded-full border border-white/[0.12] bg-[#141824]/60 px-8 py-3.5 text-sm font-medium text-stone-200 transition hover:border-white/25 hover:bg-[#141824]/90">Join Early Access</button>
-            </div>
-          </motion.div>
         </section>
       </main>
 
-      {/* Modals */}
+      {/* =====================================================================
+          MODALS: Master Access & Early Access in Linea Espresso (#1b1411)
+          ===================================================================== */}
       <AnimatePresence>
         {modal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex items-center justify-center bg-black/85 p-5 backdrop-blur-xl" onMouseDown={(e) => { if (e.target === e.currentTarget) setModal(null); }}>
-            <motion.div initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.98 }} transition={{ duration: 0.35 }} className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-[#0e1119]/95 p-8 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-5 backdrop-blur-xl"
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setModal(null); }}
+          >
+            <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#1b1411] p-8 shadow-2xl text-[#faf5f0]">
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-[9px] uppercase tracking-[0.22em] font-bold text-amber-400">{modal === 'feature' ? (selectedFeature?.live ? 'Pilot capability' : 'Coming soon') : modal === 'signin' ? 'Master access' : 'Early access'}</div>
-                  <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#fbf8f3]">{modal === 'feature' ? selectedFeature?.title : modal === 'signin' ? 'Enter TattvaCo' : 'Join Early Access'}</h3>
+                  <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-[#33cc7a]">
+                    {modal === 'feature' ? (selectedFeature?.live ? 'Live Pilot Capability' : 'Upcoming Feature') : modal === 'signin' ? 'Master Access' : 'Early Access'}
+                  </span>
+                  <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#faf5f0]">
+                    {modal === 'feature' ? selectedFeature?.title : modal === 'signin' ? 'Enter TattvaCo' : 'Join Early Access'}
+                  </h3>
                 </div>
-                <button onClick={() => setModal(null)} className="rounded-full p-2 text-stone-400 transition hover:bg-white/[0.05] hover:text-white"><X className="h-4 w-4" /></button>
+                <button
+                  onClick={() => setModal(null)}
+                  className="rounded-full p-2 text-[#b8aba3] hover:bg-white/10 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               {modal === 'signin' && (
                 <div className="mt-6">
-                  <div className="mb-5 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4">
-                    <div className="text-[9px] uppercase tracking-[0.18em] font-bold text-amber-400">Pilot Master Access</div>
-                    <p className="mt-1 text-xs leading-5 text-stone-300">Direct studio pilot access is provisioned without password entry.</p>
+                  <div className="rounded-2xl border border-[#33cc7a]/30 bg-[#33cc7a]/10 p-4 mb-5">
+                    <div className="text-[10px] uppercase font-bold text-[#33cc7a]">Pilot Access Provisioned</div>
+                    <p className="mt-1 text-xs text-[#faf5f0]/80">Frictionless access enabled. No password entry required.</p>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <label className="mb-1 block text-[9px] uppercase tracking-[0.16em] font-semibold text-stone-400">Name</label>
-                      <input value="TATTVACO" readOnly className="w-full rounded-full border border-white/[0.1] bg-[#141824]/90 px-5 py-2.5 text-xs text-stone-200 outline-none" />
+                      <label className="text-[10px] uppercase font-bold text-[#b8aba3] block mb-1">User</label>
+                      <input value="TATTVACO" readOnly className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-[#faf5f0] outline-none" />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[9px] uppercase tracking-[0.16em] font-semibold text-stone-400">Email</label>
-                      <input value="KAUSTUBH.D@TATTVACO.COM" readOnly className="w-full rounded-full border border-white/[0.1] bg-[#141824]/90 px-5 py-2.5 text-xs text-stone-200 outline-none" />
+                      <label className="text-[10px] uppercase font-bold text-[#b8aba3] block mb-1">Email</label>
+                      <input value="KAUSTUBH.D@TATTVACO.COM" readOnly className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-[#faf5f0] outline-none" />
                     </div>
                   </div>
-                  <button onClick={() => { track('master_signin_success', { name: 'TATTVACO', email: 'KAUSTUBH.D@TATTVACO.COM' }); localStorage.setItem('tattava_master_session', JSON.stringify({ name: 'TATTVACO', email: 'KAUSTUBH.D@TATTVACO.COM', role: 'master', signedInAt: new Date().toISOString() })); setModal(null); enterProduct(); }} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-xs font-bold text-stone-950 hover:bg-amber-300 transition shadow-md shadow-amber-400/20">
-                    Enter TattvaCo <ArrowRight className="h-4 w-4" />
+                  <button
+                    onClick={() => {
+                      track('master_signin_success');
+                      localStorage.setItem('tattava_master_session', JSON.stringify({ name: 'TATTVACO', email: 'KAUSTUBH.D@TATTVACO.COM', role: 'master', signedInAt: new Date().toISOString() }));
+                      setModal(null);
+                      enterProduct();
+                    }}
+                    className="mt-6 w-full rounded-full bg-[#33cc7a] px-5 py-3 text-xs font-bold text-[#1b1411] hover:bg-[#2eb76e] transition shadow-lg shadow-[#33cc7a]/30 flex items-center justify-center gap-2"
+                  >
+                    <span>Enter Studio</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               )}
 
               {modal === 'waitlist' && (
-                <form className="mt-6 space-y-3" onSubmit={(e) => { e.preventDefault(); track('waitlist_submit'); setSubmitted(true); }}>
+                <form
+                  className="mt-6 space-y-3.5"
+                  onSubmit={(e) => { e.preventDefault(); track('waitlist_submit'); setSubmitted(true); }}
+                >
                   {!submitted ? (
                     <>
-                      <input required placeholder="Your Full Name" className="w-full rounded-full border border-white/[0.1] bg-[#141824]/90 px-5 py-3 text-xs text-[#fbf8f3] outline-none placeholder:text-stone-500 focus:border-amber-400" />
-                      <input required type="email" placeholder="Work Email" className="w-full rounded-full border border-white/[0.1] bg-[#141824]/90 px-5 py-3 text-xs text-[#fbf8f3] outline-none placeholder:text-stone-500 focus:border-amber-400" />
-                      <select defaultValue="" required className="w-full rounded-full border border-white/[0.1] bg-[#141824]/90 px-5 py-3 text-xs text-stone-300 outline-none focus:border-amber-400">
-                        <option value="" disabled>Select Role</option><option>Writer</option><option>Director</option><option>Producer</option><option>Production House</option><option>Studio Executive</option><option>Other</option>
+                      <input required placeholder="Your Name" className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs text-[#faf5f0] outline-none placeholder:text-[#b8aba3]/60 focus:border-[#33cc7a]" />
+                      <input required type="email" placeholder="Work Email" className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs text-[#faf5f0] outline-none placeholder:text-[#b8aba3]/60 focus:border-[#33cc7a]" />
+                      <select defaultValue="" required className="w-full rounded-full border border-white/10 bg-[#1b1411] px-4 py-3 text-xs text-[#faf5f0]/80 outline-none focus:border-[#33cc7a]">
+                        <option value="" disabled>Select Role</option>
+                        <option>Writer / Showrunner</option>
+                        <option>Director</option>
+                        <option>Producer</option>
+                        <option>Production Studio</option>
                       </select>
-                      <button className="mt-2 w-full rounded-full bg-amber-400 px-5 py-3 text-xs font-bold text-stone-950 hover:bg-amber-300 transition shadow-md shadow-amber-400/20">Request Early Access</button>
+                      <button className="mt-2 w-full rounded-full bg-[#33cc7a] px-5 py-3 text-xs font-bold text-[#1b1411] hover:bg-[#2eb76e] transition shadow-md shadow-[#33cc7a]/30">
+                        Request Studio Access
+                      </button>
                     </>
                   ) : (
-                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-6 text-center">
-                      <Check className="mx-auto h-6 w-6 text-emerald-400" />
-                      <p className="mt-3 text-sm font-bold text-[#fbf8f3]">You're on the list.</p>
-                      <p className="mt-1 text-xs text-stone-400">Thanks for helping shape TattvaCo.</p>
+                    <div className="rounded-2xl border border-[#33cc7a]/30 bg-[#33cc7a]/10 p-6 text-center">
+                      <Check className="mx-auto w-6 h-6 text-[#33cc7a]" />
+                      <p className="mt-3 text-sm font-bold text-[#faf5f0]">You are on the list.</p>
+                      <p className="mt-1 text-xs text-[#b8aba3]">We will reach out to activate your project workspace.</p>
                     </div>
                   )}
                 </form>
@@ -650,25 +787,33 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
 
               {modal === 'feature' && selectedFeature && (
                 <div className="mt-6">
-                  <p className="text-xs leading-6 text-stone-300">{selectedFeature.description}</p>
+                  <p className="text-xs sm:text-sm text-[#b8aba3] leading-relaxed">{selectedFeature.description}</p>
                   {selectedFeature.live ? (
-                    <button onClick={() => { setModal(null); enterProduct(); }} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#fbf8f3] px-5 py-3 text-xs font-bold text-stone-950 hover:bg-amber-300 transition shadow-md">
-                      Open TattvaCo <ArrowRight className="h-4 w-4" />
+                    <button
+                      onClick={() => { setModal(null); enterProduct(); }}
+                      className="mt-6 w-full rounded-full bg-[#33cc7a] px-5 py-3 text-xs font-bold text-[#1b1411] hover:bg-[#2eb76e] transition flex items-center justify-center gap-2"
+                    >
+                      <span>Open in Studio</span>
+                      <ArrowRight className="w-4 h-4" />
                     </button>
                   ) : !submitted ? (
                     <div className="mt-6 grid grid-cols-3 gap-2">
-                      {['Definitely', 'Maybe', 'Not yet'].map((choice) => (
-                        <button key={choice} onClick={() => { track('feature_interest', { feature: selectedFeature.title, choice }); setSubmitted(true); }} className="rounded-full border border-white/[0.08] bg-[#141824]/60 px-3 py-2.5 text-xs text-stone-300 transition hover:border-amber-400/30 hover:text-white">
+                      {['Essential', 'Nice to have', 'Not priority'].map((choice) => (
+                        <button
+                          key={choice}
+                          onClick={() => { track('feature_interest', { feature: selectedFeature.title, choice }); setSubmitted(true); }}
+                          className="rounded-full border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-[#faf5f0] hover:border-[#33cc7a] transition"
+                        >
                           {choice}
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-xs text-emerald-300">Signal captured. We appreciate your feedback.</div>
+                    <div className="mt-6 rounded-2xl bg-[#33cc7a]/10 p-4 text-xs text-[#33cc7a]">Feedback captured. Thank you.</div>
                   )}
                 </div>
               )}
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

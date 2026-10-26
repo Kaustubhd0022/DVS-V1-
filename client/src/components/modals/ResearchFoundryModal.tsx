@@ -52,33 +52,33 @@ export const ResearchFoundryModal: React.FC<ResearchFoundryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-2xl animate-fadeIn overflow-y-auto">
-      <div className="relative w-full max-w-6xl bg-[#0c0f17]/95 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden backdrop-blur-2xl">
+      <div className="relative w-full max-w-6xl bg-[#1b1411]/98 border border-white/10 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden backdrop-blur-2xl">
         
         {/* Header */}
-        <div className="p-6 md:p-8 border-b border-white/[0.08] bg-gradient-to-r from-amber-950/20 via-[#131724] to-[#0c0f17] flex items-start justify-between gap-4">
+        <div className="p-6 md:p-8 border-b border-white/[0.08] bg-gradient-to-r from-[#2e241f] via-[#1b1411] to-[#15100e] flex items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-[11px] font-mono uppercase tracking-wider font-extrabold border border-amber-500/30 flex items-center gap-1.5">
+              <span className="px-3 py-1 rounded-full bg-[#33cc7a]/15 text-[#33cc7a] text-[11px] font-mono uppercase tracking-wider font-extrabold border border-[#33cc7a]/30 flex items-center gap-1.5">
                 <Compass className="w-3.5 h-3.5" />
                 <span>Research-First Narrative Foundry</span>
               </span>
-              <span className="px-3 py-1 rounded-full bg-cyan-500/15 text-cyan-300 text-[11px] font-mono font-semibold border border-cyan-500/25">
+              <span className="px-3 py-1 rounded-full bg-[#bacde0]/15 text-[#bacde0] text-[11px] font-mono font-semibold border border-[#bacde0]/25">
                 {researchData?.eraDomain || 'Historical & Mythological Domain'}
               </span>
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-extrabold text-[#fbf8f3] font-serif tracking-tight">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-[#faf5f0] font-serif tracking-tight">
               {researchData?.rootTopic || topicQuery || 'Research Universe Discovery'}
             </h2>
 
-            <p className="text-xs md:text-sm text-stone-300 max-w-3xl leading-relaxed">
+            <p className="text-xs md:text-sm text-[#b8aba3] max-w-3xl leading-relaxed">
               {researchData?.historicalContext || 'Synthesizing historical records, archival evidence, and ancient traditions into production-grade dramatic conflict seeds.'}
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-stone-400 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-[#b8aba3] hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -88,18 +88,18 @@ export const ResearchFoundryModal: React.FC<ResearchFoundryModalProps> = ({
         {isLoading ? (
           <div className="p-16 flex flex-col items-center justify-center space-y-6 text-center">
             <div className="relative">
-              <div className="w-20 h-20 rounded-full border-4 border-amber-500/20 border-t-amber-400 animate-spin" />
-              <Compass className="w-8 h-8 text-amber-400 absolute inset-0 m-auto animate-pulse" />
+              <div className="w-20 h-20 rounded-full border-4 border-[#33cc7a]/20 border-t-[#33cc7a] animate-spin" />
+              <Compass className="w-8 h-8 text-[#33cc7a] absolute inset-0 m-auto animate-pulse" />
             </div>
 
             <div className="space-y-2 max-w-md">
               <h3 className="text-lg font-bold text-white font-serif">Mapping the Historical & Mythological Universe...</h3>
-              <p className="text-xs text-stone-400">
+              <p className="text-xs text-[#b8aba3]">
                 Searching primary archives, epigraphs, and historiography to uncover the core human and dramatic conflicts.
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 text-xs font-mono text-amber-400/80 pt-4">
+            <div className="flex flex-col gap-2 text-xs font-mono text-[#33cc7a]/90 pt-4">
               <span className="flex items-center gap-2">✓ Querying historical chronology & geopolitical arena</span>
               <span className="flex items-center gap-2">✓ Validating Tier 1 & Tier 2 evidence provenance</span>
               <span className="flex items-center gap-2 animate-pulse">⚡ Synthesizing 3 character-driven Story Seeds...</span>
@@ -109,13 +109,13 @@ export const ResearchFoundryModal: React.FC<ResearchFoundryModalProps> = ({
           <div className="flex-1 flex flex-col overflow-hidden">
             
             {/* Navigation Tabs (Linea Pill Capsule) */}
-            <div className="flex items-center gap-2 px-6 pt-3 pb-3 border-b border-white/[0.08] bg-[#090b10] overflow-x-auto">
+            <div className="flex items-center gap-2 px-6 pt-3 pb-3 border-b border-white/[0.08] bg-[#15100e] overflow-x-auto">
               <button
                 onClick={() => setActiveTab('seeds')}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   activeTab === 'seeds'
-                    ? 'bg-amber-400 text-black shadow-lg shadow-amber-500/20'
-                    : 'text-stone-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#33cc7a] text-[#1b1411] shadow-lg shadow-[#33cc7a]/20'
+                    : 'text-[#b8aba3] hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Flame className="w-4 h-4" />
@@ -126,8 +126,8 @@ export const ResearchFoundryModal: React.FC<ResearchFoundryModalProps> = ({
                 onClick={() => setActiveTab('timeline')}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   activeTab === 'timeline'
-                    ? 'bg-amber-400 text-black shadow-lg shadow-amber-500/20'
-                    : 'text-stone-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#33cc7a] text-[#1b1411] shadow-lg shadow-[#33cc7a]/20'
+                    : 'text-[#b8aba3] hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Clock className="w-4 h-4" />
@@ -138,8 +138,8 @@ export const ResearchFoundryModal: React.FC<ResearchFoundryModalProps> = ({
                 onClick={() => setActiveTab('personae')}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   activeTab === 'personae'
-                    ? 'bg-amber-400 text-black shadow-lg shadow-amber-500/20'
-                    : 'text-stone-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#33cc7a] text-[#1b1411] shadow-lg shadow-[#33cc7a]/20'
+                    : 'text-[#b8aba3] hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Users className="w-4 h-4" />
@@ -150,8 +150,8 @@ export const ResearchFoundryModal: React.FC<ResearchFoundryModalProps> = ({
                 onClick={() => setActiveTab('evidence')}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   activeTab === 'evidence'
-                    ? 'bg-amber-400 text-black shadow-lg shadow-amber-500/20'
-                    : 'text-stone-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#33cc7a] text-[#1b1411] shadow-lg shadow-[#33cc7a]/20'
+                    : 'text-[#b8aba3] hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Shield className="w-4 h-4" />
@@ -168,7 +168,7 @@ export const ResearchFoundryModal: React.FC<ResearchFoundryModalProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <h3 className="text-base font-bold text-white flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        <Sparkles className="w-4 h-4 text-[#33cc7a]" />
                         <span>Select a Dramatic Story Seed to Construct Your Screenplay</span>
                       </h3>
                       <p className="text-xs text-white/60">

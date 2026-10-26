@@ -72,12 +72,26 @@ export default {
           honey: '#fbbf24',
           gold: '#d97706',
           'amber-glow': 'rgba(245, 158, 11, 0.25)'
+        },
+        // Exact Linea Template Colors
+        linea: {
+          espresso: '#1b1411',
+          cream: '#faf5f0',
+          sand: '#eee5dc',
+          mint: '#33cc7a',
+          'mint-dark': '#24a35e',
+          taupe: '#66574f',
+          slate: '#1f3954',
+          ice: '#bacde0',
+          darkcard: '#2e241f',
+          stone: '#b8aba3'
         }
       },
       borderRadius: {
         '2.5xl': '1.25rem',
         '3xl': '1.75rem',
         '4xl': '2.25rem',
+        'sheet': '3.5rem',
         'pill': '9999px'
       },
       fontFamily: {

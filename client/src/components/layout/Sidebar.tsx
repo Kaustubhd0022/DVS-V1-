@@ -77,7 +77,7 @@ export const Sidebar: React.FC = () => {
     <aside
       className={`${
         isCollapsed ? 'w-[72px]' : 'w-64'
-      } bg-[#0a0c12] border-r border-white/[0.08] flex flex-col justify-between flex-shrink-0 min-h-screen select-none z-30 transition-[width] duration-300 ease-in-out relative`}
+      } bg-[#1b1411] border-r border-white/[0.08] flex flex-col justify-between flex-shrink-0 min-h-screen select-none z-30 transition-[width] duration-300 ease-in-out relative`}
     >
       {/* Top branding & controls */}
       <div className={`${isCollapsed ? 'p-3' : 'p-5'}`}>
@@ -86,8 +86,8 @@ export const Sidebar: React.FC = () => {
             {/* Collapsed Monogram */}
             <button
               onClick={() => setActiveScreen('home')}
-              title="Tattava Copilot • Home"
-              className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 border border-amber-500/40 flex items-center justify-center font-bold text-amber-300 text-sm shadow-md hover:scale-105 transition-transform"
+              title="TattvaCo • Home"
+              className="w-10 h-10 rounded-2xl bg-[#33cc7a]/15 border border-[#33cc7a]/40 flex items-center justify-center font-bold text-[#33cc7a] text-sm shadow-md hover:scale-105 transition-transform"
             >
               T
             </button>
@@ -97,7 +97,7 @@ export const Sidebar: React.FC = () => {
               title="Expand Sidebar"
               className="w-8 h-8 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
             >
-              <ChevronRight className="w-4 h-4 text-amber-400" />
+              <ChevronRight className="w-4 h-4 text-[#33cc7a]" />
             </button>
           </div>
         ) : (
@@ -109,12 +109,15 @@ export const Sidebar: React.FC = () => {
               <div className="flex flex-col">
                 <img
                   src="/tattvaCo-logo.png"
-                  alt="Tattava Copilot"
-                  className="h-8 w-auto max-w-[165px] object-contain object-left brightness-110 group-hover:brightness-125 transition-all drop-shadow-[0_2px_12px_rgba(245,158,11,0.2)]"
+                  alt="TattvaCo"
+                  className="h-8 w-auto max-w-[165px] object-contain object-left transition-all"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://raw.githubusercontent.com/Kaustubhd0022/DVS-V1-/main/tattvaCo-logo.png";
+                  }}
                 />
-                <span className="inline-flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-[0.25em] text-amber-400/90 mt-1 pl-0.5 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                  V1 Pilot
+                <span className="inline-flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-[0.25em] text-[#33cc7a] mt-1 pl-0.5 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#33cc7a] shadow-[0_0_6px_rgba(51,204,122,0.8)]" />
+                  Film Development OS
                 </span>
               </div>
             </div>
@@ -125,7 +128,7 @@ export const Sidebar: React.FC = () => {
               title="Collapse Sidebar"
               className="w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors mt-0.5"
             >
-              <ChevronLeft className="w-4 h-4 text-white/60 hover:text-amber-400" />
+              <ChevronLeft className="w-4 h-4 text-white/60 hover:text-[#33cc7a]" />
             </button>
           </div>
         )}
@@ -151,11 +154,11 @@ export const Sidebar: React.FC = () => {
                       title={item.label}
                       className={`w-full flex items-center justify-center p-2.5 rounded-full transition-all relative group ${
                         isSelected
-                          ? 'bg-amber-500/15 text-amber-300 shadow-[0_2px_10px_rgba(245,158,11,0.2)] border border-amber-500/40'
+                          ? 'bg-[#33cc7a]/20 text-[#33cc7a] shadow-[0_2px_10px_rgba(51,204,122,0.25)] border border-[#33cc7a]/40'
                           : 'text-stone-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      <span className={isSelected ? 'text-amber-300' : 'text-stone-400 group-hover:text-white'}>
+                      <span className={isSelected ? 'text-[#33cc7a]' : 'text-stone-400 group-hover:text-white'}>
                         {item.icon}
                       </span>
                     </button>
@@ -168,11 +171,11 @@ export const Sidebar: React.FC = () => {
                     onClick={() => setActiveScreen(item.id)}
                     className={`w-full flex items-center gap-2.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
                       isSelected
-                        ? 'bg-amber-500/15 text-amber-200 shadow-[0_2px_12px_rgba(245,158,11,0.18)] border border-amber-500/40'
+                        ? 'bg-[#33cc7a]/20 text-[#33cc7a] shadow-[0_2px_12px_rgba(51,204,122,0.2)] border border-[#33cc7a]/40'
                         : 'text-stone-300 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    <span className={isSelected ? 'text-amber-400' : 'text-stone-400'}>
+                    <span className={isSelected ? 'text-[#33cc7a]' : 'text-stone-400'}>
                       {item.icon}
                     </span>
                     <span>{item.label}</span>

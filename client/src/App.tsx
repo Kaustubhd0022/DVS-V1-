@@ -54,7 +54,7 @@ export const App: React.FC = () => {
   }
   if (auth.status === 'ready' && sync.status === 'loading') {
     return (
-      <div className="min-h-screen bg-[#0c0e12] text-white/60 flex items-center justify-center text-sm" role="status">
+      <div className="min-h-screen bg-[#1b1411] text-[#b8aba3] flex items-center justify-center text-sm" role="status">
         Loading your projects…
       </div>
     );
@@ -109,7 +109,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0c12] text-[#fbf8f3] flex overflow-x-hidden font-sans selection:bg-amber-500/30 selection:text-white">
+    <div className="min-h-screen bg-[#15100e] text-[#faf5f0] flex overflow-x-hidden font-sans selection:bg-[#33cc7a]/30 selection:text-white">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">

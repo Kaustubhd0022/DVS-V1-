@@ -96,7 +96,7 @@ export const TopHeader: React.FC = () => {
   const totalResults = matchedCharacters.length + matchedCanonFacts.length + matchedScenes.length + matchedProjects.length;
 
   return (
-    <header className="h-16 border-b border-white/[0.08] bg-[#0c0f17]/90 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-40 transition-colors">
+    <header className="h-16 border-b border-white/[0.08] bg-[#1b1411]/90 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-40 transition-colors">
       {/* Search bar & Dropdown */}
       <div ref={searchContainerRef} className="flex-1 max-w-xl relative">
         <div className="relative flex items-center">
@@ -111,7 +111,7 @@ export const TopHeader: React.FC = () => {
               setIsSearchOpen(true);
             }}
             placeholder="Search characters, canon facts, scenes, or projects..."
-            className="w-full bg-[#131722]/90 border border-white/10 rounded-full pl-11 pr-20 py-2 text-xs text-[#fbf8f3] placeholder-stone-400 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 shadow-inner transition-all"
+            className="w-full bg-[#2e241f]/80 border border-white/10 rounded-full pl-11 pr-20 py-2 text-xs text-[#faf5f0] placeholder-stone-400 focus:outline-none focus:border-[#33cc7a] focus:ring-1 focus:ring-[#33cc7a]/50 shadow-inner transition-all"
           />
           {searchQuery && (
             <button
@@ -132,7 +132,7 @@ export const TopHeader: React.FC = () => {
 
         {/* Global Search Results Dropdown */}
         {isSearchOpen && searchQuery.trim().length > 0 && (
-          <div className="absolute top-12 left-0 w-full bg-[#131724]/95 border border-white/10 rounded-3xl shadow-2xl p-4 z-50 max-h-[460px] overflow-y-auto space-y-3 backdrop-blur-2xl animate-in fade-in zoom-in-95">
+          <div className="absolute top-12 left-0 w-full bg-[#1b1411]/95 border border-white/10 rounded-3xl shadow-2xl p-4 z-50 max-h-[460px] overflow-y-auto space-y-3 backdrop-blur-2xl animate-in fade-in zoom-in-95">
             {totalResults === 0 ? (
               <div className="p-6 text-center space-y-2">
                 <Search className="w-6 h-6 text-stone-500 mx-auto" />
@@ -268,7 +268,7 @@ export const TopHeader: React.FC = () => {
           onClick={() => setActiveScreen('create-project')}
           className="linea-pill-btn linea-pill-secondary px-4 py-2 text-xs font-semibold gap-2 border border-white/10 shadow-sm"
         >
-          <Plus className="w-3.5 h-3.5 text-amber-400" />
+          <Plus className="w-3.5 h-3.5 text-[#33cc7a]" />
           <span>New Project</span>
         </button>
 
@@ -277,12 +277,12 @@ export const TopHeader: React.FC = () => {
           onClick={toggleCopilot}
           className={`linea-pill-btn px-4 py-2 text-xs font-semibold gap-2 transition-all ${
             isCopilotOpen
-              ? 'linea-pill-primary'
-              : 'linea-pill-secondary text-stone-300 hover:text-white'
+              ? 'bg-[#33cc7a] text-[#1b1411] font-bold shadow-lg shadow-[#33cc7a]/30'
+              : 'bg-white/5 border border-white/10 text-stone-300 hover:text-white'
           }`}
           title="Toggle Contextual AI Copilot"
         >
-          <Sparkles className={`w-3.5 h-3.5 ${isCopilotOpen ? 'text-black' : 'text-amber-400'}`} />
+          <Sparkles className={`w-3.5 h-3.5 ${isCopilotOpen ? 'text-[#1b1411]' : 'text-[#33cc7a]'}`} />
           <span className="hidden md:inline">Copilot</span>
           <span className="linea-btn-wave" aria-hidden="true">
             <span />
@@ -292,22 +292,22 @@ export const TopHeader: React.FC = () => {
         </button>
 
         {/* Notifications Pill */}
-        <button className="relative w-9 h-9 rounded-full bg-[#151924] hover:bg-[#1e2332] border border-white/10 text-stone-300 hover:text-white flex items-center justify-center transition-all">
+        <button className="relative w-9 h-9 rounded-full bg-[#2e241f] hover:bg-[#382b25] border border-white/10 text-stone-300 hover:text-white flex items-center justify-center transition-all">
           <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#33cc7a] shadow-[0_0_8px_rgba(51,204,122,0.8)]" />
         </button>
 
         {/* User profile pill */}
         <div className="relative">
           <button 
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-[#151924]/80 hover:bg-[#1f2536] border border-white/10 transition-all cursor-pointer"
+            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-[#2e241f] hover:bg-[#382b25] border border-white/10 transition-all cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-amber-600 text-black flex items-center justify-center font-bold text-xs shadow-sm">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#33cc7a] to-[#24a35e] text-[#1b1411] flex items-center justify-center font-bold text-xs shadow-sm">
               KD
             </div>
             <div className="hidden lg:block text-left">
-              <p className="text-xs font-semibold text-[#fbf8f3] leading-tight">Kaustubh</p>
+              <p className="text-xs font-semibold text-[#faf5f0] leading-tight">Kaustubh</p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
           </button>
