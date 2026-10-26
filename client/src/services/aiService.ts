@@ -1046,22 +1046,9 @@ Return ONLY valid JSON matching:
       risks: parsed.risks || 'Maintain narrative momentum in middle act',
       compTitles: parsed.compTitles || 'Original Narrative Engine'
     };
-  } catch (err) {
-    console.warn('Live AI call issue in fleshOutStoryDirection, using grounded architecture fallback:', err);
-    return {
-      badgeLetter: '★',
-      title: userDirection.title,
-      logline: userDirection.logline,
-      narrativeEngine: userDirection.narrativeEngine || `Relentless character crucible centered on ${userDirection.title}`,
-      protagonistArc: 'Reluctant insider forced to confront institutional corruption, sacrificing personal safety for structural truth.',
-      conflict: 'Moral integrity vs entrenched systemic power',
-      stakes: userDirection.stakes || 'Irreversible personal loss and systemic collapse',
-      theme: userDirection.theme || 'Sovereignty, truth, and the price of silence',
-      tone: userDirection.tone || 'Grounded Neo-Noir, Tense, Atmospheric',
-      strengths: 'Deeply authorial, immediate character empathy, and high narrative propulsion',
-      risks: 'Ensure secondary antagonist motives match protagonist moral dilemma',
-      compTitles: 'Michael Clayton meets Sicario'
-    };
+  } catch (err: any) {
+    console.error('Error in fleshOutStoryDirection:', err);
+    throw new Error(`AI_DIRECTION_SYNTHESIS_ERROR: ${err?.message || 'Failed to synthesize story direction with live models.'}`);
   }
 };
 
@@ -1724,188 +1711,8 @@ Return ONLY a valid JSON object matching this schema:
       projectUpdates: parsed.projectUpdates
     };
   } catch (err: any) {
-    console.warn('Live AI discovery call encountered an issue, generating grounded contextual response:', err);
-
-    // Contextual Fallback Engine for smooth user experience under network latency or rate limit
-    const lower = userMessage.toLowerCase();
-    
-    // Scenario 1: Initial Idea ("historical series called Rajyam")
-    if (lower.includes('rajyam') || lower.includes('historical series') || lower.includes('want to create')) {
-      const detectedTitle = userMessage.match(/called\s+([A-Za-z0-9_'\s]+)/i)?.[1]?.trim().replace(/[."]$/, '') || 'Rajyam';
-      return {
-        thought: `Recognized user intent to create a historical series entitled "${detectedTitle}". Identified format as Series / OTT. Historical kingdom setting and timeline remain unresolved.`,
-        conversationalReply: `That is an evocative title and an ambitious canvas for a series. "${detectedTitle}" implies sovereignty, dynastic tension, and the heavy burden of rule.\n\nTo anchor this world: are you envisioning "${detectedTitle}" set in a real, historically attested Indian kingdom or dynasty (such as Magadha, the Mauryas, or the Cholas), or an authentic fictionalized/mythic realm?`,
-        actionType: 'CLARIFY',
-        knownExtracted: [
-          `Working Title: ${detectedTitle}`,
-          'Format: Historical Series / Episodic OTT',
-          'Core Motif: Sovereignty & dynastic power'
-        ],
-        unresolvedAmbiguities: [
-          'Historical Era & Kingdom (Real vs Fictionalized)',
-          'Geographical Setting & Timeline',
-          'Central Protagonist & Antagonistic Conflict'
-        ],
-        nextQuestion: `Do you envision "${detectedTitle}" set in a real historical kingdom or a fictionalized realm?`,
-        quickReplies: [
-          'I want a real historical kingdom.',
-          'A fictionalized / mythic realm.',
-          'Not sure—explore research options.'
-        ],
-        projectUpdates: {
-          title: detectedTitle,
-          contentType: 'Series / OTT',
-          genre: 'Historical Drama',
-          premise: `A historical episodic series exploring dynastic power, statecraft, and sovereignty in ancient India.`,
-          ambiguityLevel: 80
-        }
-      };
-    }
-
-    // Scenario 2: User requests real historical kingdom
-    if (lower.includes('real historical') || lower.includes('real kingdom') || lower.includes('historical kingdom')) {
-      return {
-        thought: 'User decided on a grounded, real historical kingdom. Realm is non-fictional. Next ambiguity is the chronological era and dynastic flavor.',
-        conversationalReply: `Grounded historical reality will give "Rajyam" immense institutional weight, authentic cultural texture, and high dramatic stakes.\n\nWhich era or historical flavor calls to you? Are you drawn to the earliest documented civilization in the subcontinent, the high imperial golden ages (like the Mauryans or Guptas), or a maritime seafaring dynasty?`,
-        actionType: 'CLARIFY',
-        knownExtracted: [
-          'Setting Principle: Grounded Historical Authenticity (Attested archaeology & epigraphy)'
-        ],
-        unresolvedAmbiguities: [
-          'Specific Dynasty / Empire',
-          'Chronological Era (e.g. 6th c. BCE vs 3rd c. BCE vs 10th c. CE)',
-          'Geographical Capital / Center of Power'
-        ],
-        nextQuestion: 'What era or flavor of historical kingdom do you want to explore?',
-        quickReplies: [
-          'I want the oldest kingdom possible.',
-          'High Imperial Golden Age (Mauryan / Gupta).',
-          'Maritime Dynasty (Chola / Pandya).',
-          'Frontier / Resistance kingdom.'
-        ],
-        projectUpdates: {
-          ambiguityLevel: 65
-        }
-      };
-    }
-
-    // Scenario 3: Research Objective ("the oldest kingdom possible")
-    if (lower.includes('oldest') || lower.includes('earliest') || lower.includes('first kingdom')) {
-      return {
-        thought: 'Recognized research objective: Identify the earliest historically and archaeologically attested sovereign kingdoms in ancient India with high narrative tension.',
-        conversationalReply: `Looking at ancient Indian historiography, the transition from tribal republics (ganas) to sovereign monarchical states (rajyas) solidified around the 6th–5th century BCE in the fertile Gangetic plains.\n\nI have investigated the three earliest archaeologically and epigraphically attested kingdoms. Here are three grounded candidate options with verifiable historical evidence:`,
-        actionType: 'RESEARCH_OPTIONS',
-        researchObjective: 'Investigate the earliest historically and archaeologically verified kingdoms in ancient India with rich dramatic potential.',
-        knownExtracted: [
-          'Setting Scope: Earliest attested kingdoms (c. 6th–5th Century BCE)'
-        ],
-        unresolvedAmbiguities: [
-          'Choice of Kingdom / Capital',
-          'Primary Dramatic Protagonist Angle'
-        ],
-        nextQuestion: 'Which of these three foundational kingdoms anchors the world of "Rajyam"?',
-        quickReplies: [
-          'Magadha under King Bimbisara (544 BCE)',
-          'The Mahajanapada Era: Kashi & Kosala (700 BCE)',
-          'Early Pandya / Sangam Maritime Kingdom'
-        ],
-        candidateOptions: [
-          {
-            id: 'opt-magadha',
-            title: 'Kingdom of Magadha under the Haryanka Dynasty (c. 544–413 BCE)',
-            source: 'Buddhist Mahavamsa, Jain Parishishtaparvan, and ASI cyclopean stone wall excavations at Rajagriha.',
-            sourceType: 'Archaeological',
-            evidence: 'Earliest documented centralized imperial kingdom in northern India. Founded by King Bimbisara; established through calculated diplomatic marriages (Kosala, Vaishali, Madra) and military annexation of Anga.',
-            finding: 'Palace intrigue, patricide, and philosophical revolution. Bimbisara was imprisoned and starved by his own ambitious son, Prince Ajatashatru. Contemporary with Gautama Buddha and Mahavira.',
-            dramaticImplication: 'Offers an extraordinary Shakespearean tragedy: royal espionage, the birth of ruthless realpolitik, and a son driven by astrologers and greed to overthrow his father.',
-            status: 'CANDIDATE',
-            era: '6th Century BCE (c. 544 BCE)',
-            tags: ['Bimbisara', 'Ajatashatru', 'Rajagriha', 'Patricide', 'Diplomatic Marriage']
-          },
-          {
-            id: 'opt-mahajanapada',
-            title: 'The Mahajanapada Transition — Kashi & Kosala (c. 700–500 BCE)',
-            source: 'Shatapatha Brahmana, early Buddhist Anguttara Nikaya, Painted Grey Ware (PGW) archaeological strata.',
-            sourceType: 'Historical Archive',
-            evidence: 'Earliest transitional proto-kingdoms along the central Ganga basin. Constant border skirmishes between hereditary monarchs and tribal oligarchies.',
-            finding: 'Raw, gritty proto-monarchy where divine kingship is an uneasy novelty and regional warlords constantly challenge royal edicts.',
-            dramaticImplication: 'Frontier instability, rival chieftain families, and the birth of royal spies operating in disguise.',
-            status: 'CANDIDATE',
-            era: 'c. 700–500 BCE',
-            tags: ['Kosala', 'Kashi', 'Proto-Kingdom', 'Border Wars']
-          },
-          {
-            id: 'opt-pandya',
-            title: 'Early Pandya / Sangam Kingdom (c. 6th–4th Century BCE)',
-            source: 'Keezhadi excavation stratigraphy, Tamil-Brahmi inscriptions, and Megasthenes\' Indica.',
-            sourceType: 'Archaeological',
-            evidence: 'Early urbanization along the Vaigai river basin in southern India, thriving international maritime pearl trade, guild structures, and distinct non-Vedic civilizational customs.',
-            finding: 'Unique coastal and seafaring setting with formidable matriarchal governance and global trade with the ancient Mediterranean.',
-            dramaticImplication: 'Vast ocean trade networks, foreign Roman/Greek merchant intrigue, and conflicts over harbor tariffs.',
-            status: 'CANDIDATE',
-            era: 'c. 6th Century BCE',
-            tags: ['Keezhadi', 'Maritime', 'Pearl Trade', 'Sangam Era']
-          }
-        ],
-        projectUpdates: {
-          ambiguityLevel: 50
-        }
-      };
-    }
-
-    // Scenario 4: User selects Magadha / Bimbisara
-    if (lower.includes('magadha') || lower.includes('bimbisara')) {
-      return {
-        thought: 'User adopted Candidate Option 1: Kingdom of Magadha under King Bimbisara (c. 544 BCE). Committing to Creative Decision and Story Brain Canon.',
-        conversationalReply: `Decision recorded. The Kingdom of Magadha under King Bimbisara (c. 544 BCE) is now locked into your Story Brain canon.\n\nHeadquartered in the natural mountain fortress of Rajagriha, Bimbisara's court gives "Rajyam" an explosive dramatic engine. With this world established, our next unresolved creative question is the primary narrative focus:`,
-        actionType: 'DECISION_CONFIRMED',
-        appliedDecision: {
-          summary: 'Historical Setting Established: Kingdom of Magadha (Haryanka Dynasty, 544 BCE)',
-          rationale: 'Earliest documented imperial state formation in India, providing rich dramatic conflict between diplomatic expansion and filial patricide.',
-          canonFactCreated: 'Rajyam is set in the 6th Century BCE in the Kingdom of Magadha under King Bimbisara, centered in the cyclopean-walled mountain capital of Rajagriha.'
-        },
-        knownExtracted: [
-          'Setting: Kingdom of Magadha (Capital: Rajagriha)',
-          'Era: 6th Century BCE (c. 544 BCE)',
-          'Ruler: King Bimbisara (Haryanka Dynasty)',
-          'Tone: Gritty historical realpolitik, court conspiracy'
-        ],
-        unresolvedAmbiguities: [
-          'Central Protagonist Perspective (Bimbisara vs Ajatashatru vs Royal Physician/Spymaster)',
-          'Inciting Incident / Episode 1 Climax',
-          'Primary Antagonistic Threat (Internal rebellion vs External rival kingdom Anga)'
-        ],
-        nextQuestion: 'Will "Rajyam" center on Bimbisara\'s political tightrope of diplomatic alliances, or the psychological conspiracy of Prince Ajatashatru\'s impending patricide?',
-        quickReplies: [
-          'Ajatashatru\'s palace conspiracy and rebellion.',
-          'Bimbisara\'s diplomatic and military unification.',
-          'An outsider physician / spymaster navigating the court.'
-        ],
-        projectUpdates: {
-          genre: 'Historical Political Thriller',
-          premise: 'Set in 544 BCE Magadha, a high-stakes chronicle of King Bimbisara\'s strategic rise and the dark palace conspiracy of his ambitious son Ajatashatru in the fortified capital of Rajagriha.',
-          ambiguityLevel: 35
-        }
-      };
-    }
-
-    // Generic fallback for any other creative message
-    return {
-      thought: `Understood creator input: "${userMessage.slice(0, 60)}". Progressing narrative discovery.`,
-      conversationalReply: `I have incorporated your thoughts into our active project context.\n\n"${userMessage}" opens up interesting dramatic opportunities. How would you like this to shape our central characters and narrative stakes?`,
-      actionType: 'CLARIFY',
-      knownExtracted: [userMessage.slice(0, 80)],
-      unresolvedAmbiguities: ['Dramatic Arc Definition', 'Character Relationships'],
-      nextQuestion: 'What is the most critical conflict your protagonist faces in this world?',
-      quickReplies: [
-        'Focus on internal moral dilemma.',
-        'Focus on external political conspiracy.',
-        'Explore research evidence for authentic stakes.'
-      ],
-      projectUpdates: {
-        ambiguityLevel: Math.max(20, (project.discovery?.ambiguityLevel || 70) - 10)
-      }
-    };
+    console.error('Live AI discovery call encountered an error:', err);
+    throw new Error(`AI_DISCOVERY_ERROR: ${err?.message || 'Unable to process creative discovery turn with live models.'}`);
   }
 }
 
@@ -2234,57 +2041,9 @@ Return ONLY valid JSON:
         { id: `note-${idx}-1`, text: 'Ensure sound design amplifies environmental tension.', done: false }
       ]
     }));
-  } catch (err) {
+  } catch (err: any) {
     console.error('generateSceneBreakdown failed:', err);
-    if (isSeries) {
-      const durations = [3,3,4,4,4,4,4,4,3,3,2,2];
-      return durations.map((mins, idx) => ({
-        id: `scn-fallback-${idx + 1}`, sceneNumber: idx + 1, configurationFingerprint, isSynthesisStale: false,
-        act: idx < 3 ? 'ACT I - SETUP' : idx < 9 ? 'ACT II - CONFRONTATION' : 'ACT III - RESOLUTION',
-        slugline: idx === 0 ? 'INT. PRIMARY LOCATION - NIGHT' : `INT./EXT. STORY LOCATION ${idx + 1} - DAY`, duration: `${mins} Mins`,
-        location: 'Primary Story Location', timeOfDay: idx % 3 === 0 ? 'NIGHT' : 'DAY', intExt: idx % 2 === 0 ? 'INT.' : 'EXT.',
-        characters: [project.characters[0]?.name || 'Protagonist'], characterIds: [project.characters[0]?.id || 'char-1'], subheading: `Episode beat ${idx + 1}`,
-        summary: `Advance the selected episode of "${project.title}" while preserving canon and the approved story direction.`, purpose: 'Advance the episode arc and force consequential choices.', emotionalBeat: idx < 3 ? 'Unease' : idx < 9 ? 'Pressure' : 'Crisis / Release',
-        keyElements: 'Grounded production detail, environmental tension, spatial continuity.', dialogueHighlights: 'Concise dialogue with character-specific subtext.', visualNotes: 'Cinematic, grounded visual language.',
-        imageUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80', candidateState: 'AI_PROPOSAL',
-        insights: { storyRole: idx === 0 ? 'Inciting Incident' : 'Episode Progression', emotionalTone: 'Tense', pacing: 'Controlled', conflictLevel: idx < 3 ? 'Medium' : 'High', characterFocus: project.characters[0]?.name || 'Lead', theme: project.intent?.themes?.[0] || 'Core Theme' },
-        notes: [{ id: `note-fallback-${idx + 1}`, text: 'Validate scene against canon and episode runtime.', done: false }]
-      }));
-    }
-    return [
-      {
-        id: `scn-def-1`,
-        sceneNumber: 1,
-        act: 'ACT I - SETUP',
-        slugline: 'INT. COMMAND ROOM - NIGHT',
-        duration: '3.5 Mins',
-        location: 'Command Center',
-        timeOfDay: 'NIGHT',
-        intExt: 'INT.',
-        characters: [project.characters[0]?.name || 'Protagonist'],
-        characterIds: ['char-1'],
-        subheading: 'Inciting discovery beat',
-        summary: `The initial breach is detected, establishing the core crisis of "${project.title}".`,
-        purpose: 'Establish ticking clock and protagonist responsibility.',
-        emotionalBeat: 'Controlled Panic',
-        keyElements: 'Emergency lighting, incoming monitors.',
-        dialogueHighlights: 'Forensic reports confirm an anomaly.',
-        visualNotes: 'High contrast shadows, amber screens.',
-        imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop',
-        candidateState: 'AI_PROPOSAL',
-        insights: {
-          storyRole: 'Inciting Incident',
-          emotionalTone: 'Tense',
-          pacing: 'Brisk',
-          conflictLevel: 'High',
-          characterFocus: project.characters[0]?.name || 'Lead',
-          theme: 'Accountability'
-        },
-        notes: [
-          { id: 'note-1', text: 'Calibrate tension before initial call.', done: false }
-        ]
-      }
-    ];
+    throw new Error(`AI_SCENE_BREAKDOWN_ERROR: ${err?.message || 'Failed to synthesize dynamic scene breakdown with live models.'}`);
   }
 };
 
@@ -2391,37 +2150,9 @@ Output purely JSON matching this schema:
     };
   } catch (err) {
     console.error('generateTreatmentData error:', err);
-    return {
-      synopsis: `In "${project.title}", escalating tensions force the protagonist to confront the fragility of the systems they rely upon. As pressure mounts from all sides, every choice tests their personal integrity against survival.`,
-      tone: ['Dramatic', 'Tense', 'Atmospheric'],
-      themes: ['Accountability', 'Truth'],
-      plotBeats: [
-        {
-          id: `tb-fallback-1`,
-          number: 1,
-          act: 'ACT I',
-          title: 'Status Quo & Disruption',
-          description: `The existing reality of "${project.title}" is introduced right before an unavoidable crisis occurs.`,
-          candidateState: 'AI_PROPOSAL'
-        },
-        {
-          id: `tb-fallback-2`,
-          number: 2,
-          act: 'ACT II',
-          title: 'The Pressure Point',
-          description: 'Rising stakes expose underlying vulnerabilities and isolate key allies.',
-          candidateState: 'AI_PROPOSAL'
-        },
-        {
-          id: `tb-fallback-3`,
-          number: 3,
-          act: 'ACT III',
-          title: 'Resolution & Aftermath',
-          description: 'A decisive resolution establishes the new reality and irreversible consequences.',
-          candidateState: 'AI_PROPOSAL'
-        }
-      ]
-    };
+    throw new Error(
+      `AI_TREATMENT_ERROR: Unable to synthesize treatment data dynamically for "${project.title}": ${(err as any)?.message || String(err)}. Please verify your AI API service is connected and retry.`
+    );
   }
 };
 
@@ -2846,49 +2577,9 @@ Output JSON only with this schema:
     };
   } catch (err) {
     console.error('calculateRealDependencyImpact error:', err);
-    // Real dynamic fallback using project entities
-    const charName = project.characters[0]?.name || 'Lead Character';
-    return {
-      isOpen: true,
-      sourceTrigger: `Modified ${changeTarget.field} (${changeTarget.oldValue} → ${changeTarget.newValue})`,
-      totalAffected: 3,
-      summary: { characters: 1, story: 1, scenes: 1, dialogue: 0, visuals: 0, production: 0 },
-      items: [
-        {
-          id: `imp-fallback-1`,
-          category: 'Characters',
-          objectName: charName,
-          field: changeTarget.field,
-          oldValue: String(changeTarget.oldValue),
-          newValue: String(changeTarget.newValue),
-          reason: `Modifying ${changeTarget.field} changes character motivation and emotional stakes.`,
-          severity: 'High',
-          approved: true
-        },
-        {
-          id: `imp-fallback-2`,
-          category: 'Story',
-          objectName: 'Narrative Causality',
-          field: 'Cause & Effect',
-          oldValue: 'Pre-existing escalation logic',
-          newValue: 'Adjusted dramatic consequences',
-          reason: 'Story spine must realign with revised parameter.',
-          severity: 'High',
-          approved: true
-        },
-        {
-          id: `imp-fallback-3`,
-          category: 'Scenes',
-          objectName: 'Key Confrontation Sequences',
-          field: 'Dramatic Objective',
-          oldValue: 'Prior scene setup',
-          newValue: 'Updated behavioral response',
-          reason: 'Dialogue and actions in confrontation scenes must reflect the change.',
-          severity: 'Medium',
-          approved: true
-        }
-      ]
-    };
+    throw new Error(
+      `AI_DEPENDENCY_IMPACT_ERROR: Unable to compute downstream impact for ${changeTarget.field}: ${(err as any)?.message || String(err)}. Please verify your AI API service is connected and retry.`
+    );
   }
 };
 
@@ -3370,176 +3061,12 @@ OUTPUT JSON FORMAT ONLY:
         dramaticStorySeeds: parsed.dramaticStorySeeds
       };
     }
+    throw new Error('No valid dramatic story seeds returned from model.');
   } catch (err) {
-    console.warn('Real Groq Research Foundry fallback activated:', err);
+    console.error('synthesizeResearchFoundryUniverse error:', err);
+    throw new Error(
+      `AI_RESEARCH_FOUNDRY_ERROR: Unable to synthesize research foundry universe for "${cleanTopic}": ${(err as any)?.message || String(err)}. Please verify your AI API service is connected and retry.`
+    );
   }
-
-  // Robust, domain-tailored fallback for historical/mythological queries
-  const isNaval = cleanTopic.toLowerCase().includes('naval') || cleanTopic.toLowerCase().includes('mutiny') || cleanTopic.toLowerCase().includes('1946');
-  const isMyth = cleanTopic.toLowerCase().includes('kuru') || cleanTopic.toLowerCase().includes('maha') || cleanTopic.toLowerCase().includes('myth') || cleanTopic.toLowerCase().includes('veda');
-
-  return {
-    rootTopic: cleanTopic,
-    eraDomain: isNaval ? '1946 Colonial Decolonization & Military Revolt' : isMyth ? 'Epic Antiquity & Moral Law (Dharma)' : 'Historical Sovereign Strategy & Resistance',
-    historicalContext: `A watershed moment in ${cleanTopic} where institutional loyalty, geopolitical transformation, and individual conscience collided under extreme pressure.`,
-    chronologyTimeline: [
-      {
-        date: isNaval ? '18 Feb 1946' : 'Phase I: Inciting Incident',
-        event: isNaval ? 'Ratings aboard HMIS Talwar declare hunger strike over racial abuse and rations' : 'Initial rupture of diplomatic order and invocation of ancient pacts',
-        significance: 'Signals the breakdown of long-standing imperial obedience',
-        provenanceTier: 'Tier 1'
-      },
-      {
-        date: isNaval ? '20 Feb 1946' : 'Phase II: Escalation',
-        event: isNaval ? 'Mutiny spreads to 78 ships across Bombay, Karachi, and Calcutta' : 'Mobilization of allied factions across strategic borders',
-        significance: 'Transforms a local protest into an existential constitutional crisis',
-        provenanceTier: 'Tier 1'
-      },
-      {
-        date: isNaval ? '23 Feb 1946' : 'Phase III: Climax',
-        event: isNaval ? 'British coastal batteries engage in artillery exchange; national leaders broker surrender' : 'Decisive confrontation forcing irreversible moral compromise',
-        significance: 'Exposes the tragic gulf between frontline revolutionaries and political architects',
-        provenanceTier: 'Tier 2'
-      }
-    ],
-    keyPersonae: [
-      {
-        name: isNaval ? 'Inspector Samar Joshi' : 'Commander Vikramaditya / Archetype',
-        role: isNaval ? 'CID Intelligence Officer' : 'Sworn Royal Protector',
-        allegiance: isNaval ? 'Torn between British police oaths and his rebel brother' : 'Torn between personal honor and state preservation',
-        dramaticPotential: 'Must choose which law to break in order to protect truth'
-      },
-      {
-        name: isNaval ? 'Captain Arthur Evans' : 'Imperial Chancellor / High Priest',
-        role: 'Authoritarian Authority Lead',
-        allegiance: 'Preserving imperial order at all human costs',
-        dramaticPotential: 'Rationalizes extreme systemic cruelty as necessary discipline'
-      }
-    ],
-    evidenceFindings: [
-      {
-        id: `rf-fallback-${Date.now()}-1`,
-        topic: cleanTopic,
-        claim: isNaval ? 'Declassified War Department telegrams show authorities feared British troops would refuse to fire on ratings.' : 'Ancient epigraphic records demonstrate tactical warfare combined with rigorous moral codes.',
-        evidence: isNaval ? 'National Archives of India, Home Political (Secret) File 18/2/46.' : 'Archaeological Epigraphica Indica, Vol. 14.',
-        source: isNaval ? 'National Archives of India (Govt Records)' : 'Epigraphical Survey of India',
-        sourceType: 'Primary Source',
-        confidence: 96,
-        status: 'Verified',
-        date: new Date().toLocaleDateString(),
-        usedIn: ['Story Brain Canon', 'Plot Anchors']
-      },
-      {
-        id: `rf-fallback-${Date.now()}-2`,
-        topic: cleanTopic,
-        claim: 'The confrontation was intentionally downplayed in post-independence political memoirs to favor constitutional transitions.',
-        evidence: 'Comparative historiography across declassified cabinet minutes and subsequent authorized biographies.',
-        source: 'Oxford Historical Monographs (Modern History Review)',
-        sourceType: 'Academic',
-        confidence: 91,
-        status: 'Verified',
-        date: new Date().toLocaleDateString(),
-        usedIn: ['Thematic Subtext']
-      }
-    ],
-    dramaticStorySeeds: [
-      {
-        id: 'seed-conscience',
-        seedTitle: isNaval ? 'The Signal at Dawn' : 'The Broken Vow',
-        dramaticCore: 'A loyal investigator must track down an underground rebel leader, only to discover the leader is their own kin.',
-        conflictType: 'Conscience vs Loyalty',
-        logline: `When an encrypted transmission triggers an empire-wide revolt, an officer sworn to uphold the regime must choose between the family he loves and the oath he took.`,
-        recommendedFormat: 'Feature Film',
-        protagonist: {
-          name: isNaval ? 'Samar Joshi' : 'Senapati Raghav',
-          role: 'Investigative Officer',
-          want: 'Maintain law, avoid civil bloodshed, and protect his family name',
-          need: 'Acknowledge that preserving an unjust order is complicity in tyranny',
-          flaw: 'Relentless institutional obedience and moral hesitation',
-          historicalBasis: 'Documented Indian officers in colonial/imperial administrative services'
-        },
-        antagonist: {
-          name: isNaval ? 'Captain Arthur Evans' : 'Governor Mahadeva',
-          role: 'Imperial Military Commander',
-          opposingIdeology: 'Total, uncompromising subjugation under law'
-        },
-        anchorCanonFacts: [
-          {
-            statement: isNaval ? 'The 1946 Mutiny involved over 20,000 ratings across 78 naval vessels.' : 'The code of warfare strictly forbade attacking communication couriers.',
-            category: 'Historical Fact',
-            sourceEvidence: 'Official Inquiry Commission Report (1946)',
-            provenanceTier: 'Tier 1 (Primary Archive)'
-          },
-          {
-            statement: 'Martial law was declared in port areas with civilian curfews enforced by live ammunition.',
-            category: 'Historical Fact',
-            sourceEvidence: 'Bombay Government Gazette Extraordinary',
-            provenanceTier: 'Tier 1 (Primary Archive)'
-          }
-        ],
-        unresolvedDebate: 'Did the leadership intentionally sacrifice the frontline revolutionaries to ensure smooth diplomatic transfer of power?'
-      },
-      {
-        id: 'seed-epic-rebellion',
-        seedTitle: isNaval ? 'Mutiny on the Talwar' : 'Sovereign Storm',
-        dramaticCore: 'An ensemble of multi-faith soldiers band together to commandeer a flagship, daring the empire to shell its own harbor.',
-        conflictType: 'Empire vs Rebellion',
-        logline: `Enclosed within a steel warship with ammunition running low, a ragtag crew of ratings defies the most powerful fleet on earth, sparking a wildfire across the subcontinent.`,
-        recommendedFormat: 'Limited Series (8-10 Episodes)',
-        protagonist: {
-          name: isNaval ? 'Telegraphist B.C. Dutt' : 'Rebel Commander Shaurya',
-          role: 'Underground Signalman & Strategist',
-          want: 'Broadcast the truth across the world before communications are jammed',
-          need: 'Inspire civilian general strikes rather than military suicide',
-          flaw: 'Impulsive bravado and disregard for tactical defense',
-          historicalBasis: 'Real telegraphists of HMIS Talwar who transmitted mutiny frequencies'
-        },
-        antagonist: {
-          name: isNaval ? 'Admiral Godfrey' : 'Viceroy General Thorne',
-          role: 'Commander-in-Chief',
-          opposingIdeology: 'Crushing insubordination with decisive artillery superiority'
-        },
-        anchorCanonFacts: [
-          {
-            statement: 'Ratings replaced British naval ensigns with three allied national flags simultaneously.',
-            category: 'Historical Fact',
-            sourceEvidence: 'Photographic & Signal Logs, Naval Historical Branch',
-            provenanceTier: 'Tier 1 (Primary Archive)'
-          }
-        ],
-        unresolvedDebate: 'How close did the British cabinet come to authorizing aerial bombardment of the port?'
-      },
-      {
-        id: 'seed-conspiracy',
-        seedTitle: isNaval ? 'The Karachi Dispatch' : 'The Shadow Chancellor',
-        dramaticCore: 'A high-stakes political espionage thriller tracking the 48 hours of secret negotiations behind closed doors.',
-        conflictType: 'Underground Resistance',
-        logline: `Behind the artillery fire at the docks, an idealistic journalist and a pragmatic statesman race against time to draft an armistice before foreign powers intervene.`,
-        recommendedFormat: 'Feature Film',
-        protagonist: {
-          name: isNaval ? 'Aruna Roy' : 'Ambassador Devika',
-          role: 'Investigative Courier & Political Envoy',
-          want: 'Secure formal clemency and amnesty for the ratings',
-          need: 'Outmaneuver cynical politicians willing to let ratings take the fall',
-          flaw: 'Idealistic trust in democratic promises',
-          historicalBasis: 'Real underground political emissaries active in February 1946'
-        },
-        antagonist: {
-          name: isNaval ? 'Sir John Colville' : 'Council Minister Varun',
-          role: 'Colonial Governor & Defense Council',
-          opposingIdeology: 'Realpolitik compromise that sacrifices radical elements'
-        },
-        anchorCanonFacts: [
-          {
-            statement: 'Guarantees of non-victimization were given to mutineers before surrender, but largely broken post-event.',
-            category: 'Historical Fact',
-            sourceEvidence: 'Declassified Cabinet Minutes (London Archive)',
-            provenanceTier: 'Tier 1 (Primary Archive)'
-          }
-        ],
-        unresolvedDebate: 'Who gave the confidential order to dishonorably discharge the ratings after the public eye moved away?'
-      }
-    ]
-  };
 };
 

@@ -8,9 +8,24 @@
  * 5. Determination of Next Unresolved Creative Question.
  */
 
-import { createEmptyProject } from './src/data/emptyProject';
-import { processDiscoveryTurn } from './src/services/aiService';
-import { TattavaProject, CanonFact, CreativeDecision } from './src/types/project';
+import fs from 'fs';
+import path from 'path';
+
+// Read .env.local manually for the test script
+const envPath = path.resolve(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      process.env[match[1].trim()] = match[2].trim();
+    }
+  });
+}
+
+import { createEmptyProject } from './client/src/data/emptyProject.js';
+import { processDiscoveryTurn } from './client/src/services/aiService.js';
+import { TattavaProject, CanonFact, CreativeDecision } from './client/src/types/project.js';
 
 async function runDiscoveryLoopTest() {
   console.log('============================================================');

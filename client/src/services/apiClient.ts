@@ -6,7 +6,10 @@
  * once at startup with `setAccessTokenProvider(() => session?.access_token ?? null)`.
  */
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000/api';
+const API_BASE_URL = 
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_BACKEND_URL) ||
+  (typeof process !== 'undefined' && process.env?.VITE_BACKEND_URL) ||
+  'http://localhost:8000/api';
 const REQUEST_TIMEOUT_MS = 30_000;
 // Model calls (long generations, fallback model) legitimately take longer than normal requests.
 const AI_TIMEOUT_MS = 150_000;

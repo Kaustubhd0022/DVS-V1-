@@ -14,7 +14,7 @@ if (fs.existsSync(envPath)) {
 }
 
 // Dynamically import project factory and AI service
-import { createEmptyProject } from './src/data/emptyProject.js';
+import { createEmptyProject } from './client/src/data/emptyProject.js';
 import { 
   buildProjectContext, 
   analyzeConceptIntake, 
@@ -24,8 +24,8 @@ import {
   evaluateProjectNarrative,
   getGroqApiKey,
   getLastAiDebugTrace
-} from './src/services/aiService.js';
-import { CanonFact, CreativeDecision, Character } from './src/types/project.js';
+} from './client/src/services/aiService.js';
+import { CanonFact, CreativeDecision, Character } from './client/src/types/project.js';
 
 async function runAcceptanceTests() {
   console.log('============================================================');
