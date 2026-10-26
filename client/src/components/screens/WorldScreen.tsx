@@ -3,10 +3,11 @@ import { useProject } from '../../context/ProjectContext';
 import { 
   Globe, MapPin, Compass, CloudRain, Building, Camera, 
   ArrowRight, ShieldCheck, ChevronRight, Layers, Eye,
-  RefreshCw, AlertCircle, Sparkles
+  RefreshCw, AlertCircle, Sparkles, ExternalLink
 } from 'lucide-react';
 import { WorldLocation } from '../../types/project';
 import { generateWorldLocations } from '../../services/aiService';
+import { GoogleStoryMap } from '../world/GoogleStoryMap';
 
 export const WorldScreen: React.FC = () => {
   const { currentProject, updateCurrentProject, nextStep } = useProject();
@@ -141,7 +142,7 @@ export const WorldScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* World Map & Location Explorer */}
+      {/* World Map & Location Explorer with Google Integration */}
       {locations.length === 0 ? (
         <div className="p-12 text-center linea-bento rounded-3xl space-y-4">
           <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-[0_2px_12px_rgba(245,158,11,0.15)]">
@@ -150,7 +151,7 @@ export const WorldScreen: React.FC = () => {
           <div className="max-w-md mx-auto space-y-1.5">
             <h3 className="text-lg font-bold text-[#fbf8f3]">No World Locations Mapped Yet</h3>
             <p className="text-xs text-stone-400 leading-relaxed">
-              Synthesize 4 primary dramatic locations and geographic tension points derived from <span className="text-amber-300">"{currentProject.title}"</span>.
+              Synthesize 4 primary dramatic locations and geographic tension points derived from <span className="text-amber-300">"{currentProject.title}"</span> grounded with real-world Google Places coordinates.
             </p>
           </div>
           <button
@@ -164,89 +165,28 @@ export const WorldScreen: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          {/* Interactive Stylized World Map (7 cols) */}
-          <div className="xl:col-span-7 linea-bento rounded-3xl overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-[#0c0f17]">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-amber-400" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] font-mono">Geographic Tension Matrix</span>
-              </div>
-              <span className="linea-caption-chip">{locations.length} Mapped Environments</span>
-            </div>
-
-            {/* Map Visual with Pins */}
-            <div className="relative h-[380px] bg-[#07090e] overflow-hidden flex items-center justify-center p-6">
-              <div className="absolute inset-0 bg-[radial-gradient(#27273a_1px,transparent_1px)] [background-size:20px_20px] opacity-40" />
-              
-              {/* Ambient Rain / Grid Graphic */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#07090e] via-transparent to-[#07090e]/60 pointer-events-none" />
-
-              {/* Stylized Contour Lines SVG */}
-              <svg className="absolute inset-0 w-full h-full opacity-20 stroke-amber-400/40 fill-none" viewBox="0 0 600 400">
-                <path d="M 50 150 Q 200 80 400 200 T 580 300" strokeWidth="1.5" strokeDasharray="4 4" />
-                <path d="M 80 220 Q 250 180 450 320" strokeWidth="1" />
-                <path d="M 30 100 Q 300 50 550 180" strokeWidth="0.8" />
-                <circle cx="280" cy="180" r="70" stroke="rgba(245,158,11,0.2)" strokeWidth="1" />
-              </svg>
-
-              {/* Interactive Pins */}
-              {locations.map(loc => {
-                const isSelected = loc.id === selectedLocId;
-                return (
-                  <div
-                    key={loc.id}
-                    onClick={() => setSelectedLocId(loc.id)}
-                    style={{ left: `${loc.coordinates.x}%`, top: `${loc.coordinates.y}%` }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                  >
-                    <div className="relative flex flex-col items-center">
-                      {/* Ripple ring when selected */}
-                      {isSelected && (
-                        <span className="absolute -inset-2 rounded-full bg-amber-400/30 animate-ping" />
-                      )}
-                      
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform ${
-                        isSelected
-                          ? 'bg-amber-400 text-black ring-4 ring-amber-400/30 scale-110 shadow-lg'
-                          : 'bg-[#1e2230] text-amber-400 border border-white/20 group-hover:scale-105'
-                      }`}>
-                        <MapPin className="w-4 h-4 fill-current" />
-                      </div>
-
-                      <span className={`mt-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-tight shadow-lg whitespace-nowrap transition-all font-mono ${
-                        isSelected
-                          ? 'bg-amber-400 text-black'
-                          : 'bg-black/90 text-[#fbf8f3] border border-white/10 group-hover:border-amber-400/40'
-                      }`}>
-                        {loc.name}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Location selector horizontal bar */}
-            <div className="p-3 bg-[#0a0c12] border-t border-white/[0.08] grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {locations.map(loc => (
-                <button
-                  key={loc.id}
-                  onClick={() => setSelectedLocId(loc.id)}
-                  className={`p-2.5 rounded-2xl text-left transition-all border ${
-                    loc.id === selectedLocId
-                      ? 'bg-[#181d2a] border-amber-400/80 text-amber-300 shadow-sm'
-                      : 'bg-[#121622] border-white/[0.04] text-stone-400 hover:text-white hover:bg-[#161a28]'
-                  }`}
-                >
-                  <div className="text-xs font-bold truncate">{loc.name}</div>
-                  <div className="text-[10px] opacity-70 truncate font-mono">{loc.type}</div>
-                </button>
-              ))}
-            </div>
+          {/* Interactive Google Story Map (7 cols) */}
+          <div className="xl:col-span-7">
+            <GoogleStoryMap
+              locations={locations}
+              selectedLocation={selectedLocation}
+              onSelectLocation={setSelectedLocId}
+              onAddLocation={(newLoc) => {
+                updateCurrentProject(prev => ({
+                  ...prev,
+                  world: {
+                    ...prev.world,
+                    locations: [...(prev.world?.locations || []), newLoc]
+                  }
+                }));
+                setSelectedLocId(newLoc.id);
+              }}
+              projectTitle={currentProject.title}
+            />
           </div>
 
           {/* Selected Location Deep Dossier (5 cols) */}
-          <div className="xl:col-span-5 linea-bento rounded-3xl overflow-hidden flex flex-col">
+          <div className="xl:col-span-5 linea-bento rounded-3xl overflow-hidden flex flex-col border border-white/[0.08] bg-[#0c0f17]">
             {selectedLocation ? (
               <>
                 <div className="relative h-48 overflow-hidden">
@@ -257,10 +197,15 @@ export const WorldScreen: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0d1017] via-[#0d1017]/40 to-transparent" />
                   
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 flex items-center gap-2">
                     <span className="linea-caption-chip">
                       {selectedLocation.type} Environment
                     </span>
+                    {selectedLocation.isPrimary && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-400 text-black">
+                        PRIMARY NEXUS
+                      </span>
+                    )}
                   </div>
 
                   <div className="absolute bottom-3 left-4 right-4">
@@ -270,11 +215,25 @@ export const WorldScreen: React.FC = () => {
                 </div>
 
                 <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 font-mono">Setting Description</span>
-                    <p className="text-xs text-stone-300 mt-1.5 leading-relaxed">
-                      {selectedLocation.description}
-                    </p>
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 font-mono">Setting Description</span>
+                      <p className="text-xs text-stone-300 mt-1.5 leading-relaxed">
+                        {selectedLocation.description}
+                      </p>
+                    </div>
+
+                    {selectedLocation.formattedAddress && (
+                      <div className="p-3 rounded-2xl bg-[#080a10] border border-white/[0.06] space-y-1">
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-amber-400 font-bold uppercase">
+                          <MapPin className="w-3 h-3" />
+                          <span>Google Places Verified Geographic Anchor</span>
+                        </div>
+                        <div className="text-xs text-stone-300 leading-snug">
+                          {selectedLocation.formattedAddress}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3 pt-3 border-t border-white/[0.06]">
@@ -285,19 +244,35 @@ export const WorldScreen: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-stone-400 font-mono">
-                      <span>Coordinates:</span>
-                      <span className="text-[#fbf8f3] font-medium">{selectedLocation.coordinates.x}°N, {selectedLocation.coordinates.y}°E</span>
-                    </div>
+                    {selectedLocation.geoCoordinates && (
+                      <div className="flex items-center justify-between text-xs text-stone-400 font-mono">
+                        <span>GPS Coordinates:</span>
+                        <span className="text-amber-300 font-medium">
+                          {selectedLocation.geoCoordinates.lat.toFixed(4)}° N, {selectedLocation.geoCoordinates.lng.toFixed(4)}° E
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between">
+                  <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between gap-2">
                     <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-medium font-mono">
                       <ShieldCheck className="w-4 h-4" /> Recce Verified
                     </span>
-                    <span className="linea-caption-chip">
-                      Primary Narrative Hub
-                    </span>
+                    {selectedLocation.googleMapsUrl ? (
+                      <a
+                        href={selectedLocation.googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="linea-pill-btn linea-pill-primary px-3 py-1.5 text-[10px] font-bold gap-1.5"
+                      >
+                        <span>View on Google Maps</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <span className="linea-caption-chip">
+                        Primary Narrative Hub
+                      </span>
+                    )}
                   </div>
                 </div>
               </>

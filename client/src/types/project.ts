@@ -210,10 +210,14 @@ export interface WorldLocation {
   name: string;
   subtitle: string;
   description: string;
-  type: 'Urban' | 'Coastal' | 'Mountain' | 'Town';
+  type: 'Urban' | 'Coastal' | 'Mountain' | 'Town' | string;
   coordinates: { x: number; y: number };
   imageUrl: string;
   isPrimary: boolean;
+  geoCoordinates?: { lat: number; lng: number };
+  formattedAddress?: string;
+  editorialSummary?: string;
+  googleMapsUrl?: string;
 }
 
 export interface StoryWorld {

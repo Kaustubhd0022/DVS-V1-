@@ -1729,6 +1729,7 @@ export const generateWorldLocations = async (
 TASK:
 Synthesize 4 distinct, highly visual world locations for this narrative universe.
 Include varying environments (e.g. Headquarters / Arena / Sanctuary / Threshold).
+Anchor each location to a real-world geographic setting, landmark, or historical region that grounds the setting.
 
 Return ONLY valid JSON matching:
 {
@@ -1736,8 +1737,11 @@ Return ONLY valid JSON matching:
     {
       "name": "Location Name",
       "subtitle": "Short spatial descriptor",
-      "type": "Urban",
+      "type": "Urban" | "Coastal" | "Mountain" | "Town",
       "description": "2-sentence sensory description of this setting and its dramatic pressure.",
+      "realWorldAnchor": "Real world city, landmark, or region (e.g. Apollo Bandar, Mumbai, or Konkan Coast, Maharashtra, or Rajgir, Bihar)",
+      "latitude": 18.922,
+      "longitude": 72.834,
       "coordinates": { "x": 35, "y": 42 },
       "isPrimary": true
     }
@@ -1759,22 +1763,31 @@ Return ONLY valid JSON matching:
     const parsed = extractJsonFromResponse(raw);
     const locs: any[] = Array.isArray(parsed?.locations) ? parsed.locations : [];
     
-    return locs.map((loc, idx) => ({
-      id: `loc-${Date.now()}-${idx + 1}`,
-      name: loc.name || `Setting Area ${idx + 1}`,
-      subtitle: loc.subtitle || 'Key Story Environment',
-      description: loc.description || 'Primary backdrop for dramatic tension.',
-      type: (['Urban', 'Coastal', 'Mountain', 'Town'] as const).includes(loc.type) ? loc.type : 'Urban',
-      coordinates: loc.coordinates || { x: 20 + idx * 20, y: 30 + (idx % 2) * 20 },
-      imageUrl: idx === 0 
-        ? 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop'
-        : idx === 1
-        ? 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=800&auto=format&fit=crop'
-        : idx === 2
-        ? 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?q=80&w=800&auto=format&fit=crop'
-        : 'https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop',
-      isPrimary: idx === 0
-    }));
+    return locs.map((loc, idx) => {
+      const lat = typeof loc.latitude === 'number' ? loc.latitude : 18.922 + (idx * 0.05);
+      const lng = typeof loc.longitude === 'number' ? loc.longitude : 72.834 + (idx * 0.05);
+      const anchor = loc.realWorldAnchor || loc.name;
+      return {
+        id: `loc-${Date.now()}-${idx + 1}`,
+        name: loc.name || `Setting Area ${idx + 1}`,
+        subtitle: loc.subtitle || 'Key Story Environment',
+        description: loc.description || 'Primary backdrop for dramatic tension.',
+        type: (['Urban', 'Coastal', 'Mountain', 'Town'] as const).includes(loc.type) ? loc.type : 'Urban',
+        coordinates: loc.coordinates || { x: 20 + idx * 20, y: 30 + (idx % 2) * 20 },
+        imageUrl: idx === 0 
+          ? 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop'
+          : idx === 1
+          ? 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=800&auto=format&fit=crop'
+          : idx === 2
+          ? 'https://images.unsplash.com/photo-1518173946687-a4c8a383392e?q=80&w=800&auto=format&fit=crop'
+          : 'https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop',
+        isPrimary: idx === 0,
+        geoCoordinates: { lat, lng },
+        formattedAddress: anchor,
+        editorialSummary: loc.description,
+        googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(anchor)}+${lat},${lng}`
+      };
+    });
   } catch (err) {
     console.error('generateWorldLocations failed:', err);
     return [
