@@ -23,6 +23,7 @@ import {
   Plus
 } from 'lucide-react';
 import { useProject, PIPELINE_STEPS } from '../../context/ProjectContext';
+import { extractTextFromFile } from '../../services/documentExtractor';
 import { isOptionalStep, isStepComplete } from '../../services/projectProgress';
 import { ProjectIntelligenceSummary } from '../project/ProjectIntelligenceSummary';
 import { NextBestActionPanel } from '../project/NextBestActionPanel';
@@ -83,19 +84,19 @@ export const DiscoveryStudioScreen: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
+    try {
+      const text = await extractTextFromFile(file);
       setAttachedFile({
         name: file.name,
         content: text || `[Uploaded file: ${file.name}]`
       });
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error('File extraction error:', err);
+    }
   };
 
   const toggleThought = (turnId: string) => {

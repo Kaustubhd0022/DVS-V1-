@@ -720,6 +720,9 @@ RULES:
  * Deconstructs raw user input into structured project intelligence.
  */
 export interface IntakeAnalysisResult {
+  title?: string;
+  detectedFormat?: string;
+  detectedGenre?: string;
   premise: string;
   protagonist: string;
   setting: string;
@@ -736,29 +739,41 @@ export interface IntakeAnalysisResult {
 export const analyzeConceptIntake = async (
   rawIdea: string,
   contentType: string = 'Feature Film',
-  language: string = 'Hindi / English'
+  language: string = 'Hindi / English',
+  uploadedContent?: string,
+  uploadedName?: string
 ): Promise<IntakeAnalysisResult> => {
-  const prompt = `Deconstruct this raw film/series idea into structured narrative intelligence.
+  const prompt = `Deconstruct this raw film/series idea and any uploaded script or source material into structured narrative intelligence.
 Input Concept:
 """${rawIdea}"""
-Format: ${contentType}
+Format Context: ${contentType}
 Target Language: ${language}
+${uploadedContent ? `
+=== UPLOADED SCRIPT / SOURCE MATERIAL (${uploadedName || 'Source Document'}) ===
+"""
+${uploadedContent.slice(0, 8000)}
+"""
+CRITICAL RULE: The user has uploaded source material above! Prioritize the actual entities, characters, hosts, world, and themes found in this uploaded document over generic assumptions. Extract the authentic project title, format, protagonist/hosts, setting, and core premise directly from this document.
+` : ''}
 
 Return ONLY valid JSON matching this exact structure:
 {
-  "premise": "A sharp, compelling logline synthesizing the core dramatic hook (1 sentence)",
-  "protagonist": "Who is the central character, their specific profession/role, core vulnerability, and dramatic objective",
+  "title": "Exact or inferred project title (e.g. Do You Know: Foreign Swag, Desi Style)",
+  "detectedFormat": "Series / Episodic | Feature Film | Documentary | Limited Series",
+  "detectedGenre": "e.g. Philosophical Explainer / Cultural Comedy",
+  "premise": "A sharp, compelling logline synthesizing the core dramatic or thematic hook (1 sentence)",
+  "protagonist": "Who is the central character, host, or ensemble (their specific names, roles, vulnerabilities, and dramatic objectives)",
   "setting": "Specific geographical, atmospheric, and temporal world",
-  "conflict": "The core dramatic conflict or antagonistic force confronting them",
-  "stakes": "What happens if the protagonist fails (catastrophic personal or public consequences)",
+  "conflict": "The core dramatic conflict, antagonistic force, or thematic debate",
+  "stakes": "What happens if the protagonist fails or why this exploration matters",
   "themes": ["Theme 1", "Theme 2", "Theme 3"],
-  "tone": "Atmospheric adjectives describing the genre feel (e.g. Gritty, Urgent, Atmospheric)",
+  "tone": "Atmospheric adjectives describing the genre feel (e.g. Witty, Fast-Paced, Gen-Z Infotainment)",
   "knownInformation": [
-    "Fact 1 explicitly provided or clearly implied by the user",
-    "Fact 2 explicitly provided or clearly implied by the user"
+    "Fact 1 explicitly provided in the uploaded material or premise",
+    "Fact 2 explicitly provided in the uploaded material or premise"
   ],
   "unknownInformation": [
-    "Key story element not yet defined (e.g. Antagonist's motive, exact timeframe)",
+    "Key story element not yet defined (e.g. Downstream visual treatments, episode 5 topic)",
     "Key story element not yet defined"
   ],
   "missingQuestions": [
@@ -781,13 +796,16 @@ Return ONLY valid JSON matching this exact structure:
       max_tokens: 2200,
       jsonMode: true,
       taskName: 'Concept Intake Analysis',
-      contextSnapshot: `Raw Idea: ${rawIdea}`
+      contextSnapshot: `Raw Idea: ${rawIdea}${uploadedContent ? ` | Doc: ${uploadedName}` : ''}`
     }
   );
 
   const parsed = extractJsonFromResponse(rawJson);
 
   return {
+    title: parsed.title,
+    detectedFormat: parsed.detectedFormat,
+    detectedGenre: parsed.detectedGenre,
     premise: parsed.premise || rawIdea,
     protagonist: parsed.protagonist || 'Central protagonist to be defined.',
     setting: parsed.setting || 'Setting to be defined.',

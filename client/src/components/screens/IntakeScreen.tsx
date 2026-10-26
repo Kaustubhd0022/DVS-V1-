@@ -14,10 +14,14 @@ import {
   Shield,
   FileText,
   Key,
-  Edit3
+  Edit3,
+  Upload,
+  FileUp,
+  X
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { analyzeConceptIntake, askCopilot, IntakeAnalysisResult } from '../../services/aiService';
+import { extractTextFromFile } from '../../services/documentExtractor';
 
 export const IntakeScreen: React.FC = () => {
   const { 
@@ -62,10 +66,18 @@ export const IntakeScreen: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [isChatting, setIsChatting] = useState(false);
 
-  // Run dynamic analysis if not yet analyzed
-  const runIntakeAnalysis = async () => {
-    if (!premise.trim()) {
-      setAnalysisError('No concept premise found in this project. Please add a premise to analyze.');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isPastingScript, setIsPastingScript] = useState(false);
+  const [pastedScript, setPastedScript] = useState('');
+
+  // Run dynamic analysis on premise or uploaded script
+  const runIntakeAnalysis = async (overrideContent?: string, overrideName?: string) => {
+    const rawMaterial = overrideContent ?? currentProject.intent?.uploadedMaterialContent ?? '';
+    const rawName = overrideName ?? currentProject.intent?.uploadedMaterialName;
+    const effectivePremise = (overrideContent ? '' : premise.trim()) || (rawMaterial ? `Script document: ${rawName || 'Uploaded script'}` : '');
+
+    if (!effectivePremise && !rawMaterial) {
+      setAnalysisError('No concept premise or uploaded script found. Please upload a script or add a premise to analyze.');
       return;
     }
 
@@ -74,31 +86,44 @@ export const IntakeScreen: React.FC = () => {
 
     try {
       const result = await analyzeConceptIntake(
-        premise,
+        effectivePremise || rawName || 'Uploaded Source Material',
         currentProject.contentType,
-        currentProject.language
+        currentProject.language,
+        rawMaterial,
+        rawName
       );
       setUnderstanding(result);
 
-      // Save into project draft intent
-      updateCurrentProject(prev => ({
-        ...prev,
-        intent: {
-          ...prev.intent,
-          premise: result.premise,
-          protagonist: result.protagonist,
-          setting: result.setting,
-          conflict: result.conflict,
-          stakes: result.stakes,
-          themes: result.themes,
-          tone: result.tone,
-          knownInformation: result.knownInformation,
-          unknownInformation: result.unknownInformation,
-          missingQuestions: result.missingQuestions,
-          suggestedResearchAreas: result.suggestedResearchAreas,
-          intakeAnalysisStatus: 'ANALYZED'
-        }
-      }));
+      // Save into project draft intent and update title & format if detected from script
+      updateCurrentProject(prev => {
+        const newTitle = result.title && (prev.title === 'The Cartridge Conspiracy' || prev.title.startsWith('Untitled') || overrideContent)
+          ? result.title 
+          : (result.title || prev.title);
+        
+        return {
+          ...prev,
+          title: newTitle,
+          contentType: result.detectedFormat || prev.contentType,
+          genre: result.detectedGenre || prev.genre,
+          intent: {
+            ...prev.intent,
+            uploadedMaterialName: rawName || prev.intent?.uploadedMaterialName,
+            uploadedMaterialContent: rawMaterial || prev.intent?.uploadedMaterialContent,
+            premise: result.premise,
+            protagonist: result.protagonist,
+            setting: result.setting,
+            conflict: result.conflict,
+            stakes: result.stakes,
+            themes: result.themes,
+            tone: result.tone,
+            knownInformation: result.knownInformation,
+            unknownInformation: result.unknownInformation,
+            missingQuestions: result.missingQuestions,
+            suggestedResearchAreas: result.suggestedResearchAreas,
+            intakeAnalysisStatus: 'ANALYZED'
+          }
+        };
+      });
     } catch (err: any) {
       console.warn('Intake analysis failed:', err);
       const msg = err?.message || 'Could not analyze project concept.';
@@ -106,6 +131,29 @@ export const IntakeScreen: React.FC = () => {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleScriptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    try {
+      const text = await extractTextFromFile(file);
+      await runIntakeAnalysis(text, file.name);
+    } catch (err: any) {
+      setAnalysisError(`Failed to extract script: ${err?.message || String(err)}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleApplyPastedScript = async () => {
+    if (!pastedScript.trim()) return;
+    setIsPastingScript(false);
+    await runIntakeAnalysis(pastedScript, 'Pasted Rough Script');
+    setPastedScript('');
   };
 
   // Auto-trigger analysis once on first entry if premise exists and hasn't been analyzed
@@ -189,7 +237,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
 
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={runIntakeAnalysis}
+            onClick={() => runIntakeAnalysis()}
             disabled={isAnalyzing}
             className="linea-pill-btn linea-pill-secondary px-4 py-2 text-xs font-semibold gap-2"
           >
@@ -268,20 +316,113 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
             </div>
 
             <div className="space-y-3">
+              {/* Hidden File Input for PDF / Script Upload */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleScriptUpload}
+                accept=".pdf,.txt,.md,.fountain,.fdx"
+                className="hidden"
+              />
+
+              {/* Script Upload / Replace Action Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#080a10] border border-white/[0.08]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-xs text-[#fbf8f3] block">
+                      {currentProject.intent?.uploadedMaterialName 
+                        ? `Attached Script: ${currentProject.intent.uploadedMaterialName}` 
+                        : 'Upload Rough Script / Source Material (PDF, Fountain, TXT)'}
+                    </span>
+                    <span className="text-[10px] text-stone-400">
+                      AI extracts authentic title, format, character hosts, and themes directly from your document.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isAnalyzing}
+                    className="linea-pill-btn linea-pill-primary px-3.5 py-1.5 text-xs font-bold gap-1.5"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{currentProject.intent?.uploadedMaterialName ? 'Upload New Script' : 'Upload Script (PDF)'}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsPastingScript(!isPastingScript)}
+                    className="linea-pill-btn px-3 py-1.5 text-xs font-bold gap-1.5 border border-white/10 hover:border-amber-400/50 text-stone-300"
+                  >
+                    <FileUp className="w-3.5 h-3.5" />
+                    <span>Paste Script</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Paste Script Text Drawer */}
+              {isPastingScript && (
+                <div className="p-4 rounded-2xl bg-[#080a10] border border-amber-400/30 space-y-3 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300 font-mono uppercase">Paste Rough Script or Explainer Text</span>
+                    <button onClick={() => setIsPastingScript(false)} className="text-stone-400 hover:text-white">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <textarea
+                    rows={6}
+                    value={pastedScript}
+                    onChange={e => setPastedScript(e.target.value)}
+                    placeholder="Paste rough script here (e.g. Series: Do You Know, Episode 04: Foreign Swag, Desi Style - India Ne Duniya Ko Kaise Absorb Kiya...)"
+                    className="w-full p-3 rounded-xl bg-[#121622] border border-white/[0.08] text-xs text-[#fbf8f3] placeholder-stone-500 font-mono focus:outline-none focus:border-amber-400"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setIsPastingScript(false)}
+                      className="px-3 py-1.5 text-xs text-stone-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleApplyPastedScript}
+                      disabled={!pastedScript.trim() || isAnalyzing}
+                      className="linea-pill-btn linea-pill-primary px-4 py-1.5 text-xs font-bold gap-1.5 disabled:opacity-50"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 fill-black" />
+                      <span>{isAnalyzing ? 'Analyzing Script...' : 'Analyze Script with AI'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div>
-                <span className="text-[10px] font-bold text-stone-500 block mb-1 font-mono uppercase tracking-wider">RAW STORY PREMISE</span>
+                <span className="text-[10px] font-bold text-stone-500 block mb-1 font-mono uppercase tracking-wider">RAW STORY PREMISE / SCRIPT HOOK</span>
                 <p className="text-sm text-[#fbf8f3] font-mono bg-[#0a0c12] p-4 rounded-2xl border border-white/5 leading-relaxed">
-                  "{premise || 'No premise provided yet. Add an initial idea to start project intelligence.'}"
+                  "{premise || 'No premise provided yet. Upload a script above to derive authentic project intelligence.'}"
                 </p>
               </div>
 
-              {currentProject.intent?.uploadedMaterialName && (
-                <div className="p-3 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 flex items-center justify-between text-xs">
-                  <span className="text-cyan-300 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    <span>Uploaded Source: <strong>{currentProject.intent.uploadedMaterialName}</strong></span>
-                  </span>
-                  <span className="text-stone-500 text-[10px] font-mono">Extracted Text Referenced</span>
+              {currentProject.intent?.uploadedMaterialContent && (
+                <div className="p-3.5 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-cyan-300 flex items-center gap-2 font-medium">
+                      <FileText className="w-4 h-4" />
+                      <span>Extracted Script: <strong>{currentProject.intent.uploadedMaterialName || 'Attached Document'}</strong></span>
+                    </span>
+                    <button
+                      onClick={() => runIntakeAnalysis()}
+                      disabled={isAnalyzing}
+                      className="text-[10px] font-mono font-bold text-amber-300 hover:underline flex items-center gap-1"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isAnalyzing ? 'animate-spin' : ''}`} />
+                      <span>Re-Analyze Script</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-stone-400 line-clamp-3 font-mono bg-black/40 p-2.5 rounded-xl border border-white/[0.04]">
+                    {currentProject.intent.uploadedMaterialContent.slice(0, 500)}...
+                  </p>
                 </div>
               )}
 

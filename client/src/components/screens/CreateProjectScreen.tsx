@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { BentoCard, LineaCaption, LineaButton } from '../common/LineaUI';
+import { extractTextFromFile } from '../../services/documentExtractor';
 
 export const CreateProjectScreen: React.FC = () => {
   const { createNewProject, setActiveScreen, openDemoProject, sendDiscoveryMessage } = useProject();
@@ -41,15 +42,13 @@ export const CreateProjectScreen: React.FC = () => {
     { label: 'Other', icon: <Sparkles className="w-3.5 h-3.5" /> }
   ];
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const sizeStr = (file.size / 1024).toFixed(1) + ' KB';
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
+    try {
+      const text = await extractTextFromFile(file);
       setUploadedFile({
         name: file.name,
         size: sizeStr,
@@ -57,12 +56,15 @@ export const CreateProjectScreen: React.FC = () => {
       });
 
       if (!premise.trim() && text) {
-        const preview = text.replace(/\s+/g, ' ').trim().slice(0, 160);
-        if (preview) setPremise(preview);
+        // Strip extra spaces and grab the first meaningful text lines
+        const preview = text.replace(/\s+/g, ' ').trim().slice(0, 240);
+        if (preview && !preview.startsWith('%PDF')) {
+          setPremise(preview);
+        }
       }
-    };
-
-    reader.readAsText(file);
+    } catch (err) {
+      console.error('File extraction error:', err);
+    }
   };
 
   const handleCreateProject = () => {
