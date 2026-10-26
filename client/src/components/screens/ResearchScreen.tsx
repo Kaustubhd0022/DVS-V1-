@@ -25,6 +25,7 @@ export const ResearchScreen: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'Findings' | 'Questions' | 'Sources'>('Findings');
   const [filterType, setFilterType] = useState<'All' | 'Verified' | 'Conflicting' | 'Insufficient Evidence'>('All');
+  const [epistemicFilter, setEpistemicFilter] = useState<'ALL' | 'DOCUMENTED_FACT' | 'SCHOLARLY_DISPUTED' | 'MYTHOLOGY_FOLKLORE' | 'CREATIVE_LICENCE'>('ALL');
   const [newQuestionInput, setNewQuestionInput] = useState('');
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [promotedFindingIds, setPromotedFindingIds] = useState<string[]>([]);
@@ -81,7 +82,7 @@ export const ResearchScreen: React.FC = () => {
       if (!currentProject.projectIntelligence?.researchUniverse?.dimensions?.length) {
         await buildResearchUniverse();
       }
-      const res = await generateResearchTopics(currentProject);
+      const res = await generateResearchTopics(currentProject, 6);
       updateCurrentProject(prev => {
         const newFindings: ResearchFinding[] = (res.topics || []).map((t, idx) => ({
           id: 'rf-' + ((prev.researchFindings?.length || 0) + idx + 1),
@@ -89,12 +90,14 @@ export const ResearchScreen: React.FC = () => {
           claim: t.claim || '',
           evidence: t.evidence || '',
           source: t.source || 'Domain Literature',
-          sourceType: (t.sourceType as any) || 'Established Publication',
+          sourceType: (t.sourceType as any) || 'Academic',
+          exactCitation: t.exactCitation || '',
+          evidenceQuote: t.evidenceQuote || t.evidence || '',
+          epistemicType: t.epistemicType || 'DOCUMENTED_FACT',
           status: 'Needs Review',
-          confidence: t.confidence || 0,
+          confidence: t.confidence || 90,
           tags: ['Extracted Finding', t.topic || 'General'],
           date: new Date().toLocaleDateString(),
-          evidenceQuote: (t as any).evidenceQuote || t.evidence || '',
           implicationForPlot: t.implicationForPlot || '',
           usedIn: []
         }));
@@ -146,9 +149,14 @@ export const ResearchScreen: React.FC = () => {
     setPromotedFindingIds(prev => [...prev, finding.id]);
   };
 
-  const filteredFindings = filterType === 'All' 
-    ? findings 
-    : findings.filter(f => f.status === filterType);
+  const filteredFindings = findings.filter(f => {
+    const matchesStatus = filterType === 'All' || f.status === filterType;
+    const matchesEpistemic = 
+      epistemicFilter === 'ALL' || 
+      f.epistemicType === epistemicFilter || 
+      (epistemicFilter === 'DOCUMENTED_FACT' && (f.epistemicType === 'SOURCE_FACT' || !f.epistemicType));
+    return matchesStatus && matchesEpistemic;
+  });
 
   const verifiedCount = findings.filter(f => f.status === 'Verified').length;
   const provenanceRate = findings.length > 0 ? Math.round((verifiedCount / findings.length) * 100) : 0;
@@ -436,10 +444,10 @@ export const ResearchScreen: React.FC = () => {
 
           {/* Right Column (8 cols): Traceable Findings Dossier */}
           <div className="lg:col-span-8 space-y-4">
-            <BentoCard className="p-3">
+            <BentoCard className="p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 px-2">
-                  Evidence Findings with Source Attribution ({filteredFindings.length})
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+                  Evidence Findings ({filteredFindings.length})
                 </span>
 
                 <div className="flex items-center gap-1.5 text-xs overflow-x-auto p-1">
@@ -458,11 +466,46 @@ export const ResearchScreen: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* 4-Tier Epistemic Historical Taxonomy Filter */}
+              <div className="pt-2 border-t border-white/[0.06] flex items-center gap-2 overflow-x-auto">
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider shrink-0 font-bold">
+                  Epistemic Tier:
+                </span>
+                {[
+                  { id: 'ALL', label: 'All Tiers' },
+                  { id: 'DOCUMENTED_FACT', label: 'Tier 1: Documented Fact' },
+                  { id: 'SCHOLARLY_DISPUTED', label: 'Tier 2: Scholarly Disputed' },
+                  { id: 'MYTHOLOGY_FOLKLORE', label: 'Tier 3: Mythology & Lore' },
+                  { id: 'CREATIVE_LICENCE', label: 'Tier 4: Creative Licence' }
+                ].map(tier => (
+                  <button
+                    key={tier.id}
+                    onClick={() => setEpistemicFilter(tier.id as any)}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all whitespace-nowrap border ${
+                      epistemicFilter === tier.id
+                        ? tier.id === 'DOCUMENTED_FACT'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm'
+                          : tier.id === 'SCHOLARLY_DISPUTED'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                          : tier.id === 'MYTHOLOGY_FOLKLORE'
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-sm'
+                          : tier.id === 'CREATIVE_LICENCE'
+                          ? 'bg-sky-500/20 text-sky-300 border-sky-500/50 shadow-sm'
+                          : 'bg-white/20 text-white border-white/40 shadow-sm'
+                        : 'bg-white/[0.02] text-stone-500 border-white/5 hover:text-stone-300'
+                    }`}
+                  >
+                    {tier.label}
+                  </button>
+                ))}
+              </div>
             </BentoCard>
 
             <div className="space-y-4">
               {filteredFindings.map((finding) => {
                 const isPromoted = promotedFindingIds.includes(finding.id);
+                const epistemic = finding.epistemicType || 'DOCUMENTED_FACT';
 
                 return (
                   <BentoCard
@@ -475,11 +518,31 @@ export const ResearchScreen: React.FC = () => {
                         : 'hover:border-amber-500/30'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-stone-400">
                           {finding.id.toUpperCase()} • {finding.topic}
                         </span>
+
+                        {/* Epistemic Taxonomy Badge */}
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                          epistemic === 'DOCUMENTED_FACT' || epistemic === 'SOURCE_FACT'
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                            : epistemic === 'SCHOLARLY_DISPUTED'
+                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/40'
+                            : epistemic === 'MYTHOLOGY_FOLKLORE'
+                            ? 'bg-purple-500/15 text-purple-300 border-purple-500/40'
+                            : 'bg-sky-500/15 text-sky-300 border-sky-500/40'
+                        }`}>
+                          {epistemic === 'DOCUMENTED_FACT' || epistemic === 'SOURCE_FACT'
+                            ? 'Tier 1: Documented Fact'
+                            : epistemic === 'SCHOLARLY_DISPUTED'
+                            ? 'Tier 2: Scholarly Disputed'
+                            : epistemic === 'MYTHOLOGY_FOLKLORE'
+                            ? 'Tier 3: Mythology & Lore'
+                            : 'Tier 4: Creative Licence'}
+                        </span>
+
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
                           finding.status === 'Verified'
                             ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
@@ -504,6 +567,14 @@ export const ResearchScreen: React.FC = () => {
                         {finding.evidence}
                       </p>
                     </div>
+
+                    {/* Exact Citation Disclosure */}
+                    {finding.exactCitation && (
+                      <div className="text-[11px] font-mono text-stone-300 bg-white/[0.03] px-3 py-1.5 rounded-xl border border-white/5 flex items-center gap-2">
+                        <span className="text-amber-400 font-bold uppercase text-[9px]">Exact Citation:</span>
+                        <span>{finding.exactCitation}</span>
+                      </div>
+                    )}
 
                     {finding.evidenceQuote && (
                       <blockquote className="text-xs text-amber-200/90 italic pl-3 border-l-2 border-amber-500/50">

@@ -3,10 +3,17 @@ import { useProject } from '../../context/ProjectContext';
 import { 
   MessageSquare, Volume2, Sparkles, CheckCircle2, 
   ArrowRight, Play, Pause, Mic, Sliders, RefreshCw, Zap, Brain,
-  AlertCircle
+  AlertCircle, Languages, Globe, Subtitles, Copy, Check
 } from 'lucide-react';
-import { DialogueSuggestion } from '../../types/project';
-import { punchUpDialogue } from '../../services/aiService';
+import { 
+  DialogueSuggestion, 
+  MultilingualScriptMode, 
+  IndicDialectRegister 
+} from '../../types/project';
+import { 
+  punchUpDialogue, 
+  generateMultilingualDialogueVariations 
+} from '../../services/aiService';
 import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const DialogueScreen: React.FC = () => {
@@ -18,6 +25,13 @@ export const DialogueScreen: React.FC = () => {
   const [appliedNotification, setAppliedNotification] = useState<string | null>(null);
   const [isPunchingUp, setIsPunchingUp] = useState(false);
   const [punchUpError, setPunchUpError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Multilingual Indic Dialogue Controls
+  const [scriptMode, setScriptMode] = useState<MultilingualScriptMode>('ROMAN_HINDI');
+  const [dialect, setDialect] = useState<IndicDialectRegister>('MUMBAI_COLLOQUIAL');
+  const [showSubtitles, setShowSubtitles] = useState(true);
+  const [codeSwitching, setCodeSwitching] = useState<number>(45);
 
   const protagonist = currentProject.characters[0];
   const charName = protagonist?.name || 'Lead Character';
@@ -32,6 +46,12 @@ export const DialogueScreen: React.FC = () => {
     }, 2500);
   };
 
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleGenerateDialogue = async () => {
     setIsPunchingUp(true);
     setPunchUpError(null);
@@ -42,51 +62,43 @@ export const DialogueScreen: React.FC = () => {
         .filter(line => !activeScene || line.sceneNumber === activeScene.sceneNumber);
       const sourceDialogue = screenplayLines.find(line => line.type === 'dialogue');
 
-      if (!sourceDialogue) {
-        throw new Error('DIALOGUE_SOURCE_MISSING: Generate or open a screenplay scene before creating dialogue variations.');
-      }
-
-      const speaker = sourceDialogue.characterName || charName;
+      const speaker = sourceDialogue?.characterName || charName;
       const sceneCtx = [
-        activeScene ? `Scene ${activeScene.sceneNumber}: ${activeScene.slugline}` : 'Current screenplay scene',
-        activeScene?.summary || '',
-        activeScene?.emotionalBeat || '',
-        `Existing screenplay line: ${sourceDialogue.content}`
+        activeScene ? `Scene ${activeScene.sceneNumber}: ${activeScene.slugline}` : 'Key Dramatic Climax',
+        activeScene?.summary || currentProject.intent?.premise || 'High stakes confrontation',
+        activeScene?.emotionalBeat || `Stakes: ${currentProject.intent?.conflict || 'Ideological survival'}`
       ].filter(Boolean).join(' | ');
 
-      const [alt1, alt2] = await Promise.all([
-        punchUpDialogue(sourceDialogue.content, speaker, sceneCtx, currentProject, 'Procedural precision, suppressed fear, clinical tone'),
-        punchUpDialogue(sourceDialogue.content, speaker, sceneCtx, currentProject, 'Urgent subtext, veiled threat, moral clarity')
-      ]);
+      const response = await generateMultilingualDialogueVariations({
+        sourceLine: sourceDialogue?.content,
+        characterName: speaker,
+        interlocutorName: currentProject.characters[1]?.name || 'Antagonist',
+        sceneContext: sceneCtx,
+        scriptMode,
+        dialect,
+        codeSwitchingIntensity: codeSwitching
+      }, currentProject);
 
-      const mapped: DialogueSuggestion[] = [
-        {
-          id: 'sug-gen-' + (suggestions.length + 1),
-          character: speaker,
-          text: alt1,
-          tone: 'Clinical Procedural',
-          label: 'Option A: Procedural Restraint',
-          subtext: 'Masks vulnerability behind forensic terminology.',
-          candidateState: 'AI_PROPOSAL',
-          configurationFingerprint: canonicalConfig.configurationFingerprint,
-          isSynthesisStale: false
-        },
-        {
-          id: 'sug-gen-' + (suggestions.length + 2),
-          character: speaker,
-          text: alt2,
-          tone: 'Urgent Direct',
-          label: 'Option B: Moral Ultimatum',
-          subtext: 'Directly challenges the interlocutor with high emotional velocity.',
-          candidateState: 'AI_PROPOSAL',
-          configurationFingerprint: canonicalConfig.configurationFingerprint,
-          isSynthesisStale: false
-        }
-      ];
+      const mapped: DialogueSuggestion[] = (response.variations || []).map((v, idx) => ({
+        id: 'sug-ml-' + Date.now() + '-' + (idx + 1),
+        character: speaker,
+        text: v.text,
+        tone: v.tone || 'Dynamic Register',
+        label: v.label || `Option ${String.fromCharCode(65 + idx)}: Voice Modulation`,
+        subtext: v.subtext || 'Unspoken subtextual imperative.',
+        candidateState: 'AI_PROPOSAL',
+        configurationFingerprint: canonicalConfig.configurationFingerprint,
+        isSynthesisStale: false,
+        scriptMode: v.scriptMode || scriptMode,
+        dialect: v.dialect || dialect,
+        subtitleTranslation: v.subtitleTranslation,
+        phoneticGuide: v.phoneticGuide,
+        deliveryCue: v.deliveryCue
+      }));
 
       updateCurrentProject(prev => ({
         ...prev,
-        dialogueSuggestions: [...prev.dialogueSuggestions, ...mapped],
+        dialogueSuggestions: [...mapped, ...(prev.dialogueSuggestions || [])],
         pilotMetrics: {
           ...prev.pilotMetrics,
           totalAiRuns: (prev.pilotMetrics?.totalAiRuns || 0) + 1
@@ -97,7 +109,7 @@ export const DialogueScreen: React.FC = () => {
         setSelectedVariantId(mapped[0].id);
       }
     } catch (err: any) {
-      setPunchUpError(err.message || 'AI service error generating dialogue variations.');
+      setPunchUpError(err.message || 'AI service error generating multilingual dialogue variations.');
     } finally {
       setIsPunchingUp(false);
     }
@@ -174,8 +186,97 @@ export const DialogueScreen: React.FC = () => {
         </div>
       )}
 
+      {/* Multilingual Indic Script & Dialect Control Center */}
+      <div className="linea-bento p-5 rounded-3xl space-y-4 border border-white/[0.08] bg-[#0c0e15]">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-3 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-400 flex items-center justify-center">
+              <Languages className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] font-mono flex items-center gap-2">
+                <span>Indic Multilingual & Script Engine</span>
+                <span className="text-[10px] text-amber-400 font-normal">Active Register</span>
+              </h3>
+              <p className="text-[11px] text-stone-400">Generate dialogue in native Roman-script Hindi (Romanagari), Devanagari, or urban Hinglish with parallel English subtitles.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowSubtitles(!showSubtitles)}
+              className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 transition-all border ${
+                showSubtitles 
+                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300' 
+                  : 'bg-white/5 border-white/10 text-stone-400'
+              }`}
+            >
+              <Subtitles className="w-3.5 h-3.5" />
+              <span>Parallel Subtitles {showSubtitles ? 'ON' : 'OFF'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Script Mode & Dialect Pills */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block mb-2 font-bold">
+              Script Mode
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'ROMAN_HINDI', label: 'Roman-Script Hindi', desc: 'English letters (Tum yahan kyun aaye?)' },
+                { id: 'DEVANAGARI', label: 'Devanagari (हिंदी)', desc: 'Standard script (तुम यहाँ क्यों आए?)' },
+                { id: 'HINGLISH_URBAN', label: 'Urban Hinglish', desc: 'Mumbai/Bollywood code-switching' },
+                { id: 'ENGLISH', label: 'Screenplay English', desc: 'Standard English register' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setScriptMode(opt.id as MultilingualScriptMode)}
+                  className={`p-2.5 rounded-xl text-left border transition-all ${
+                    scriptMode === opt.id
+                      ? 'bg-amber-500/15 border-amber-400/80 text-white shadow-[0_2px_12px_rgba(245,158,11,0.2)]'
+                      : 'bg-white/[0.02] border-white/5 hover:border-white/15 text-stone-400 hover:text-stone-200'
+                  }`}
+                >
+                  <div className="text-xs font-bold font-mono">{opt.label}</div>
+                  <div className="text-[10px] text-stone-500 mt-0.5 truncate">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block mb-2 font-bold">
+              Cadence & Dialect Register
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'MUMBAI_COLLOQUIAL', label: 'Mumbai Colloquial', desc: 'Street-smart, fast-paced' },
+                { id: 'HISTORICAL_CLASSICAL', label: 'Historical / Dignified', desc: 'Elevated, archaic weight' },
+                { id: 'LUCKNOWI_URDU', label: 'Lucknowi Urdu-Infused', desc: 'Courteous, lyrical register' },
+                { id: 'REGIONAL_RUSTIC', label: 'Rustic Regional', desc: 'Awadhi/Bhojpuri acoustic texture' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setDialect(opt.id as IndicDialectRegister)}
+                  className={`p-2.5 rounded-xl text-left border transition-all ${
+                    dialect === opt.id
+                      ? 'bg-cyan-500/15 border-cyan-400/80 text-white shadow-[0_2px_12px_rgba(6,182,212,0.2)]'
+                      : 'bg-white/[0.02] border-white/5 hover:border-white/15 text-stone-400 hover:text-stone-200'
+                  }`}
+                >
+                  <div className="text-xs font-bold font-mono">{opt.label}</div>
+                  <div className="text-[10px] text-stone-500 mt-0.5 truncate">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Voice Cadence Bar (Linea Bento Card) */}
-      <div className="linea-bento p-6 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="linea-bento p-5 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsPlayingVoice(!isPlayingVoice)}
@@ -190,7 +291,7 @@ export const DialogueScreen: React.FC = () => {
               <span className="text-stone-400">{protagonist?.voiceStyle || 'Dramatic Naturalism'}</span>
             </div>
             <h3 className="text-base font-bold text-[#fbf8f3] mt-0.5">
-              {isPlayingVoice ? "Simulating Cadence & Subtext Delivery..." : "Simulate Vocal Delivery & Inflection"}
+              {isPlayingVoice ? "Simulating Vocal Delivery & Acoustic Meter..." : "Audition Vocal Rhythm & Subtext"}
             </h3>
           </div>
         </div>
@@ -198,13 +299,13 @@ export const DialogueScreen: React.FC = () => {
         {/* Acoustic Meters */}
         <div className="flex items-center gap-4 bg-[#0a0c12] px-5 py-2.5 rounded-full border border-white/[0.08] text-xs font-mono">
           <div>
-            <span className="text-stone-500 block text-[9px] uppercase tracking-wider">SUBTEXT SCORE</span>
-            <span className="text-emerald-400 font-bold">92/100</span>
+            <span className="text-stone-500 block text-[9px] uppercase tracking-wider">SCRIPT MODE</span>
+            <span className="text-amber-400 font-bold">{scriptMode.replace('_', ' ')}</span>
           </div>
           <div className="w-px h-6 bg-white/10" />
           <div>
-            <span className="text-stone-500 block text-[9px] uppercase tracking-wider">NATURAL CADENCE</span>
-            <span className="text-cyan-400 font-bold">Optimal</span>
+            <span className="text-stone-500 block text-[9px] uppercase tracking-wider">DIALECT REGISTER</span>
+            <span className="text-cyan-400 font-bold">{dialect.replace('_', ' ')}</span>
           </div>
         </div>
       </div>
@@ -216,9 +317,9 @@ export const DialogueScreen: React.FC = () => {
             <MessageSquare className="w-8 h-8" />
           </div>
           <div className="max-w-md mx-auto space-y-1.5">
-            <h3 className="text-lg font-bold text-[#fbf8f3]">No Dialogue Variations Registered</h3>
+            <h3 className="text-lg font-bold text-[#fbf8f3]">No Multilingual Dialogue Variations Registered</h3>
             <p className="text-xs text-stone-400 leading-relaxed">
-              Generate dynamic subtext and tone variations for <strong className="text-white">{charName}</strong> derived from your project's premise.
+              Generate character-specific dialogue variations for <strong className="text-white">{charName}</strong> in <strong className="text-amber-400">{scriptMode}</strong> with authentic cadence and parallel English subtitles.
             </p>
           </div>
           <button
@@ -227,7 +328,7 @@ export const DialogueScreen: React.FC = () => {
             className="linea-pill-btn linea-pill-primary px-6 py-2.5 text-xs font-bold inline-flex items-center gap-2 mx-auto disabled:opacity-50"
           >
             <Sparkles className="w-4 h-4 fill-black" />
-            <span>{isPunchingUp ? 'Generating Dialogue Variations...' : 'Punch-Up Dialogue with AI'}</span>
+            <span>{isPunchingUp ? 'Generating Multilingual Dialogue...' : 'Generate Multilingual Variations (AI)'}</span>
           </button>
         </div>
       ) : (
@@ -237,9 +338,9 @@ export const DialogueScreen: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] font-mono">
-                  Key Exchange Variants ({charName})
+                  Dialogue Variants ({charName})
                 </h3>
-                <p className="text-[11px] text-stone-400 mt-0.5">Hot-swap suggestions directly into the live screenplay draft.</p>
+                <p className="text-[11px] text-stone-400 mt-0.5">Select a variant to preview acoustic cadence or promote directly to screenplay canon.</p>
               </div>
               <span className="linea-caption-chip">
                 {suggestions.length} Registered Variants
@@ -261,26 +362,60 @@ export const DialogueScreen: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-bold text-amber-400 font-mono flex items-center gap-1.5">
                           <Zap className="w-3.5 h-3.5" />
                           {sug.label}
                         </span>
-                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold uppercase">
-                          {sug.candidateState || 'CANDIDATE'}
-                        </span>
+                        {sug.scriptMode && (
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-bold uppercase">
+                            {sug.scriptMode.replace('_', ' ')}
+                          </span>
+                        )}
+                        {sug.dialect && (
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-stone-500/10 text-stone-400 border border-white/5 font-bold uppercase">
+                            {sug.dialect.replace('_', ' ')}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-stone-400 border border-white/5">
                         Tone: {sug.tone}
                       </span>
                     </div>
 
-                    <p className="text-sm font-mono text-[#fbf8f3] mt-2.5 leading-relaxed pl-3 border-l-2 border-amber-400">
-                      "{sug.text}"
-                    </p>
+                    {/* Spoken Dialogue Line */}
+                    <div className="mt-3 pl-3 border-l-2 border-amber-400">
+                      <p className="text-base font-medium text-[#fbf8f3] leading-relaxed">
+                        "{sug.text}"
+                      </p>
+                      
+                      {/* Parallel English Subtitle Translation */}
+                      {showSubtitles && sug.subtitleTranslation && (
+                        <div className="mt-2 text-xs font-mono text-cyan-300/90 flex items-start gap-1.5 bg-cyan-950/20 px-2.5 py-1.5 rounded-lg border border-cyan-500/20">
+                          <Subtitles className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                          <span>Subtitle: "{sug.subtitleTranslation}"</span>
+                        </div>
+                      )}
+
+                      {/* Delivery Cue & Phonetic Guide */}
+                      {(sug.deliveryCue || sug.phoneticGuide) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-stone-400">
+                          {sug.deliveryCue && (
+                            <span className="italic text-amber-300/80">
+                              Directing cue: {sug.deliveryCue}
+                            </span>
+                          )}
+                          {sug.phoneticGuide && (
+                            <span className="font-mono text-stone-500">
+                              Stress: {sug.phoneticGuide}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {sug.subtext && (
-                      <p className="text-xs text-stone-400 mt-2 italic">
+                      <p className="text-xs text-stone-400 mt-2.5 italic">
                         Subtext: {sug.subtext}
                       </p>
                     )}
@@ -288,16 +423,29 @@ export const DialogueScreen: React.FC = () => {
                     <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between">
                       <span className="text-xs text-stone-500 font-mono">Speaker: {sug.character || charName}</span>
                       
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleApplyVariant(sug);
-                        }}
-                        className="linea-pill-btn linea-pill-primary px-3.5 py-1 text-xs font-bold gap-1"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Promote to Canon</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(sug.id, sug.text);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-stone-400 text-xs flex items-center gap-1 border border-white/5"
+                        >
+                          {copiedId === sug.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedId === sug.id ? 'Copied' : 'Copy'}</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApplyVariant(sug);
+                          }}
+                          className="linea-pill-btn linea-pill-primary px-3.5 py-1 text-xs font-bold gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Promote to Canon</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

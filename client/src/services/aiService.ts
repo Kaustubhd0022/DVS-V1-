@@ -32,7 +32,10 @@ import {
   NextBestAction,
   PlotBeatItem,
   ResearchStorySeed,
-  ResearchFoundryResult
+  ResearchFoundryResult,
+  MultilingualScriptMode,
+  IndicDialectRegister,
+  DialogueSuggestion
 } from '../types/project';
 import { resolveProjectContext } from './contextResolver';
 import { getCanonicalConfiguration } from './projectConfiguration';
@@ -1079,32 +1082,51 @@ export interface ResearchSynthesisResult {
     claim: string;
     evidence: string;
     source: string;
-    sourceType: 'Primary Source' | 'Academic' | 'Established Publication' | 'Government' | 'Field Report';
+    sourceType: 'Primary Source' | 'Academic' | 'Established Publication' | 'Government' | 'Field Report' | 'Archaeological' | 'Epigraphical';
+    exactCitation?: string;
+    evidenceQuote?: string;
+    epistemicType: 'DOCUMENTED_FACT' | 'SCHOLARLY_DISPUTED' | 'MYTHOLOGY_FOLKLORE' | 'CREATIVE_LICENCE';
     implicationForPlot: string;
     confidence: number;
   }>;
 }
 
 export const generateResearchTopics = async (
-  project: TattavaProject
+  project: TattavaProject,
+  count: number = 6
 ): Promise<ResearchSynthesisResult> => {
   const context = buildProjectContext(project, 'Synthesize authentic research and procedural evidence');
 
   const prompt = `${context}
 
 TASK:
-Identify 4 authentic, real-world investigative or technical research domains required to ground this project in reality.
-For each domain, provide a plausible real-world finding, source type, and its direct dramatic implication for the narrative.
+Synthesize ${count} authentic, real-world investigative, historical, or technical research findings to ground this project in reality.
+You must categorize each finding into the 4-Tier Epistemic Taxonomy:
+1. "DOCUMENTED_FACT": Physical archaeological discoveries, epigraphical inscriptions, numismatic evidence, or primary archival chronicles.
+2. "SCHOLARLY_DISPUTED": Divergent academic chronologies, contested translations, or conflicting historical viewpoints.
+3. "MYTHOLOGY_FOLKLORE": Sacred epics, puranic accounts, oral folklore, or cultural traditions treated as canon by the culture.
+4. "CREATIVE_LICENCE": Plausible dramatic invention or composite scenarios crafted specifically for narrative leverage.
+
+For each finding, provide:
+- Specific topic & factual claim
+- Verifiable source title or archive
+- Exact citation (book, volume, inscription ID, or chapter)
+- Authentic evidence quote / excerpt
+- Epistemic classification
+- Direct dramatic implication for the narrative
 
 Return ONLY valid JSON matching:
 {
   "topics": [
     {
-      "topic": "Specific scientific, legal, or procedural domain",
+      "topic": "Specific scientific, legal, or historical domain",
       "claim": "Specific factual mechanism or empirical finding",
       "evidence": "Summary of documented occurrences or technical realities",
       "source": "Realistic institutional body, academic journal, or public archive",
-      "sourceType": "Established Publication",
+      "sourceType": "Academic",
+      "exactCitation": "Specific book, inscription, archive reference",
+      "evidenceQuote": "Direct quote or historical excerpt",
+      "epistemicType": "DOCUMENTED_FACT",
       "implicationForPlot": "How this factual reality forces dramatic action or creates an obstacle in the story",
       "confidence": 92
     }
@@ -1112,11 +1134,11 @@ Return ONLY valid JSON matching:
 }`;
 
   const raw = await callAI([
-    { role: 'system', content: 'You are a research journalist and film dramaturge. Return JSON only.' },
+    { role: 'system', content: 'You are an elite research historian, investigative journalist, and film dramaturge. Return JSON only.' },
     { role: 'user', content: prompt }
   ], {
     temperature: 0.6,
-    max_tokens: 2500,
+    max_tokens: 3000,
     jsonMode: true,
     taskName: 'Research Evidence Generation',
     contextSnapshot: context
@@ -1454,6 +1476,133 @@ Return ONLY the punched-up dialogue line itself in quotation marks. No other tex
   });
 
   return raw.trim().replace(/^["']|["']$/g, '');
+};
+
+export interface MultilingualDialogueRequest {
+  sourceLine?: string;
+  characterName: string;
+  interlocutorName?: string;
+  sceneContext?: string;
+  scriptMode: MultilingualScriptMode;
+  dialect: IndicDialectRegister;
+  codeSwitchingIntensity?: number; // 0 to 100
+  tones?: string[];
+}
+
+export interface MultilingualDialogueResponse {
+  variations: Array<{
+    label: string;
+    text: string;
+    tone: string;
+    subtext: string;
+    scriptMode: MultilingualScriptMode;
+    dialect: IndicDialectRegister;
+    subtitleTranslation: string;
+    phoneticGuide: string;
+    deliveryCue: string;
+  }>;
+}
+
+/**
+ * Multilingual Indic Dialogue & Roman-Script Engine
+ * Generates character-specific dialogue variations with strict script & dialect rules,
+ * parallel English subtitles, and delivery cues.
+ */
+export const generateMultilingualDialogueVariations = async (
+  req: MultilingualDialogueRequest,
+  project?: TattavaProject
+): Promise<MultilingualDialogueResponse> => {
+  const resolved = project ? resolveCanonicalGenerationContext(
+    project, 
+    'Dialogue Voice', 
+    'Generate Dialogue Variations', 
+    `${req.characterName} ${req.sceneContext || ''} ${req.sourceLine || ''}`, 
+    project.selectedCharacterId || undefined
+  ) : null;
+  const projectSummary = resolved ? resolved.contextText : '';
+
+  const scriptInstructions: Record<MultilingualScriptMode, string> = {
+    ROMAN_HINDI: `STRICT REQUIREMENT: The "text" field MUST be written in natural, conversational HINDI using ENGLISH/LATIN ALPHABET (Romanagari/Hinglish).
+Examples of required output:
+- "Tum yahan kyun aaye ho? Maine mana kiya tha na."
+- "Sach bolne ki aadat daal lo, time kam hai."
+- "Mujhe tumhari sympathy nahi chahiye, apna kaam karo."
+NEVER translate into English inside "text" (DO NOT output "Why have you come here?").
+NEVER use Devanagari letters in "text".
+Always provide the English translation in the "subtitleTranslation" field.`,
+
+    DEVANAGARI: `STRICT REQUIREMENT: The "text" field MUST be written in authentic DEVANAGARI HINDI script (e.g. "तुम यहाँ क्यों आए हो? मैंने मना किया था न।").
+Always provide the English translation in the "subtitleTranslation" field.`,
+
+    HINGLISH_URBAN: `STRICT REQUIREMENT: The "text" field MUST be written in contemporary urban code-switched Hinglish using English letters.
+Examples: "Bro, situation out of hand hai, hum koi unnecessary risk nahi le sakte."
+Always provide the English translation in the "subtitleTranslation" field.`,
+
+    ENGLISH: `STRICT REQUIREMENT: The "text" field MUST be written in sharp, subtext-rich English screenplay dialogue.`
+  };
+
+  const dialectInstructions: Record<IndicDialectRegister, string> = {
+    MUMBAI_COLLOQUIAL: `Dialect: Contemporary Mumbai urban street smart cadence, punchy pauses, high velocity.`,
+    HISTORICAL_CLASSICAL: `Dialect: Dignified historical register with weight, gravitas, and formal rhetorical pauses.`,
+    LUCKNOWI_URDU: `Dialect: Lyrical, courteous, Persian/Urdu cadence ("aap", "tashreef", "farmayein", "gustakhi").`,
+    REGIONAL_RUSTIC: `Dialect: Earthy regional textures (Awadhi/Bhojpuri/Braj cadence and acoustic grounding).`,
+    STANDARD_NEUTRAL: `Dialect: Clean, modern dramatic dialogue with universal appeal.`
+  };
+
+  const prompt = `${projectSummary}
+
+TASK:
+Generate 3 distinct, high-impact dialogue options for character "${req.characterName}" in this dramatic moment.
+${req.sourceLine ? `Original draft line to punch up / modulate: "${req.sourceLine}"` : `Scene beat context: ${req.sceneContext || 'High tension confrontation'}`}
+${req.interlocutorName ? `Speaking to: ${req.interlocutorName}` : ''}
+
+SCRIPT MODE: ${req.scriptMode}
+${scriptInstructions[req.scriptMode]}
+
+DIALECT & REGISTER: ${req.dialect}
+${dialectInstructions[req.dialect]}
+Code-switching intensity: ${req.codeSwitchingIntensity ?? 50}%
+
+For EACH of the 3 variations, provide:
+1. "label": Clear title (e.g., "Option A: Restrained Cold Defiance", "Option B: Urgent Ultimatum", "Option C: Vulnerable Truth")
+2. "text": The spoken line matching the exact scriptMode and dialect instructions above
+3. "tone": Dramatic register
+4. "subtext": The unspoken psychological intent
+5. "scriptMode": "${req.scriptMode}"
+6. "dialect": "${req.dialect}"
+7. "subtitleTranslation": Synchronized English subtitle for audience translation
+8. "phoneticGuide": Pronunciation / stress guide for the actor (e.g. "Tum ya-HAAN kyun AAYE ho?")
+9. "deliveryCue": Acoustic directing notes (e.g. "Whispered close to ear, rapid breath, avoiding eye contact")
+
+Return ONLY valid JSON matching:
+{
+  "variations": [
+    {
+      "label": "Option A: ...",
+      "text": "...",
+      "tone": "...",
+      "subtext": "...",
+      "scriptMode": "${req.scriptMode}",
+      "dialect": "${req.dialect}",
+      "subtitleTranslation": "...",
+      "phoneticGuide": "...",
+      "deliveryCue": "..."
+    }
+  ]
+}`;
+
+  const raw = await callAI([
+    { role: 'system', content: 'You are an award-winning screenplay dialogue master specializing in Indian cinema and multilingual screenwriting. Output valid JSON only.' },
+    { role: 'user', content: prompt }
+  ], {
+    temperature: 0.75,
+    max_tokens: 2200,
+    jsonMode: true,
+    taskName: 'Multilingual Dialogue Generation',
+    contextSnapshot: projectSummary || req.characterName
+  });
+
+  return extractJsonFromResponse(raw);
 };
 
 /**
