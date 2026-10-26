@@ -104,7 +104,7 @@ async function callGroq(
   const { temperature = 0.7, max_tokens = 2000, jsonMode = false, taskName = 'General Inference', contextSnapshot = '' } = options;
   const startTime = performance.now();
 
-  const modelsToTry = [PRIMARY_MODEL, FALLBACK_MODEL];
+  const modelsToTry = [PRIMARY_MODEL, FALLBACK_MODEL, 'qwen/qwen3.8-27b'];
   let lastError: any = null;
 
   for (const model of modelsToTry) {
@@ -606,6 +606,7 @@ async function callAI(
   const { temperature = 0.7, max_tokens = 2000, jsonMode = false, taskName = 'General Inference', contextSnapshot = '' } = options;
   const startTime = performance.now();
 
+  // Try server endpoint first
   try {
     const result = await apiClient.generate({
       messages,
@@ -627,20 +628,28 @@ async function callAI(
       status: 'SUCCESS'
     };
     return result.content;
-  } catch (err) {
-    const error = toAiError(err);
-    lastAiDebugTrace = {
-      timestamp: new Date().toLocaleTimeString(),
-      task: taskName,
-      model: 'server',
-      contextSent: contextSnapshot || '',
-      prompt: messages[messages.length - 1]?.content || '',
-      rawResponse: '',
-      latencyMs: Math.round(performance.now() - startTime),
-      status: 'ERROR',
-      errorMessage: error.message
-    };
-    throw error;
+  } catch (serverErr) {
+    console.info(`[tattvaCo AI] Server endpoint unavailable (${(serverErr as any)?.message || 'offline'}). Attempting direct Groq provider fallback...`);
+    
+    // Direct browser-to-provider fallback using configured Groq key
+    try {
+      const directResult = await callGroq(messages, options);
+      return directResult;
+    } catch (directErr) {
+      const error = toAiError(directErr || serverErr);
+      lastAiDebugTrace = {
+        timestamp: new Date().toLocaleTimeString(),
+        task: taskName,
+        model: 'server-fallback',
+        contextSent: contextSnapshot || '',
+        prompt: messages[messages.length - 1]?.content || '',
+        rawResponse: '',
+        latencyMs: Math.round(performance.now() - startTime),
+        status: 'ERROR',
+        errorMessage: error.message
+      };
+      throw error;
+    }
   }
 }
 
@@ -652,7 +661,8 @@ export const testAiConnection = async (): Promise<{ success: boolean; message: s
     const result = await apiClient.testAi();
     return { success: result.success, message: result.message, latencyMs: result.latency_ms ?? undefined };
   } catch (err) {
-    return { success: false, message: toAiError(err).message };
+    // If backend is not available, test Groq directly
+    return testGroqConnection();
   }
 };
 
