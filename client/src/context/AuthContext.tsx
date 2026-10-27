@@ -4,7 +4,7 @@ import { apiClient, BackendUser, setAccessTokenProvider } from '../services/apiC
 import { authEnabled, supabase } from '../services/supabaseClient';
 
 /**
- * disabled     - Supabase is not configured; local-only mode
+ * disabled     - Supabase is not configured; nobody can sign in
  * loading      - restoring the session
  * signed-out   - show the sign-in screen
  * provisioning - signed in, creating/loading the backend user
@@ -136,13 +136,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    if (!supabase) return;
+    if (!supabase) throw new Error('Supabase is not configured.');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
-    if (!supabase) return { needsConfirmation: false };
+    if (!supabase) throw new Error('Supabase is not configured.');
     const name = fullName?.trim() || email.split('@')[0] || 'Creator';
     const { data, error } = await supabase.auth.signUp({ 
       email, 

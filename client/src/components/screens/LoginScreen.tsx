@@ -14,32 +14,30 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-interface LoginScreenProps {
-  onLogin: (user: { name: string; email: string; role: string }) => void;
-}
-
 type AuthMode = 'sign-in' | 'sign-up' | 'forgot-password';
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+const AUTH_NOT_CONFIGURED =
+  'Sign-in is not configured for this deployment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are missing).';
+
+/**
+ * Every path goes through Supabase. The app opens only after AuthContext reports a real
+ * signed-in identity, so this screen never creates a session on its own.
+ */
+export const LoginScreen: React.FC = () => {
   const auth = useAuth();
   const [mode, setMode] = useState<AuthMode>('sign-in');
   const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
-  const [email, setEmail] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tattava_master_session');
-      return saved ? JSON.parse(saved).email || '' : '';
-    } catch {
-      return '';
-    }
-  });
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   // Status & Feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(
+    auth.status === 'disabled' ? AUTH_NOT_CONFIGURED : null
+  );
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const clearFeedback = () => {
@@ -52,49 +50,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     setMode(newMode);
   };
 
-  // Helper to commit local session
-  const commitSession = (creatorName: string, creatorEmail: string) => {
-    const finalName = creatorName.trim() || 'Creator';
-    const finalEmail = creatorEmail.trim() || 'creator@tattvaco.film';
-    const userData = {
-      name: finalName,
-      email: finalEmail,
-      role: 'Writer / Showrunner',
-      signedInAt: new Date().toISOString()
-    };
-    localStorage.setItem('tattava_master_session', JSON.stringify(userData));
-    window.dispatchEvent(new Event('tattava_user_session_updated'));
-    setTimeout(() => {
-      onLogin(userData);
-    }, 200);
-  };
-
-  // Handle Sign In (Realtime)
+  // Handle Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     clearFeedback();
     setIsSubmitting(true);
-
     try {
-      if (auth.status !== 'disabled') {
-        // AuthContext writes the local session once Supabase reports the new identity.
-        await auth.signIn(email.trim(), password);
-      } else {
-        // Local mode fallback
-        const localName = name.trim() || email.split('@')[0] || 'Creator';
-        commitSession(localName, email.trim());
-      }
+      // On success the Supabase session changes and App leaves this screen.
+      await auth.signIn(email.trim(), password);
     } catch (err: any) {
       console.warn('Sign-in error:', err);
-      // If error is about invalid credentials or network, show it
-      const message = err?.message || 'Invalid email or password. Please verify your credentials.';
-      setErrorMsg(message);
+      setErrorMsg(err?.message || 'Invalid email or password. Please verify your credentials.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle Create Account (Realtime)
+  // Handle Create Account
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     clearFeedback();
@@ -106,14 +78,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
     setIsSubmitting(true);
     try {
-      if (auth.status !== 'disabled') {
-        const { needsConfirmation } = await auth.signUp(email.trim(), password, name.trim());
-        if (needsConfirmation) {
-          setSuccessMsg('Account created successfully! Check your email to confirm your account, then sign in.');
-          setMode('sign-in');
-        }
-      } else {
-        commitSession(name.trim() || email.split('@')[0], email.trim());
+      const { needsConfirmation } = await auth.signUp(email.trim(), password, name.trim());
+      if (needsConfirmation) {
+        setSuccessMsg(`Account created. We sent a confirmation link to ${email.trim()}. Confirm it, then sign in.`);
+        setMode('sign-in');
+        setPassword('');
       }
     } catch (err: any) {
       console.warn('Sign-up error:', err);
@@ -123,7 +92,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   };
 
-  // Handle Forgot Password (Realtime)
+  // Handle Forgot Password
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     clearFeedback();
@@ -135,12 +104,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
     setIsSubmitting(true);
     try {
-      if (auth.status !== 'disabled') {
-        await auth.resetPassword(email.trim());
-        setSuccessMsg(`Password reset instructions have been sent to ${email.trim()}.`);
-      } else {
-        setErrorMsg('Password reset is unavailable in local mode because no account server is configured.');
-      }
+      await auth.resetPassword(email.trim());
+      setSuccessMsg(`Password reset instructions have been sent to ${email.trim()}.`);
     } catch (err: any) {
       console.warn('Password reset error:', err);
       setErrorMsg(err?.message || 'Unable to send reset link. Please check your email and try again.');
@@ -149,17 +114,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }
   };
 
-  // Handle Sign In with Google (Realtime OAuth with fallback)
+  // Handle Sign In with Google (redirects to Google, then back to the app)
   const handleGoogleAuth = async () => {
     clearFeedback();
     setIsSubmitting(true);
     try {
-      if (auth.status !== 'disabled') {
-        // Redirects to Google; AuthContext writes the local session on return.
-        await auth.signInWithGoogle();
-      } else {
-        commitSession('Google Creator', email || 'creator@gmail.com');
-      }
+      await auth.signInWithGoogle();
     } catch (err: any) {
       console.warn('Google sign-in error:', err);
       const message: string = err?.message || '';
