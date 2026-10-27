@@ -20,7 +20,12 @@ export const StructureScreen: React.FC = () => {
 
   const structure = currentProject.structure;
   const isSeries = /series/i.test(currentProject.format || currentProject.formats?.find(f => f.isSelected)?.title || '');
-  const episodeCount = currentProject.dynamicFormat?.episodeCount || structure.episodeCount || (isSeries ? 16 : undefined);
+  const parsedFromFormat = currentProject.format?.match(/(\d+)\s*(?:episod(?:e|ic)?|ep|part)/i)?.[1]
+    || currentProject.title?.match(/(\d+)\s*(?:episod(?:e|ic)?|ep|part)/i)?.[1];
+  const episodeCount = currentProject.dynamicFormat?.episodeCount 
+    || structure.episodeCount 
+    || (parsedFromFormat ? parseInt(parsedFromFormat, 10) : undefined) 
+    || (isSeries ? 10 : undefined);
   const episodeDuration = structure.episodeDurationMins || (isSeries ? 45 : structure.estimatedDurationMins || 120);
   const activeEpisode = structure.activeEpisodeNumber || 1;
   const configuredDuration = isSeries ? episodeDuration : (structure.estimatedDurationMins || 120);
@@ -66,7 +71,7 @@ export const StructureScreen: React.FC = () => {
     setIsGeneratingEpisodes(true);
     setStructureError(null);
     try {
-      const targetCount = episodeCount || 16;
+      const targetCount = episodeCount || 10;
       await fetchSeriesEpisodes(targetCount);
     } catch (err: any) {
       setStructureError(err.message || 'Failed to synthesize series episodic architecture.');
@@ -185,12 +190,18 @@ export const StructureScreen: React.FC = () => {
     ? allBeats
     : allBeats.filter(b => b.act.startsWith(activeActFilter));
 
+  // Dynamically calculate quadrant act boundaries for whatever number of episodes (e.g. 10, 8, 16, 24)
+  const totalCount = episodes.length || episodeCount || 10;
+  const q1End = Math.max(1, Math.round(totalCount * 0.25));
+  const q2End = Math.max(q1End + 1, Math.round(totalCount * 0.5));
+  const q3End = Math.max(q2End + 1, Math.round(totalCount * 0.75));
+
   const filteredEpisodes = episodes.filter(ep => {
     if (activeEpisodeFilter === 'ALL') return true;
-    if (activeEpisodeFilter === 'ACT_I') return ep.episodeNumber >= 1 && ep.episodeNumber <= 4;
-    if (activeEpisodeFilter === 'ACT_II_A') return ep.episodeNumber >= 5 && ep.episodeNumber <= 8;
-    if (activeEpisodeFilter === 'ACT_II_B') return ep.episodeNumber >= 9 && ep.episodeNumber <= 12;
-    if (activeEpisodeFilter === 'ACT_III') return ep.episodeNumber >= 13 && ep.episodeNumber <= 16;
+    if (activeEpisodeFilter === 'ACT_I') return ep.episodeNumber >= 1 && ep.episodeNumber <= q1End;
+    if (activeEpisodeFilter === 'ACT_II_A') return ep.episodeNumber >= q1End + 1 && ep.episodeNumber <= q2End;
+    if (activeEpisodeFilter === 'ACT_II_B') return ep.episodeNumber >= q2End + 1 && ep.episodeNumber <= q3End;
+    if (activeEpisodeFilter === 'ACT_III') return ep.episodeNumber >= q3End + 1 && ep.episodeNumber <= totalCount;
     return true;
   });
 
@@ -209,7 +220,7 @@ export const StructureScreen: React.FC = () => {
             Story Structure & Dynamic Architecture
           </h1>
           <p className="text-sm text-stone-300 mt-1 max-w-2xl leading-relaxed">
-            {structure.templateName || currentProject.template || 'Three-Act Classical Structure'} • {isSeries ? `${episodeDuration} Mins / Episode • ${episodeCount || 16} Episodes` : `${configuredDuration} Mins`}
+            {structure.templateName || currentProject.template || 'Three-Act Classical Structure'} • {isSeries ? `${episodeDuration} Mins / Episode • ${episodeCount || 10} Episodes` : `${configuredDuration} Mins`}
           </p>
         </div>
 
@@ -227,7 +238,7 @@ export const StructureScreen: React.FC = () => {
                 }`}
               >
                 <Tv className="w-3.5 h-3.5" />
-                <span>Season Architecture ({episodes.length || episodeCount || 16} Ep)</span>
+                <span>Season Architecture ({episodes.length || episodeCount || 10} Ep)</span>
               </button>
 
               <button
@@ -252,7 +263,7 @@ export const StructureScreen: React.FC = () => {
               className="linea-pill-btn linea-pill-primary px-5 py-2.5 text-xs font-bold gap-2 disabled:opacity-50"
             >
               <Sparkles className={`w-3.5 h-3.5 ${isGeneratingEpisodes ? 'animate-spin' : ''}`} />
-              <span>{isGeneratingEpisodes ? 'Synthesizing 16 Episodes...' : 'Synthesize 16-Episode Architecture (Groq LPU)'}</span>
+              <span>{isGeneratingEpisodes ? `Synthesizing ${episodeCount || 10} Episodes...` : `Synthesize ${episodeCount || 10}-Episode Architecture (Groq LPU)`}</span>
               <span className="linea-btn-wave" aria-hidden="true">
                 <span />
                 <span />
@@ -308,16 +319,16 @@ export const StructureScreen: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400 font-mono">16-Episode Serialized Series Engine</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400 font-mono">{episodeCount || episodes.length || 10}-Episode Serialized Series Engine</span>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
-                    Prestige Historical Architecture
+                    Prestige Narrative Architecture
                   </span>
                 </div>
                 <h2 className="text-lg font-bold text-[#fbf8f3] mt-1">
                   Master Season Arc: <span className="text-amber-300">{currentProject.title}</span>
                 </h2>
                 <p className="text-xs text-stone-300 mt-1 max-w-3xl leading-relaxed">
-                  Sequencing 16 interconnected episodes with distinct historical focus, turning points, multi-faction allegiances, and evidence citations.
+                  Sequencing {episodeCount || episodes.length || 10} interconnected episodes with distinct focus, turning points, multi-faction allegiances, and evidence citations.
                 </p>
               </div>
             </div>
@@ -326,13 +337,13 @@ export const StructureScreen: React.FC = () => {
               <div className="text-right">
                 <div className="text-xs text-stone-400 font-mono">Canonical Progress</div>
                 <div className="text-sm font-mono font-bold text-amber-400">
-                  {episodes.filter(e => e.candidateState === 'APPROVED' || e.candidateState === 'CANONICAL').length} / {episodes.length || 16} Approved
+                  {episodes.filter(e => e.candidateState === 'APPROVED' || e.candidateState === 'CANONICAL').length} / {episodes.length || episodeCount || 10} Approved
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Quadrant / Act Filters for 16-Episode Arc (Linea Pill Tabs) */}
+          {/* Quadrant / Act Filters for Season Arc (Linea Pill Tabs) */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-stone-400 uppercase font-mono tracking-wider mr-2">Season Arcs:</span>
@@ -345,7 +356,7 @@ export const StructureScreen: React.FC = () => {
                     : 'bg-[#141824] hover:bg-white/10 text-stone-300 hover:text-white border-white/10'
                 }`}
               >
-                All 16 Episodes ({episodes.length})
+                All {episodes.length || episodeCount || 10} Episodes
               </button>
 
               <button
@@ -357,7 +368,7 @@ export const StructureScreen: React.FC = () => {
                     : 'bg-[#141824] hover:bg-white/10 text-stone-300 hover:text-white border-white/10'
                 }`}
               >
-                Act I: The Spark (Ep 1–4)
+                Act I: The Spark (Ep 1–{q1End})
               </button>
 
               <button
@@ -369,7 +380,7 @@ export const StructureScreen: React.FC = () => {
                     : 'bg-[#141824] hover:bg-white/10 text-stone-300 hover:text-white border-white/10'
                 }`}
               >
-                Act II-A: Escalation (Ep 5–8)
+                Act II-A: Escalation (Ep {q1End + 1}–{q2End})
               </button>
 
               <button
@@ -381,7 +392,7 @@ export const StructureScreen: React.FC = () => {
                     : 'bg-[#141824] hover:bg-white/10 text-stone-300 hover:text-white border-white/10'
                 }`}
               >
-                Act II-B: Crisis & Siege (Ep 9–12)
+                Act II-B: Crisis & Siege (Ep {q2End + 1}–{q3End})
               </button>
 
               <button
@@ -393,7 +404,7 @@ export const StructureScreen: React.FC = () => {
                     : 'bg-[#141824] hover:bg-white/10 text-stone-300 hover:text-white border-white/10'
                 }`}
               >
-                Act III: The Reckoning (Ep 13–16)
+                Act III: The Reckoning (Ep {q3End + 1}–{totalCount})
               </button>
             </div>
 
@@ -409,9 +420,9 @@ export const StructureScreen: React.FC = () => {
                 <Tv className="w-8 h-8" />
               </div>
               <div className="space-y-1.5 max-w-lg mx-auto">
-                <h3 className="text-lg font-bold text-white">16-Episode Series Architecture Ready to Synthesize</h3>
+                <h3 className="text-lg font-bold text-white">{episodeCount || 10}-Episode Series Architecture Ready to Synthesize</h3>
                 <p className="text-xs text-stone-300 leading-relaxed">
-                  Tattava Copilot will synthesize all 16 episodic chapters, establishing the historical focus, narrative engine, character involvements, and unresolved debates per episode.
+                  Tattava Copilot will synthesize all {episodeCount || 10} episodic chapters, establishing the historical focus, narrative engine, character involvements, and unresolved debates per episode.
                 </p>
               </div>
 
@@ -422,7 +433,7 @@ export const StructureScreen: React.FC = () => {
                 className="linea-pill-btn linea-pill-primary px-6 py-3 text-xs font-bold gap-2"
               >
                 <Sparkles className={`w-4 h-4 ${isGeneratingEpisodes ? 'animate-spin' : ''}`} />
-                <span>{isGeneratingEpisodes ? 'Synthesizing Season Architecture with Groq LPU...' : 'Synthesize 16-Episode Master Architecture'}</span>
+                <span>{isGeneratingEpisodes ? 'Synthesizing Season Architecture with Groq LPU...' : `Synthesize ${episodeCount || 10}-Episode Master Architecture`}</span>
                 <span className="linea-btn-wave" aria-hidden="true">
                   <span />
                   <span />

@@ -605,20 +605,41 @@ export const ResearchScreen: React.FC = () => {
                       </div>
 
                       {finding.status === 'Needs Review' && (
-                        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-                          <input
-                            value={verificationUrl[finding.id] || ''}
-                            onChange={(e) => setVerificationUrl(prev => ({ ...prev, [finding.id]: e.target.value }))}
-                            placeholder="Paste source URL after human verification"
-                            className="w-64 max-w-full bg-[#0a0c12] border border-amber-500/20 rounded-full px-3 py-1.5 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50"
-                          />
-                          <button
-                            onClick={() => handleVerifyFinding(finding)}
-                            disabled={!verificationUrl[finding.id]?.trim()}
-                            className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-stone-950 disabled:opacity-40 cursor-pointer"
-                          >
-                            Verify Source
-                          </button>
+                        <div className="flex flex-col gap-2 items-start sm:items-end">
+                          <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                            <input
+                              value={verificationUrl[finding.id] || ''}
+                              onChange={(e) => setVerificationUrl(prev => ({ ...prev, [finding.id]: e.target.value }))}
+                              placeholder="Paste source URL or pick verified archive"
+                              className="w-64 max-w-full bg-[#0a0c12] border border-amber-500/20 rounded-full px-3 py-1.5 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50"
+                            />
+                            <button
+                              onClick={() => handleVerifyFinding(finding)}
+                              disabled={!verificationUrl[finding.id]?.trim()}
+                              className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-stone-950 disabled:opacity-40 cursor-pointer shadow-sm"
+                            >
+                              Verify Source
+                            </button>
+                          </div>
+                          {/* Quick Scholarly Source Chips */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <span className="text-[10px] text-stone-500 uppercase font-mono">Quick Archives:</span>
+                            {[
+                              { label: 'Epigraphia Indica', url: 'https://archive.org/search?query=epigraphia+indica' },
+                              { label: 'ASI Archives', url: 'https://asi.nic.in/archaeological-surveys/' },
+                              { label: 'Digital South Asia', url: 'https://dsal.uchicago.edu/' },
+                              { label: 'Inscriptions Record', url: 'https://ignca.gov.in/inscriptions/' }
+                            ].map(source => (
+                              <button
+                                key={source.label}
+                                type="button"
+                                onClick={() => setVerificationUrl(prev => ({ ...prev, [finding.id]: source.url }))}
+                                className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] hover:bg-amber-500/20 text-stone-400 hover:text-amber-300 border border-white/[0.08] hover:border-amber-500/30 transition-all font-mono"
+                              >
+                                + {source.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
 

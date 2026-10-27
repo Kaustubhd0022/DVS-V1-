@@ -29,16 +29,162 @@ export const PackageDeliveryScreen: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   // Dynamic deliverables based on current project state
+  const isSeries = /series/i.test(currentProject.format || currentProject.contentType || '');
+  const screenplayLines = currentProject.screenplay?.length ? currentProject.screenplay : (currentProject.screenplayLines || []);
+  const episodes = currentProject.episodes || [];
+
+  const compileFountain = (): string => {
+    const header = `Title: ${currentProject.title}
+Credit: Written with Tattvaco Narrative Intelligence
+Author: ${currentProject.title} Writers Room
+Format: ${currentProject.format || (isSeries ? 'Episodic Series' : 'Feature Screenplay')}
+Draft date: ${new Date().toLocaleDateString()}
+
+===
+
+`;
+    if (!screenplayLines.length) {
+      return header + `/* No screenplay lines drafted yet. Complete screenplay drafting in the Screenplay studio. */\n`;
+    }
+
+    let body = '';
+    screenplayLines.forEach(l => {
+      switch (l.type) {
+        case 'scene_heading':
+          body += `\n${l.content.toUpperCase()}\n\n`;
+          break;
+        case 'action':
+          body += `${l.content}\n\n`;
+          break;
+        case 'character':
+          body += `\n${(l.characterName || l.content).toUpperCase()}\n`;
+          break;
+        case 'parenthetical':
+          body += `${l.content.startsWith('(') ? l.content : `(${l.content})`}\n`;
+          break;
+        case 'dialogue':
+          body += `${l.content}\n\n`;
+          break;
+        case 'transition':
+          body += `\n> ${l.content.toUpperCase()}\n\n`;
+          break;
+        default:
+          body += `${l.content}\n\n`;
+      }
+    });
+    return header + body;
+  };
+
+  const compileStandardScript = (): string => {
+    let script = `================================================================================\n`;
+    script += `${currentProject.title.toUpperCase()}\n`;
+    script += `Format: ${currentProject.format || (isSeries ? 'Episodic Series' : 'Feature Film')}\n`;
+    script += `Version: ${currentProject.canonicalVersion || 'v1.0'} | Date: ${new Date().toLocaleDateString()}\n`;
+    script += `================================================================================\n\n`;
+
+    if (!screenplayLines.length) {
+      return script + `[No screenplay scenes currently drafted. Visit the Screenplay Studio to draft scenes.]\n`;
+    }
+
+    screenplayLines.forEach(l => {
+      switch (l.type) {
+        case 'scene_heading':
+          script += `\n${l.content.toUpperCase()}\n\n`;
+          break;
+        case 'action':
+          script += `${l.content}\n\n`;
+          break;
+        case 'character':
+          script += `${' '.repeat(22)}${(l.characterName || l.content).toUpperCase()}\n`;
+          break;
+        case 'parenthetical':
+          script += `${' '.repeat(16)}${l.content.startsWith('(') ? l.content : `(${l.content})`}\n`;
+          break;
+        case 'dialogue':
+          script += `${' '.repeat(10)}${l.content}\n\n`;
+          break;
+        case 'transition':
+          script += `${' '.repeat(35)}${l.content.toUpperCase()}\n\n`;
+          break;
+        default:
+          script += `${l.content}\n\n`;
+      }
+    });
+    return script;
+  };
+
   const deliverables = [
     {
+      id: 'del-screenplay-fountain',
+      title: `${currentProject.title} — Production Screenplay (Fountain .fountain)`,
+      type: 'SCR',
+      version: currentProject.canonicalVersion || 'v1.0',
+      size: `${Math.max(2, Math.round(screenplayLines.length * 0.4))} KB`,
+      color: '#10b981',
+      fileExt: 'fountain',
+      mimeType: 'text/plain',
+      content: compileFountain()
+    },
+    {
+      id: 'del-screenplay-script',
+      title: `${currentProject.title} — Formatted Hollywood Screenplay (Courier Text)`,
+      type: 'SCR',
+      version: currentProject.canonicalVersion || 'v1.0',
+      size: `${Math.max(2, Math.round(screenplayLines.length * 0.5))} KB`,
+      color: '#06b6d4',
+      fileExt: 'txt',
+      mimeType: 'text/plain',
+      content: compileStandardScript()
+    },
+    {
       id: 'del-treatment',
-      title: `${currentProject.title} — Narrative Treatment & Synopsis`,
+      title: `${currentProject.title} — Narrative Treatment & Beat Sheet`,
       type: 'DOC',
       version: currentProject.canonicalVersion || 'v0.1',
       size: `${Math.max(1, Math.round((currentProject.treatment?.synopsis?.length || 500) / 100))} KB`,
       color: '#3b82f6',
-      content: currentProject.treatment?.synopsis || currentProject.intent?.premise || 'Synopsis under development.'
+      fileExt: 'txt',
+      mimeType: 'text/plain',
+      content: `================================================================================
+${currentProject.title.toUpperCase()} — NARRATIVE TREATMENT & DRAMATIC BEATS
+================================================================================
+LOGLINE:
+${currentProject.intent?.premise || 'Logline under development.'}
+
+TONE: ${currentProject.treatment?.tone?.join(', ') || 'Atmospheric, Tense'}
+THEMES: ${currentProject.treatment?.themes?.join(', ') || 'Moral Agency, Truth'}
+
+SYNOPSIS:
+${currentProject.treatment?.synopsis || currentProject.intent?.premise || 'Synopsis under development.'}
+
+CARDINAL PLOT BEATS:
+${currentProject.treatment?.plotBeats?.map(b => `[${b.act}] Beat ${b.number}: ${b.title}\n${b.description}`).join('\n\n') || 'Plot beats pending generation.'}`
     },
+    ...(isSeries && episodes.length > 0 ? [{
+      id: 'del-series-bible',
+      title: `${currentProject.title} — Showrunner Season Arc Bible (${episodes.length} Episodes)`,
+      type: 'BBL',
+      version: currentProject.canonicalVersion || 'v1.0',
+      size: `${Math.max(2, episodes.length * 3)} KB`,
+      color: '#ec4899',
+      fileExt: 'txt',
+      mimeType: 'text/plain',
+      content: `================================================================================
+${currentProject.title.toUpperCase()} — SEASON 1 SHOWRUNNER BIBLE (${episodes.length} EPISODES)
+================================================================================
+SERIES OVERVIEW:
+${currentProject.intent?.premise || 'Premise pending.'}
+
+EPISODE BREAKDOWN:
+${episodes.map(e => `--------------------------------------------------------------------------------
+EPISODE ${e.episodeNumber}: ${e.title.toUpperCase()}
+Historical / Narrative Focus: ${e.historicalFocus}
+Dramatic Function: ${e.narrativeFunction}
+Synopsis: ${e.synopsis}
+Key Characters: ${e.characterInvolvement?.map(c => `${c.name} (${c.role}): ${c.arcBeat}`).join('; ') || 'Ensemble'}
+Unresolved Questions: ${e.unresolvedIssues?.join(' | ') || 'None'}
+Status: ${e.candidateState || 'PLANNED'}`).join('\n\n')}`
+    }] : []),
     {
       id: 'del-bible',
       title: `${currentProject.title} — Character Bible (${currentProject.characters.length} Cast)`,
@@ -46,7 +192,20 @@ export const PackageDeliveryScreen: React.FC = () => {
       version: currentProject.canonicalVersion || 'v0.1',
       size: `${Math.max(1, currentProject.characters.length * 2)} KB`,
       color: '#8b5cf6',
-      content: currentProject.characters.map(c => `${c.name} (${c.role}, Age ${c.age})\nWant: ${c.want}\nNeed: ${c.need}\nFlaw: ${c.flaw}`).join('\n\n') || 'Characters not yet registered.'
+      fileExt: 'txt',
+      mimeType: 'text/plain',
+      content: `================================================================================
+${currentProject.title.toUpperCase()} — CHARACTER INTELLIGENCE BIBLE
+================================================================================
+${currentProject.characters.map((c, i) => `[CHARACTER ${i+1}] ${c.name.toUpperCase()} (${c.role}, Age ${c.age})
+Want: ${c.want}
+Need: ${c.need}
+Flaw: ${c.flaw}
+Fear: ${c.fear}
+Moral Dilemma: ${c.moralDilemma || 'N/A'}
+Voice & Cadence: ${c.voiceStyle || 'Distinct tone'}
+Backstory: ${c.backstory || 'N/A'}
+Relationships: ${c.relationships?.map(r => `${r.targetCharacterName || 'Ally'} (${r.relationType})`).join(', ') || 'Independent'}`).join('\n\n--------------------------------------------------------------------------------\n') || 'Characters not yet registered.'}`
     },
     {
       id: 'del-storybrain',
@@ -55,7 +214,15 @@ export const PackageDeliveryScreen: React.FC = () => {
       version: currentProject.canonicalVersion || 'v0.1',
       size: `${Math.max(1, (currentProject.storyBrain?.canonFacts?.length || 1) * 3)} KB`,
       color: '#f59e0b',
-      content: currentProject.storyBrain?.canonFacts?.map((f, i) => `#CF-0${i+1} [${f.category}]: ${f.statement} (Source: ${f.source})`).join('\n') || 'No canon facts locked.'
+      fileExt: 'txt',
+      mimeType: 'text/plain',
+      content: `================================================================================
+${currentProject.title.toUpperCase()} — STORY BRAIN CANON MATRIX
+================================================================================
+${currentProject.storyBrain?.canonFacts?.map((f, i) => `#CF-0${i+1} [${f.category.toUpperCase()}]
+Statement: ${f.statement}
+Source: ${f.source}
+Status: LOCKED CANON`).join('\n\n') || 'No canon facts locked.'}`
     },
     {
       id: 'del-research',
@@ -64,7 +231,17 @@ export const PackageDeliveryScreen: React.FC = () => {
       version: currentProject.canonicalVersion || 'v0.1',
       size: `${Math.max(1, (currentProject.researchFindings?.length || 1) * 2)} KB`,
       color: '#10b981',
-      content: currentProject.researchFindings?.map(r => `• ${r.topic}: ${r.claim}\n  Evidence: ${r.evidence} [${r.sourceType}: ${r.source}]`).join('\n\n') || 'No research conducted.'
+      fileExt: 'txt',
+      mimeType: 'text/plain',
+      content: `================================================================================
+${currentProject.title.toUpperCase()} — TRACEABLE RESEARCH DOSSIER
+================================================================================
+${currentProject.researchFindings?.map((r, i) => `[CITATION 0${i+1}] Topic: ${r.topic}
+Claim: ${r.claim}
+Evidence: ${r.evidence}
+Source: [${r.sourceType}] ${r.source}
+Confidence: ${r.confidence}%
+Implication for Story: ${r.implicationForPlot}`).join('\n\n') || 'No research conducted.'}`
     },
     {
       id: 'del-eval',
@@ -73,57 +250,45 @@ export const PackageDeliveryScreen: React.FC = () => {
       version: 'v1.0',
       size: '4 KB',
       color: '#06b6d4',
-      content: currentProject.evaluation 
-        ? `Readiness Index: ${Math.round(currentProject.evaluation.overallScore)}%\nStatus: ${currentProject.evaluation.readinessStatus}\nModel: ${currentProject.evaluation.evaluatorModel}\nStrengths: ${currentProject.evaluation.keyStrengths?.join(', ')}\nRisks: ${currentProject.evaluation.criticalRisks?.join(', ')}`
-        : 'Evaluation pending execution.'
+      fileExt: 'txt',
+      mimeType: 'text/plain',
+      content: `================================================================================
+${currentProject.title.toUpperCase()} — AI STORY QUALITY EVALUATION REPORT
+================================================================================
+Overall Readiness Score: ${currentProject.evaluation ? Math.round(currentProject.evaluation.overallScore) + '%' : 'Pending'}
+Readiness Status: ${currentProject.evaluation?.readinessStatus || 'Not evaluated'}
+Evaluator Model: ${currentProject.evaluation?.evaluatorModel || 'Groq LPU (gpt-oss-120b)'}
+
+Key Strengths:
+${currentProject.evaluation?.keyStrengths?.map(s => `• ${s}`).join('\n') || 'Pending evaluation'}
+
+Critical Risks & Action Items:
+${currentProject.evaluation?.criticalRisks?.map(r => `• ${r}`).join('\n') || 'None identified'}
+
+DIMENSION BREAKDOWN:
+${currentProject.evaluation?.dimensions?.map(d => `• ${d.name}: ${d.score}/100 — ${d.diagnostic || d.recommendation || 'Normal'}`).join('\n') || 'N/A'}`
     }
   ];
 
   const handleDownload = (id: string, title: string) => {
     setDownloadingId(id);
+    const item = deliverables.find(d => d.id === id);
+    const content = item?.content || `TATTAVA COPILOT DELIVERABLE: ${title}`;
+    const ext = item?.fileExt || 'txt';
+    const mime = item?.mimeType || 'text/plain';
+
     setTimeout(() => {
       setDownloadingId(null);
       const element = document.createElement('a');
-      const file = new Blob([
-`=============================================================
-TATTAVA COPILOT — V1 STORY DEVELOPMENT PACKAGE
-=============================================================
-Title: ${currentProject.title}
-Version: ${currentProject.canonicalVersion || 'v0.1'}
-Status: APPROVED CANONICAL STATE
-Date: ${new Date().toLocaleDateString()}
-Deliverable: ${title}
-
-1. EXECUTIVE LOGLINE:
-${currentProject.intent?.premise || 'No premise set.'}
-
-2. PROTAGONIST ARC:
-${currentProject.characters[0] ? `${currentProject.characters[0].name} (Age: ${currentProject.characters[0].age})\nWant: ${currentProject.characters[0].want}\nNeed: ${currentProject.characters[0].need}\nFlaw: ${currentProject.characters[0].flaw}` : 'No protagonist established.'}
-
-3. CANONICAL STORY BRAIN FACTS (${currentProject.storyBrain?.canonFacts?.length || 0} Locked):
-${currentProject.storyBrain?.canonFacts?.map((f, i) => `• [CF-0${i+1}] ${f.statement} (Source: ${f.source})`).join('\n') || 'None'}
-
-4. TRACEABLE RESEARCH DOSSIER (${currentProject.researchFindings?.length || 0} Citations):
-${currentProject.researchFindings?.map(r => `• ${r.topic}: ${r.claim} [${r.sourceType}: ${r.source}] (${r.confidence}% confidence)`).join('\n') || 'None'}
-
-5. AI STORY EVALUATION INDEX:
-Overall Readiness Score: ${currentProject.evaluation ? Math.round(currentProject.evaluation.overallScore) + '%' : 'Pending'}
-Readiness Status: ${currentProject.evaluation?.readinessStatus || 'Not evaluated'}
-Key Strengths: ${currentProject.evaluation?.keyStrengths?.join(', ') || 'N/A'}
-Critical Risks: ${currentProject.evaluation?.criticalRisks?.join(', ') || 'None identified'}
-
-6. STAKEHOLDER SIGN-OFF:
-Sign-Off: ${currentProject.evaluation?.humanSignOff?.approvedBy || 'Pending Producer Review'}
-Comments: ${currentProject.evaluation?.humanSignOff?.comments || 'Awaiting sign-off.'}
-=============================================================`
-      ], { type: 'text/plain' });
+      const file = new Blob([content], { type: mime });
 
       element.href = URL.createObjectURL(file);
-      element.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${currentProject.canonicalVersion || 'v0.1'}.txt`;
+      const sanitizedTitle = currentProject.title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      element.download = `${sanitizedTitle}_${id.replace('del-', '')}_${currentProject.canonicalVersion || 'v1.0'}.${ext}`;
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
-    }, 600);
+    }, 400);
   };
 
   const handleGreenlightClick = () => {

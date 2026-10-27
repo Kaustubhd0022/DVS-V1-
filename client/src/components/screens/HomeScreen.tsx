@@ -237,7 +237,7 @@ export const HomeScreen: React.FC = () => {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleStartResearchFoundry();
                     }}
-                    placeholder="Enter an era, historical figure, or myth (e.g. 1946 RIN Mutiny, Shivaji's Navy, Kurukshetra 14th Day)..."
+                    placeholder="Enter an idea, series concept, kingdom, or research question (e.g. 10-episode series on Maharashtra temples, Chola Navy, Lost Saraswati)..."
                     disabled={isFoundryLoading}
                     className="w-full bg-[#2e241f] border border-white/15 focus:border-[#33cc7a] rounded-full pl-11 pr-5 py-3 text-xs md:text-sm text-[#faf5f0] placeholder-[#b8aba3] focus:outline-none transition-all shadow-inner"
                   />

@@ -17,9 +17,12 @@ import {
 import { getCanonicalConfiguration } from '../../services/projectConfiguration';
 
 export const DialogueScreen: React.FC = () => {
-  const { currentProject, swapDialogueSuggestion, nextStep, openContextResolver, updateCurrentProject } = useProject();
+  const { currentProject, swapDialogueSuggestion, nextStep, openContextResolver, updateCurrentProject, updateScreenplayLine } = useProject();
   const suggestions = currentProject.dialogueSuggestions || [];
+  const scenes = currentProject.scenes || [];
 
+  const [selectedSceneNumber, setSelectedSceneNumber] = useState<number>(scenes[0]?.sceneNumber || 1);
+  const [selectedLineId, setSelectedLineId] = useState<string>('');
   const [selectedVariantId, setSelectedVariantId] = useState<string>(suggestions[0]?.id || '');
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [appliedNotification, setAppliedNotification] = useState<string | null>(null);
@@ -33,17 +36,29 @@ export const DialogueScreen: React.FC = () => {
   const [showSubtitles, setShowSubtitles] = useState(true);
   const [codeSwitching, setCodeSwitching] = useState<number>(45);
 
+  const activeScene = scenes.find(s => s.sceneNumber === selectedSceneNumber) || scenes[0];
+  const allScriptLines = currentProject.screenplay?.length ? currentProject.screenplay : (currentProject.screenplayLines || []);
+  const sceneScriptLines = allScriptLines.filter(l => !activeScene || l.sceneNumber === activeScene.sceneNumber);
+  const dialogueLines = sceneScriptLines.filter(l => l.type === 'dialogue');
+  const activeLine = dialogueLines.find(l => l.id === selectedLineId) || dialogueLines[0];
+
   const protagonist = currentProject.characters[0];
-  const charName = protagonist?.name || 'Lead Character';
+  const speakerName = activeLine?.characterName || protagonist?.name || 'Lead Character';
+  const charName = speakerName;
 
   const activeSuggestion = suggestions.find(s => s.id === selectedVariantId) || suggestions[0];
 
   const handleApplyVariant = (sug: DialogueSuggestion) => {
-    swapDialogueSuggestion(sug.id, sug.text);
-    setAppliedNotification(`Variant "${sug.label}" applied to Screenplay Scene 1 as Canonical dialogue!`);
+    if (activeLine) {
+      updateScreenplayLine(activeLine.id, sug.text);
+      setAppliedNotification(`Variant "${sug.label}" applied to Scene ${activeScene?.sceneNumber || selectedSceneNumber} (${speakerName}) in Screenplay!`);
+    } else {
+      swapDialogueSuggestion(sug.id, sug.text);
+      setAppliedNotification(`Variant "${sug.label}" applied as Canonical dialogue!`);
+    }
     setTimeout(() => {
       setAppliedNotification(null);
-    }, 2500);
+    }, 3000);
   };
 
   const handleCopy = (id: string, text: string) => {
@@ -57,22 +72,21 @@ export const DialogueScreen: React.FC = () => {
     setPunchUpError(null);
     try {
       const canonicalConfig = getCanonicalConfiguration(currentProject);
-      const activeScene = currentProject.scenes?.find(s => s.sceneNumber === 1) || currentProject.scenes?.[0];
-      const screenplayLines = (currentProject.screenplay || currentProject.screenplayLines || [])
-        .filter(line => !activeScene || line.sceneNumber === activeScene.sceneNumber);
-      const sourceDialogue = screenplayLines.find(line => line.type === 'dialogue');
-
-      const speaker = sourceDialogue?.characterName || charName;
+      const speaker = speakerName;
+      const otherChar = currentProject.characters.find(c => c.name !== speaker)?.name || 'Interlocutor';
+      
       const sceneCtx = [
         activeScene ? `Scene ${activeScene.sceneNumber}: ${activeScene.slugline}` : 'Key Dramatic Climax',
         activeScene?.summary || currentProject.intent?.premise || 'High stakes confrontation',
         activeScene?.emotionalBeat || `Stakes: ${currentProject.intent?.conflict || 'Ideological survival'}`
       ].filter(Boolean).join(' | ');
 
+      const sourceContent = activeLine?.content || 'We cannot allow this information to leave this room.';
+
       const response = await generateMultilingualDialogueVariations({
-        sourceLine: sourceDialogue?.content,
+        sourceLine: sourceContent,
         characterName: speaker,
-        interlocutorName: currentProject.characters[1]?.name || 'Antagonist',
+        interlocutorName: otherChar,
         sceneContext: sceneCtx,
         scriptMode,
         dialect,
@@ -130,7 +144,7 @@ export const DialogueScreen: React.FC = () => {
             Dialogue Studio & Subtext Modulation
           </h1>
           <p className="text-sm text-stone-400 mt-1 max-w-2xl">
-            Audit dialogue registers, tone inflection, and subtext density for <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong> ({charName}).
+            Audit dialogue registers, tone inflection, and subtext density for <strong className="text-[#fbf8f3]">"{currentProject.title}"</strong> ({speakerName}).
           </p>
         </div>
 
@@ -152,7 +166,7 @@ export const DialogueScreen: React.FC = () => {
           </button>
 
           <button
-            onClick={() => openContextResolver('Dialogue Voice', `${charName} Scene Dialogue`)}
+            onClick={() => openContextResolver('Dialogue Voice', `${speakerName} Scene Dialogue`)}
             className="linea-pill-btn linea-pill-secondary px-3.5 py-2 text-xs font-semibold text-cyan-300 border-cyan-500/30 gap-2"
           >
             <Brain className="w-3.5 h-3.5 text-cyan-400" />
@@ -185,6 +199,94 @@ export const DialogueScreen: React.FC = () => {
           <button onClick={() => setPunchUpError(null)} className="text-stone-400 hover:text-white">✕</button>
         </div>
       )}
+
+      {/* Script Navigation & Targeted Line Selector Bar */}
+      <div className="linea-bento p-5 rounded-3xl space-y-4 border border-white/[0.08] bg-[#0c0e15]">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-3 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#fbf8f3] font-mono flex items-center gap-2">
+                <span>Target Dialogue Line & Dramatic Staging</span>
+                <span className="text-[10px] text-cyan-400 font-normal">Scene {activeScene?.sceneNumber || selectedSceneNumber}</span>
+              </h3>
+              <p className="text-[11px] text-stone-400">Select any scene and spoken line from the screenplay to audition alternate vocal registers and subtexts.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Scene Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-mono text-stone-400 font-bold">Scene:</span>
+              <select
+                value={selectedSceneNumber}
+                onChange={(e) => {
+                  const num = Number(e.target.value);
+                  setSelectedSceneNumber(num);
+                  setSelectedLineId('');
+                }}
+                className="bg-[#151a24] text-xs font-mono text-white border border-white/10 rounded-xl px-3 py-1.5 focus:border-cyan-400 outline-none"
+              >
+                {scenes.length > 0 ? (
+                  scenes.map(s => (
+                    <option key={s.id} value={s.sceneNumber}>
+                      Scene {s.sceneNumber}: {s.slugline}
+                    </option>
+                  ))
+                ) : (
+                  <option value={1}>Scene 1 (Default)</option>
+                )}
+              </select>
+            </div>
+
+            {/* Line Selector */}
+            {dialogueLines.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-mono text-stone-400 font-bold">Line:</span>
+                <select
+                  value={activeLine?.id || ''}
+                  onChange={(e) => setSelectedLineId(e.target.value)}
+                  className="bg-[#151a24] text-xs font-mono text-white border border-white/10 rounded-xl px-3 py-1.5 focus:border-cyan-400 outline-none max-w-[280px] truncate"
+                >
+                  {dialogueLines.map((l, idx) => (
+                    <option key={l.id} value={l.id}>
+                      {idx + 1}. [{l.characterName || 'Character'}]: "{l.content.slice(0, 30)}..."
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Currently Selected Spoken Line Card */}
+        <div className="p-4 rounded-2xl bg-[#141824] border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold text-amber-400 px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20">
+                ACTIVE SPEAKER: {speakerName}
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">
+                {activeScene?.slugline || 'INT. LOCATION - NIGHT'}
+              </span>
+            </div>
+            <p className="text-sm font-serif italic text-white pl-3 border-l-2 border-cyan-400">
+              "{activeLine?.content || 'No dialogue line drafted in this scene yet. Click Modulate Line to generate.'}"
+            </p>
+          </div>
+
+          <button
+            onClick={handleGenerateDialogue}
+            disabled={isPunchingUp}
+            className="linea-pill-btn linea-pill-primary px-4 py-2 text-xs font-bold gap-2 shrink-0 self-end md:self-center"
+          >
+            <Sparkles className="w-3.5 h-3.5 fill-black" />
+            <span>{isPunchingUp ? 'Modulating...' : 'Modulate Line (AI)'}</span>
+          </button>
+        </div>
+      </div>
 
       {/* Multilingual Indic Script & Dialect Control Center */}
       <div className="linea-bento p-5 rounded-3xl space-y-4 border border-white/[0.08] bg-[#0c0e15]">

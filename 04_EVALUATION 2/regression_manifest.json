@@ -1,0 +1,145 @@
+{
+  "suite_version": "tattava-regression-candidate-1.0",
+  "status": "PROPOSED_NOT_EXECUTED",
+  "baseline_run_id": null,
+  "suites": [
+    {
+      "suite_id": "REG-01",
+      "name": "Smoke / project entry",
+      "case_ids": [
+        "EV-001",
+        "EV-002",
+        "EV-003"
+      ],
+      "trigger": "Every relevant PR/build; full release",
+      "assertions": "Project create, intent, uncertainty state, clarification",
+      "gate": "Blocking for state corruption or false fact",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-02",
+      "name": "Context and Story Brain",
+      "case_ids": [
+        "EV-004",
+        "EV-005",
+        "EV-006",
+        "EV-021"
+      ],
+      "trigger": "Context resolver, retrieval, memory or prompt changes",
+      "assertions": "Authorized context manifest, project isolation, current Canon preference",
+      "gate": "Zero leakage; critical failures block",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-03",
+      "name": "Research and grounding",
+      "case_ids": [
+        "EV-007",
+        "EV-008",
+        "EV-009"
+      ],
+      "trigger": "Research provider, retrieval, chunking, prompt changes",
+      "assertions": "Provenance, conflicts, claim support, research-to-story separation",
+      "gate": "Fabricated consequential fact blocks",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-04",
+      "name": "Narrative task quality",
+      "case_ids": [
+        "EV-010",
+        "EV-011"
+      ],
+      "trigger": "Model/prompt/agent/format changes",
+      "assertions": "Character consistency, brief/format adherence, reviewer rubric",
+      "gate": "No high-severity score 0; gate pending approval",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-05",
+      "name": "Canon / approval / branch invariants",
+      "case_ids": [
+        "EV-012",
+        "EV-013",
+        "EV-014",
+        "EV-015",
+        "EV-029"
+      ],
+      "trigger": "Every build and release candidate",
+      "assertions": "No unauthorized mutation; branch isolation; optimistic concurrency; audit",
+      "gate": "Blocking suite; 100% deterministic pass",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-06",
+      "name": "Package and continuity",
+      "case_ids": [
+        "EV-016",
+        "EV-017",
+        "EV-030"
+      ],
+      "trigger": "Package schema, dependency graph, continuity changes",
+      "assertions": "Readiness blockers, impact traceability, partial status",
+      "gate": "No false ready/approved state",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-07",
+      "name": "Security / privacy / injection",
+      "case_ids": [
+        "EV-005",
+        "EV-019",
+        "EV-023",
+        "EV-025"
+      ],
+      "trigger": "Every release; provider/tool/access-policy change",
+      "assertions": "Tenant/project isolation, injection, provider gate, deletion propagation",
+      "gate": "Zero known critical failures",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-08",
+      "name": "Reliability / recovery / observability",
+      "case_ids": [
+        "EV-018",
+        "EV-022",
+        "EV-024"
+      ],
+      "trigger": "Async worker, retry, queue, logging, run-state changes",
+      "assertions": "Timeout, quota, partial success, audit completeness",
+      "gate": "No state corruption; visible recoverable failure",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-09",
+      "name": "Cost / latency / reproducibility",
+      "case_ids": [
+        "EV-026",
+        "EV-027",
+        "EV-028"
+      ],
+      "trigger": "Model/provider/config changes and periodic baseline",
+      "assertions": "Usage attribution, latency decomposition, repeated trial analysis",
+      "gate": "Baseline and budget must be approved before numeric gate",
+      "status": "NOT_RUN"
+    },
+    {
+      "suite_id": "REG-10",
+      "name": "Full end-to-end release suite",
+      "case_ids": [
+        "EV-001–EV-030"
+      ],
+      "trigger": "Before release candidate approval",
+      "assertions": "Cross-capability workflow plus all critical invariant tests",
+      "gate": "No unresolved critical blocker; report all unrun cases",
+      "status": "NOT_RUN"
+    }
+  ],
+  "release_rules": {
+    "critical_failures_allowed": 0,
+    "required_deterministic_contract_pass_rate": 1.0,
+    "unrun_cases_count_as_pass": false,
+    "quality_dimensions_averaged_together": false
+  },
+  "note": "Proposed manifest. Values are gate defaults requiring accountable approval; this file contains no run results."
+}

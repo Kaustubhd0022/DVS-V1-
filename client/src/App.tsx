@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProject } from './context/ProjectContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { TopHeader } from './components/layout/TopHeader';
@@ -39,10 +39,27 @@ import { VisualDevScreen } from './components/screens/VisualDevScreen';
 import { ProductionPlanningScreen } from './components/screens/ProductionPlanningScreen';
 
 export const App: React.FC = () => {
-  const { activeScreen, setActiveScreen, impactState, isContextResolverOpen, sync } = useProject();
+  const { activeScreen, setActiveScreen, impactState, isContextResolverOpen, sync, nextStep, prevStep } = useProject();
   const auth = useAuth();
   // The product opens directly; the marketing page is kept at ?landing=1.
   const [showProduct, setShowProduct] = useState(() => new URLSearchParams(window.location.search).get('landing') !== '1');
+
+  // Global Keyboard Shortcuts (Cmd/Ctrl + ArrowRight for Next Step, Cmd/Ctrl + ArrowLeft for Prev Step)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        if (e.key === 'ArrowRight') nextStep();
+        if (e.key === 'ArrowLeft') prevStep();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nextStep, prevStep]);
 
   if (!showProduct) {
     return <LandingScreen onEnterProduct={() => setShowProduct(true)} />;

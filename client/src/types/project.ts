@@ -1016,10 +1016,26 @@ export interface ResearchStorySeed {
   unresolvedDebate: string;
 }
 
+export interface HistoricalDomainCandidate {
+  id: string;
+  name: string;
+  category: string;
+  locationOrRegion: string;
+  eraOrCentury: string;
+  patronOrOrigin: string;
+  significance: string;
+  dramaticCoreConflict: string;
+  primaryProvenance: string;
+  provenanceTier: 'Tier 1' | 'Tier 2' | 'Tier 3';
+  keyThemes: string[];
+}
+
 export interface ResearchFoundryResult {
   rootTopic: string;
   eraDomain: string;
   historicalContext: string;
+  isExploratoryDomain?: boolean;
+  candidates?: HistoricalDomainCandidate[];
   chronologyTimeline: Array<{
     date: string;
     event: string;

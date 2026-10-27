@@ -394,7 +394,7 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
                 <div className="text-[#bacde0]/70 uppercase tracking-wider text-[10px] mt-0.5">Hallucinated Canon</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-[#faf5f0]">16 Episodes</div>
+                <div className="text-lg font-bold text-[#faf5f0]">Multi-Episode</div>
                 <div className="text-[#bacde0]/70 uppercase tracking-wider text-[10px] mt-0.5">Coordinated State</div>
               </div>
             </div>

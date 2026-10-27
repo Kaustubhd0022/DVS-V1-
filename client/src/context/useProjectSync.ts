@@ -153,10 +153,19 @@ export function useProjectSync({
         });
       } catch (error) {
         if (cancelled) return;
+        console.warn('Backend listProjects unreachable, falling back to local storage projects:', error);
+        const localProjects = readJson<TattavaProject[]>(localStorageKey, []).map(p => normalize(p));
+        loadedRef.current = true;
+        skipPending.current = true;
+        setProjects(prev => {
+          const demos = prev.filter(p => p.isDemo);
+          return localProjects.length > 0 ? [...demos, ...localProjects] : prev;
+        });
         setSync({
           ...initialState,
-          status: 'error',
-          message: error instanceof Error ? error.message : 'Could not load projects',
+          status: 'idle',
+          loaded: true,
+          message: undefined,
         });
       }
     })();

@@ -2,12 +2,16 @@ import React from 'react';
 import { 
   Check, 
   ChevronDown, 
+  ChevronLeft,
+  ChevronRight,
   Sparkles, 
   Download, 
   Database,
-  ArrowRight
+  ArrowRight,
+  Tv,
+  Star
 } from 'lucide-react';
-import { useProject, ScreenId } from '../../context/ProjectContext';
+import { useProject, ScreenId, PIPELINE_STEPS } from '../../context/ProjectContext';
 
 export interface Milestone {
   id: 'create' | 'explore' | 'develop' | 'validate' | 'greenlight';
@@ -84,10 +88,21 @@ export const ProjectSubheader: React.FC = () => {
     toggleCopilot,
     openContextResolver,
     projects,
-    openProject
+    openProject,
+    currentStepIndex,
+    nextStep,
+    prevStep,
+    switchActiveEpisode
   } = useProject();
 
+  const currentStepMeta = PIPELINE_STEPS.find(s => s.step === currentStepIndex) || PIPELINE_STEPS[0];
+
   const [showProjectPicker, setShowProjectPicker] = React.useState(false);
+  const [showEpisodePicker, setShowEpisodePicker] = React.useState(false);
+
+  const hasEpisodes = Boolean(currentProject.episodes && currentProject.episodes.length > 1);
+  const activeEpNumber = currentProject.projectConfig?.activeEpisodeNumber || currentProject.structure?.activeEpisodeNumber || 1;
+  const activeEp = currentProject.episodes?.find(e => e.episodeNumber === activeEpNumber) || currentProject.episodes?.[0];
 
   if (activeScreen === 'home') {
     return null;
@@ -112,7 +127,7 @@ export const ProjectSubheader: React.FC = () => {
             className="w-8 h-11 object-cover rounded-xl border border-white/10 shadow-md flex-shrink-0" 
           />
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button 
                 onClick={() => setShowProjectPicker(!showProjectPicker)}
                 className="flex items-center gap-1.5 text-base font-bold text-[#fbf8f3] hover:text-amber-400 transition-colors"
@@ -123,6 +138,67 @@ export const ProjectSubheader: React.FC = () => {
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 {currentProject.canonicalVersion || 'v1.2-canonical'}
               </span>
+
+              {/* Dynamic Series Slate Switcher */}
+              {hasEpisodes && (
+                <div className="relative inline-block">
+                  <button 
+                    type="button"
+                    onClick={() => setShowEpisodePicker(!showEpisodePicker)}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-gradient-to-r from-amber-500/20 to-amber-500/10 hover:from-amber-500/30 hover:to-amber-500/20 text-amber-300 border border-amber-500/40 transition-all cursor-pointer shadow-md shadow-amber-500/10"
+                    title="Switch active episode in series slate"
+                  >
+                    <Tv className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Ep {activeEpNumber}/{currentProject.episodes!.length}: {activeEp?.title || `Ep ${activeEpNumber}`}</span>
+                    <ChevronDown className="w-3 h-3 text-amber-400/80" />
+                  </button>
+
+                  {showEpisodePicker && (
+                    <div className="absolute top-9 left-0 w-84 max-h-96 overflow-y-auto bg-[#141824]/98 border border-white/10 rounded-2xl shadow-2xl p-2 z-50 backdrop-blur-2xl animate-in fade-in zoom-in-95 space-y-1">
+                      <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-white/10">
+                        <p className="text-[10px] uppercase font-bold text-amber-400 font-mono flex items-center gap-1">
+                          <Tv className="w-3 h-3" />
+                          <span>Series Slate Roadmap ({currentProject.episodes!.length} Episodes)</span>
+                        </p>
+                        <span className="text-[10px] text-white/40">Step-by-step</span>
+                      </div>
+                      {currentProject.episodes!.map((ep) => {
+                        const isActive = ep.episodeNumber === activeEpNumber;
+                        return (
+                          <button
+                            key={ep.episodeNumber}
+                            type="button"
+                            onClick={() => {
+                              switchActiveEpisode(ep.episodeNumber);
+                              setShowEpisodePicker(false);
+                            }}
+                            className={`w-full text-left p-2 rounded-xl text-xs transition-all flex items-start gap-2.5 cursor-pointer ${
+                              isActive 
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold' 
+                                : 'text-stone-300 hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 ${
+                              isActive ? 'bg-amber-400 text-black' : 'bg-white/10 text-white/70'
+                            }`}>
+                              Ep {ep.episodeNumber}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="truncate font-semibold">{ep.title}</span>
+                                <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-black/40 text-white/50">
+                                  {isActive ? 'In Pipeline' : ep.status}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-stone-400 truncate mt-0.5">{ep.historicalFocus}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-2 text-xs text-stone-400">
@@ -261,29 +337,60 @@ export const ProjectSubheader: React.FC = () => {
           })}
         </div>
 
-        {/* Contextual Subviews for Current Milestone (Linea Bento Pill Capsule) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none bg-[#131724] p-1 rounded-full border border-white/10 shadow-inner">
-          <span className="text-[10px] uppercase font-mono font-bold text-stone-400 px-2.5">
-            Views:
-          </span>
-          {activeMilestone.screens.map((subview) => {
-            const isCurrentSubview = subview.id === normalizedScreen;
+        {/* Pipeline Step Navigator */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-[#131724] p-1 rounded-full border border-white/10 shadow-inner">
+            <button
+              type="button"
+              onClick={prevStep}
+              disabled={currentStepIndex <= 1}
+              className="w-6 h-6 rounded-full flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+              title="Previous Pipeline Step"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
 
-            return (
-              <button
-                key={subview.id}
-                onClick={() => setActiveScreen(subview.id)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
-                  isCurrentSubview
-                    ? 'bg-white/15 text-white font-bold border border-white/20 shadow-sm'
-                    : 'text-stone-400 hover:text-white hover:bg-white/5'
-                }`}
-                title={subview.label}
-              >
-                {subview.shortLabel}
-              </button>
-            );
-          })}
+            <div className="px-3 py-0.5 rounded-full bg-[#33cc7a]/15 text-[#33cc7a] text-[11px] font-mono font-bold border border-[#33cc7a]/30 flex items-center gap-1.5 whitespace-nowrap">
+              <span>Step {String(currentStepIndex || 1).padStart(2, '0')}/16</span>
+              <span className="text-white/40">•</span>
+              <span className="text-stone-300 font-sans font-medium">{currentStepMeta?.shortLabel || 'Discovery'}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={nextStep}
+              disabled={currentStepIndex >= 16}
+              className="w-6 h-6 rounded-full flex items-center justify-center text-stone-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+              title="Next Pipeline Step"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Contextual Subviews for Current Milestone (Linea Bento Pill Capsule) */}
+          <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none bg-[#131724] p-1 rounded-full border border-white/10 shadow-inner">
+            <span className="text-[10px] uppercase font-mono font-bold text-stone-400 px-2.5">
+              Views:
+            </span>
+            {activeMilestone.screens.map((subview) => {
+              const isCurrentSubview = subview.id === normalizedScreen;
+
+              return (
+                <button
+                  key={subview.id}
+                  onClick={() => setActiveScreen(subview.id)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    isCurrentSubview
+                      ? 'bg-white/15 text-white font-bold border border-white/20 shadow-sm'
+                      : 'text-stone-400 hover:text-white hover:bg-white/5'
+                  }`}
+                  title={subview.label}
+                >
+                  {subview.shortLabel}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

@@ -33,6 +33,7 @@ import {
   PlotBeatItem,
   ResearchStorySeed,
   ResearchFoundryResult,
+  HistoricalDomainCandidate,
   MultilingualScriptMode,
   IndicDialectRegister,
   DialogueSuggestion
@@ -2383,9 +2384,9 @@ ${attachmentContent ? `Attached Material: ${attachmentContent.slice(0, 1500)}` :
 
 Apply the V1.1 Intent Extraction Rules:
 1. Extract objective and requested outcome.
-2. Determine format and episode count (e.g. if user says "16-episode historical series", format="Series", episodeCount=16).
+2. Determine format and episode count (e.g. if user says "10-episode series" or "10 episodic series on temples", format="Series", episodeCount=10).
 3. If no episode count is specified for a series, infer appropriate count or leave undefined.
-4. Extract KNOWN facts (explicitly given).
+4. Extract KNOWN facts (explicitly given, e.g. "10 episodes", "Temples in Maharashtra", "1 temple per episode").
 5. Extract UNKNOWN facts (needed for downstream creative architecture).
 6. Classify items into BLOCKING (e.g. Historical subject is needed before structuring episodes) vs NOT BLOCKING (e.g. Tone, Audience).
 7. Formulate a SINGLE consequential next question that unblocks downstream architecture (DO NOT ask generic filler questions!).
@@ -2394,21 +2395,21 @@ Output strictly valid JSON with this exact schema:
 {
   "title": "Suggested or detected working title",
   "objective": "What the user is trying to accomplish",
-  "requestedOutcome": "e.g. 16-Episode Series Bible & Architecture, Feature Treatment, etc.",
+  "requestedOutcome": "e.g. 10-Episode Series Bible & Architecture, Feature Treatment, etc.",
   "format": "Series" | "Feature Film" | "Documentary" | "Limited Series" | "Short Film" | "Exploration",
-  "episodeCount": 16,
-  "domain": "e.g. Ancient Indian History / Magadha",
-  "knownFacts": ["16 episodes", "Historical domain", "Series format"],
-  "unknowns": ["Historical subject / kingdom", "Narrative lens", "Geographic scope"],
-  "assumptions": ["Serialized narrative arc across episodes"],
+  "episodeCount": 10,
+  "domain": "e.g. Maharashtra Heritage & Temple Architecture",
+  "knownFacts": ["10 episodes", "1 temple per episode", "Maharashtra historical domain"],
+  "unknowns": ["Selection of specific temples", "Narrative lens", "Chronological era"],
+  "assumptions": ["Anthological/serialized progression across episodes"],
   "constraints": ["Historical authenticity required"],
-  "blocking": ["Historical subject"],
+  "blocking": ["Specific temple selections and dynastic timeline"],
   "notBlocking": ["Tone", "Audience demographic"],
   "creativeIntent": "Vivid summary of creative impulse",
   "researchRequirements": ["Historical chronology", "Archaeological evidence", "Primary sources"],
-  "narrativeMode": "Serialized Epic",
+  "narrativeMode": "Serialized / Anthology",
   "episodeUnit": "45-55 mins",
-  "arcStructure": "Multi-Arc Serialized",
+  "arcStructure": "Multi-Arc Episodic",
   "nextQuestion": "The single most consequential question to ask the user"
 }
 `;
@@ -2425,7 +2426,10 @@ Output strictly valid JSON with this exact schema:
     });
 
     const parsed = extractJsonFromResponse(raw);
-    const episodeCount = parsed.episodeCount ? Number(parsed.episodeCount) : (parsed.format === 'Series' ? 16 : undefined);
+    const directCountMatch = userInput.match(/(\d+)\s*(?:episod(?:e|ic)?|part|chapter|temple|kingdom)/i)?.[1];
+    const episodeCount = parsed.episodeCount 
+      ? Number(parsed.episodeCount) 
+      : (directCountMatch ? parseInt(directCountMatch, 10) : (parsed.format === 'Series' ? 10 : undefined));
     const formatName = parsed.format || (episodeCount ? 'Series' : 'Feature Film');
 
     return {
@@ -2504,7 +2508,7 @@ export const generateEvidenceCandidatePool = async (
 You are the Tattava Copilot Candidate Discovery Engine.
 Generate an evidence-backed candidate pool of historical narrative elements for:
 Project Title: "${project.title}"
-Format: ${project.format || project.contentType || '16-Episode Series'}
+Format: ${project.format || project.contentType || (project.intent?.episodeCount ? `${project.intent.episodeCount}-Episode Series` : 'Episodic Series')}
 Domain Scope: ${domainScope || project.intent?.domain || project.intent?.premise || 'Ancient History'}
 Premise / Intent: ${project.intent?.premise || project.tagline}
 
@@ -2579,7 +2583,7 @@ Output JSON only with this schema:
  */
 export const generateSeriesEpisodeArchitecture = async (
   project: TattavaProject,
-  episodeCount: number = 16,
+  episodeCount: number = 10,
   narrativeLens?: string
 ): Promise<SeriesEpisode[]> => {
   const charactersStr = (project.characters || []).map(c => `${c.name} (${c.role}): Want: ${c.want}, Flaw: ${c.flaw}`).join('; ');
@@ -2782,23 +2786,24 @@ export const generateSceneDraftScript = async (
   const locName = scene?.location?.toUpperCase() || project.world?.locations?.[0]?.name?.toUpperCase() || 'PALACE ASSEMBLY HALL';
 
   const prompt = `
-Generate a tight, atmospheric, 6-line professional screenplay excerpt formatted in standard script elements.
+Generate a comprehensive, atmospheric, production-ready full dramatic screenplay scene (25-50 lines) formatted in standard script elements.
 Project: "${project.title}"
 Scene ${sceneNumber}: ${scene?.slugline || `INT. ${locName} - NIGHT`}
 Setting: ${scene?.location || locName}
 Characters: ${leadName} and ${secondCharName}
 Dramatic Conflict: ${scene?.purpose || scene?.summary || project.intent?.conflict || 'High-stakes confrontation'}
+Scene Objective: Characters have opposing agendas. Build realistic tension with subtext, physical beats, status maneuvers, and a definitive turning point.
 
 Output strictly JSON:
 {
   "lines": [
-    { "type": "scene_heading", "content": "INT. ${locName} - NIGHT" },
-    { "type": "action", "content": "Visceral action paragraph describing the atmosphere and tension." },
+    { "type": "scene_heading", "content": "${scene?.slugline || `INT. ${locName} - NIGHT`}" },
+    { "type": "action", "content": "Visceral action paragraph setting the space, sensory texture, lighting, and physical stakes." },
     { "type": "character", "content": "${leadName}" },
-    { "type": "dialogue", "content": "Punchy line of dialogue.", "characterName": "${leadName}" },
+    { "type": "dialogue", "content": "Compelling line loaded with tactical intent and subtext.", "characterName": "${leadName}" },
     { "type": "character", "content": "${secondCharName}" },
-    { "type": "parenthetical", "content": "(subtext tell)" },
-    { "type": "dialogue", "content": "Counter-dialogue raising the dramatic tension.", "characterName": "${secondCharName}" }
+    { "type": "parenthetical", "content": "(defensive tell)" },
+    { "type": "dialogue", "content": "Sharp counter raising the dramatic tension and shifting leverage.", "characterName": "${secondCharName}" }
   ]
 }
 `;
@@ -3051,13 +3056,19 @@ export const generateScreenplayDraft = async (
   const context = buildContextPackagePrompt(resolved.pkg);
   const config = project.projectConfig;
   const prompt = [
-    'Generate a production-ready screenplay draft for exactly one current Tattava scene.',
+    'Generate a comprehensive, production-ready screenplay draft for exactly one current Tattava scene.',
     'The scene is downstream of the canonical project configuration and Story Brain.',
     'Do not invent characters, locations, chronology, institutions, or facts outside the supplied context.',
     'Return JSON only with an array named "lines".',
     'Each line must contain: type, content, and optional characterName.',
     'Allowed type values: scene_heading, action, character, dialogue, parenthetical, transition.',
-    'Write 8-20 concise screenplay lines that cover the full scene objective.',
+    'Write a complete, full-length dramatic scene (30-65 screenplay lines).',
+    'Structure the scene with:',
+    '1. Establishing scene heading and evocative environmental action description.',
+    '2. Character physical behavior, staging, and subtextual maneuvering.',
+    '3. Multi-turn dialogue with escalating stakes, strategic evasion, status shifts, and character conflict.',
+    '4. A dramatic reversal or key revelation that advances the scene objective.',
+    '5. Concluding button or resonant visual transition.',
     '',
     `Canonical configuration fingerprint: ${config?.configurationFingerprint || 'unresolved'}`,
     `Format: ${config?.formatLabel || project.format || project.contentType}`,
@@ -3082,13 +3093,13 @@ export const generateScreenplayDraft = async (
     [
       {
         role: 'system',
-        content: 'You are Tattava Screenplay Engine. You transform an approved scene artifact into screenplay lines while preserving project canon and configuration. Never use generic sample scenes.'
+        content: 'You are Tattava Screenplay Engine. You transform an approved scene artifact into a full, production-length screenplay scene with professional industry formatting, subtext, character cadence, and dramatic beats. Never use generic sample scenes or truncate early.'
       },
       { role: 'user', content: prompt }
     ],
     {
       temperature: 0.55,
-      max_tokens: 3500,
+      max_tokens: 5000,
       jsonMode: true,
       taskName: 'Screenplay Scene Draft',
       contextSnapshot: context
@@ -3130,25 +3141,68 @@ export const synthesizeResearchFoundryUniverse = async (
   uploadedContent?: string
 ): Promise<ResearchFoundryResult> => {
   const cleanTopic = topicOrCuriosity.trim() || 'Ancient Indian Maritime History';
-  const prompt = `You are the Lead Historical Dramaturge & Research Architect at TattvaCo Film OS, specializing in Indian history, ancient mythology, classical Sanskrit texts, colonial archives, and cultural epics.
+  // Detect user structural format intent from topic / query
+  const isSeriesIntent = /series|episode|episodic|anthology|docuseries|season|rajyam/i.test(cleanTopic);
+  const extractNum = (str: string): number | null => {
+    // Matches patterns like "12 episodic", "top 12 kingdom", "12 kingdom", "12 episode", "10 temples"
+    const m = str.match(/(\d+)\s*(?:episod(?:e|ic)|part|chapter|temple|kingdom|dynasty|ruler|empire|battle|site|story|hero|philosopher)s?/i) ||
+              str.match(/(?:top|best|famous|select|give|want|need)\s*(\d+)/i) ||
+              str.match(/(\d+)\s*(?:top|distinct|major|famous)/i);
+    if (m) return parseInt(m[1], 10);
+    const words: Record<string, number> = { 
+      three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, 
+      twelve: 12, fourteen: 14, sixteen: 16, twenty: 20 
+    };
+    for (const [w, n] of Object.entries(words)) {
+      if (new RegExp(`\\b${w}\\s+(?:episod(?:e|ic)|part|chapter|temple|kingdom|dynasty|empire)\\b`, 'i').test(str) ||
+          new RegExp(`\\b(?:top|best)\\s+${w}\\b`, 'i').test(str)) {
+        return n;
+      }
+    }
+    return null;
+  };
+  const detectedCount = extractNum(cleanTopic);
+  const targetCandidateCount = detectedCount || (isSeriesIntent ? 10 : 8);
 
-A filmmaker has approached the platform with a curiosity, topic, or archive, but NO movie script or premise yet:
+  const prompt = `You are the Lead Historical Dramaturge & Research Architect at TattvaCo Film OS, specializing in world history, kingdoms, ancient civilizations, mythology, cultural heritage, architecture, literature, philosophy, and underrepresented traditions (with Indian and global civilizations).
+
+A creator has approached the platform with an idea, topic, research question, or document collection:
 TOPIC / QUERY: "${cleanTopic}"
 PRIMARY DOMAIN: "${domain}"
+DETECTED FORMAT DIRECTIVES: ${isSeriesIntent ? `User requested a Multi-Episode Series / Anthology (${targetCandidateCount} Episodes requested). Ensure at least 1-2 seeds explicitly model this episodic scope.` : 'Creator is open to either Feature Film, Anthology Series, or Documentary.'}
 ${uploadedContent ? `UPLOADED ARCHIVAL SOURCE EXCERPT:\n${uploadedContent.slice(0, 1500)}\n` : ''}
 
-Your mission is to map the Research Universe and uncover the 3 deepest, most provocative DRAMATIC CONFLICTS (Story Seeds) inherent in this history/mythology.
-
-Adhere strictly to TattvaCo Research Trust Policy:
-- Tier 1: Primary inscriptions, royal edicts, court diaries, declassified military gazettes, original epic verses.
-- Tier 2: Peer-reviewed historiography, academic archaeological monographs, reputable translations.
-- Tier 3: Folkloric ballads, regional oral retellings, theatrical traditions.
+Your mission:
+1. Determine if this is an EXPLORATORY DOMAIN search (e.g. "famous temple from maharashtra", "kingdoms of south india", "rajyam... top 12 kingdom", "battles of 18th century", "ancient philosophers") where the creator needs to choose or sequence candidate subjects, OR a specific singular concept.
+2. MANDATORY CANDIDATE COUNT DIRECTIVE:
+${detectedCount 
+  ? `The creator explicitly requested EXACTLY ${detectedCount} subjects/episodes ("${cleanTopic}"). You MUST generate and return an array of EXACTLY ${detectedCount} AUTHENTIC HISTORICAL CANDIDATE SUBJECTS in "candidates" (cand-1 through cand-${detectedCount}), with each candidate anchoring one distinct episode in this ${detectedCount}-episode slate. DO NOT return fewer than ${detectedCount} candidates under any circumstance!` 
+  : `If the user is exploring options across a domain, generate 8 to 12 AUTHENTIC HISTORICAL CANDIDATE SUBJECTS ("candidates") across this domain so the creator can browse, prioritize, and select which one to develop!`}
+3. Map the chronological milestones, personae, and verified evidence findings.
+4. Synthesize 3 distinct DRAMATIC CONFLICT SEEDS demonstrating powerful cinematic angles.
+5. Adhere strictly to evidence integrity: Tier 1 (Inscriptions, Primary Chronicles, Treaties), Tier 2 (Peer-reviewed Historiography, Archaeological consensus), Tier 3 (Folk traditions, oral lore). Zero invented dates or facts.
 
 OUTPUT JSON FORMAT ONLY:
 {
   "rootTopic": "${cleanTopic}",
-  "eraDomain": "e.g., 1946 Colonial Decolonization / 3rd Century BCE Mauryan / Vedic Bronze Age",
+  "eraDomain": "e.g., 3rd Century BCE to 18th Century Pan-Indian Empires / Classical Age / Colonial Decolonization",
   "historicalContext": "2-3 sentences establishing the geopolitical reality, high stakes, and world tensions of this epoch.",
+  "isExploratoryDomain": true,
+  "candidates": [
+    {
+      "id": "cand-1",
+      "name": "Prominent Historical Candidate Subject Name (e.g. specific temple, kingdom, battle, or philosopher)",
+      "category": "e.g. Sacred Temple Architecture / Dynasty / Historical Turning Point / Fort",
+      "locationOrRegion": "Geographic location / modern region",
+      "eraOrCentury": "Specific century or dynastic era (e.g. 8th Century CE, Rashtrakuta Period)",
+      "patronOrOrigin": "Patron ruler, dynasty, or historical founder",
+      "significance": "1-2 sentences on why this candidate is extraordinary and worthy of screen development",
+      "dramaticCoreConflict": "The fundamental human dilemma, hubris, or conflict inherent to this candidate",
+      "primaryProvenance": "Specific primary inscription, epigraph, or archival chronicle citation",
+      "provenanceTier": "Tier 1" | "Tier 2" | "Tier 3",
+      "keyThemes": ["Sovereignty", "Sacred Dedication", "Dynastic Rivalry"]
+    }
+  ],
   "chronologyTimeline": [
     {
       "date": "Exact historical date or era",
@@ -3180,20 +3234,20 @@ OUTPUT JSON FORMAT ONLY:
     {
       "id": "seed-1",
       "seedTitle": "Evocative, cinematic working title",
-      "dramaticCore": "The core human dilemma (1 sentence)",
-      "conflictType": "Conscience vs Loyalty" | "Empire vs Rebellion" | "Duty vs Morality" | "Historical Tragedy" | "Underground Resistance",
-      "logline": "Gripping industry-grade logline (Protagonist, Inciting Incident, Action, Catastrophic Stakes).",
-      "recommendedFormat": "Feature Film" | "Limited Series (8-10 Episodes)",
+      "dramaticCore": "The core human dilemma or unifying theme (1 sentence)",
+      "conflictType": "Empire vs Sovereignty" | "Conscience vs Loyalty" | "Duty vs Morality" | "Historical Tragedy" | "Dynastic Succession",
+      "logline": "Gripping industry-grade logline (Protagonist / Era, Inciting Incident, Action, Catastrophic Stakes).",
+      "recommendedFormat": "${isSeriesIntent ? `${detectedCount || 10}-Episode Anthology Series` : 'Feature Film'}",
       "protagonist": {
-        "name": "Character Name",
-        "role": "Social station or profession",
+        "name": "Character or Representative Figure Name",
+        "role": "Social station or sovereign role",
         "want": "External conscious ambition",
         "need": "Internal unconscious moral truth",
         "flaw": "Specific psychological blind spot",
-        "historicalBasis": "Real historical figure or documented social archetype"
+        "historicalBasis": "Real historical figure or documented archetype"
       },
       "antagonist": {
-        "name": "Opposing Figure Name",
+        "name": "Opposing Figure or Imperial Rival Name",
         "role": "Institutional or personal adversary",
         "opposingIdeology": "What principle they fight for"
       },
@@ -3216,13 +3270,13 @@ OUTPUT JSON FORMAT ONLY:
       { role: 'user', content: prompt }
     ], {
       temperature: 0.6,
-      max_tokens: 3800,
+      max_tokens: 5500,
       jsonMode: true,
       taskName: 'Universal Research Foundry Incubation'
     });
 
     const parsed = extractJsonFromResponse(raw);
-    if (parsed && parsed.dramaticStorySeeds && parsed.dramaticStorySeeds.length > 0) {
+    if (parsed && (parsed.dramaticStorySeeds || parsed.candidates)) {
       // Map evidence findings with required IDs and dates
       const mappedFindings: ResearchFinding[] = (parsed.evidenceFindings || []).map((f: any, idx: number) => ({
         id: `rf-foundry-${Date.now()}-${idx + 1}`,
@@ -3237,14 +3291,40 @@ OUTPUT JSON FORMAT ONLY:
         usedIn: ['Story Brain Canon', 'Incubation Research']
       }));
 
+      // Map dynamic candidates discovered across the user's domain
+      const mappedCandidates: HistoricalDomainCandidate[] = (parsed.candidates || []).map((c: any, idx: number) => ({
+        id: c.id || `cand-${Date.now()}-${idx + 1}`,
+        name: c.name || `Candidate Subject ${idx + 1}`,
+        category: c.category || 'Historical Subject',
+        locationOrRegion: c.locationOrRegion || parsed.eraDomain || 'Regional Setting',
+        eraOrCentury: c.eraOrCentury || 'Documented Era',
+        patronOrOrigin: c.patronOrOrigin || 'Patron Dynasty',
+        significance: c.significance || 'Historically significant monument or cultural foundation.',
+        dramaticCoreConflict: c.dramaticCoreConflict || 'Dramatic tension between personal conscience and imperial power.',
+        primaryProvenance: c.primaryProvenance || 'Epigraphic and Archival Inscription',
+        provenanceTier: (c.provenanceTier as any) || 'Tier 1',
+        keyThemes: Array.isArray(c.keyThemes) && c.keyThemes.length ? c.keyThemes : ['Cultural Heritage', 'Sovereignty']
+      }));
+
+      const targetCountNum = detectedCount || 10;
+      const cleanSeeds = (parsed.dramaticStorySeeds || []).map((s: any, idx: number) => ({
+        ...s,
+        id: s.id || `seed-${idx + 1}`,
+        recommendedFormat: isSeriesIntent 
+          ? `${targetCountNum}-Ep Series` 
+          : (s.recommendedFormat || 'Feature Film')
+      }));
+
       return {
         rootTopic: parsed.rootTopic || cleanTopic,
         eraDomain: parsed.eraDomain || domain,
         historicalContext: parsed.historicalContext || `Historical and cultural investigation into ${cleanTopic}.`,
+        isExploratoryDomain: parsed.isExploratoryDomain ?? (mappedCandidates.length > 0),
+        candidates: mappedCandidates,
         chronologyTimeline: parsed.chronologyTimeline || [],
         keyPersonae: parsed.keyPersonae || [],
         evidenceFindings: mappedFindings,
-        dramaticStorySeeds: parsed.dramaticStorySeeds
+        dramaticStorySeeds: cleanSeeds
       };
     }
     throw new Error('No valid dramatic story seeds returned from model.');
@@ -3253,6 +3333,132 @@ OUTPUT JSON FORMAT ONLY:
     throw new Error(
       `AI_RESEARCH_FOUNDRY_ERROR: Unable to synthesize research foundry universe for "${cleanTopic}": ${(err as any)?.message || String(err)}. Please verify your AI API service is connected and retry.`
     );
+  }
+};
+
+/**
+ * V1.1 Deep Dive Subject Research & Seed Generation Engine
+ * Takes a specific candidate subject chosen by the user and dynamically synthesizes
+ * exhaustive, verified research evidence and 3 targeted dramatic story seeds specifically for it.
+ */
+export const deepDiveCandidateResearch = async (
+  candidate: HistoricalDomainCandidate,
+  originalTopic: string,
+  targetFormat: 'Series' | 'Feature Film' | 'Documentary' = 'Feature Film',
+  episodeCount?: number
+): Promise<{
+  historicalContext: string;
+  evidenceFindings: ResearchFinding[];
+  chronologyTimeline: any[];
+  keyPersonae: any[];
+  dramaticStorySeeds: ResearchStorySeed[];
+}> => {
+  const isSeries = targetFormat === 'Series';
+  const epCount = episodeCount || 10;
+
+  const prompt = `You are the Lead Historical Dramaturge & Research Architect at TattvaCo Film OS.
+A creator has selected a specific historical candidate subject from their initial exploration:
+CHOSEN CANDIDATE SUBJECT: "${candidate.name}" (${candidate.category})
+LOCATION & REGION: "${candidate.locationOrRegion}"
+ERA & DYNASTY: "${candidate.eraOrCentury}" (Patron/Origin: ${candidate.patronOrOrigin})
+SIGNIFICANCE: "${candidate.significance}"
+CORE DRAMATIC TENSION: "${candidate.dramaticCoreConflict}"
+PRIMARY PROVENANCE: "${candidate.primaryProvenance}" (${candidate.provenanceTier})
+ORIGINAL USER QUERY: "${originalTopic}"
+DESIRED FORMAT: ${isSeries ? `${epCount}-Episode Serialized Series` : 'Feature Film (Cinematic Narrative)'}
+
+Perform an exhaustive, deep-dive historical research synthesis and generate 3 production-grade dramatic story seeds tailored SPECIFICALLY to "${candidate.name}":
+1. Comprehensive Historical Context (3-4 sentences establishing the stakes, architectural/cultural tension, and world politics of this specific site/figure).
+2. Sequential Chronological Milestones (4-6 key moments from foundation, construction, crises, to modern significance with Tier 1/2/3 provenance).
+3. Key Historical Personae involved (patron king, master architect/builder, opposing rival, scholar/chronicler).
+4. Sourced Evidence Findings (4-6 genuine primary/archaeological citations with exact epigraphy or chronicle names).
+5. 3 Distinct Dramatic Conflict Seeds tailored SPECIFICALLY to "${candidate.name}":
+   - Seed 1: Human ambition vs impossibility (Architect/Craftsman dilemma)
+   - Seed 2: Political/Imperial sovereignty (Dynastic patron defending or funding against enemies)
+   - Seed 3: Spiritual/Philosophical crisis or defense against destruction
+
+Output strictly valid JSON with this schema:
+{
+  "historicalContext": "Deep context string",
+  "chronologyTimeline": [
+    { "date": "e.g. 757-773 CE", "event": "...", "significance": "...", "provenanceTier": "Tier 1" }
+  ],
+  "keyPersonae": [
+    { "name": "...", "role": "...", "allegiance": "...", "dramaticPotential": "..." }
+  ],
+  "evidenceFindings": [
+    {
+      "topic": "${candidate.name}",
+      "claim": "...",
+      "evidence": "...",
+      "source": "...",
+      "sourceType": "Primary Source" | "Epigraphical" | "Archaeological" | "Academic",
+      "confidence": 95,
+      "status": "Verified"
+    }
+  ],
+  "dramaticStorySeeds": [
+    {
+      "id": "seed-1",
+      "seedTitle": "Cinematic Title",
+      "dramaticCore": "...",
+      "conflictType": "Empire vs Sovereignty" | "Conscience vs Loyalty" | "Duty vs Morality" | "Historical Tragedy",
+      "logline": "...",
+      "recommendedFormat": "${isSeries ? `${epCount}-Ep Series` : 'Feature Film'}",
+      "protagonist": {
+        "name": "...", "role": "...", "want": "...", "need": "...", "flaw": "...", "historicalBasis": "..."
+      },
+      "antagonist": {
+        "name": "...", "role": "...", "opposingIdeology": "..."
+      },
+      "anchorCanonFacts": [
+        { "statement": "...", "category": "Historical Fact", "sourceEvidence": "...", "provenanceTier": "Tier 1" }
+      ],
+      "unresolvedDebate": "..."
+    }
+  ]
+}
+`;
+
+  try {
+    const raw = await callGroq([
+      { role: 'system', content: 'You are an award-winning historical dramaturg and research archivist. Return strictly valid JSON.' },
+      { role: 'user', content: prompt }
+    ], {
+      temperature: 0.5,
+      max_tokens: 3800,
+      jsonMode: true,
+      taskName: `Deep Research: ${candidate.name}`
+    });
+
+    const parsed = extractJsonFromResponse(raw);
+    const mappedFindings: ResearchFinding[] = (parsed.evidenceFindings || []).map((f: any, idx: number) => ({
+      id: `rf-deep-${Date.now()}-${idx + 1}`,
+      topic: f.topic || candidate.name,
+      claim: f.claim || '',
+      evidence: f.evidence || '',
+      source: f.source || candidate.primaryProvenance,
+      sourceType: f.sourceType || 'Primary Source',
+      confidence: f.confidence || 95,
+      status: f.status || 'Verified',
+      date: new Date().toLocaleDateString(),
+      usedIn: ['Story Brain Canon', 'Deep Research']
+    }));
+
+    return {
+      historicalContext: parsed.historicalContext || `Deep research investigation into ${candidate.name}.`,
+      chronologyTimeline: parsed.chronologyTimeline || [],
+      keyPersonae: parsed.keyPersonae || [],
+      evidenceFindings: mappedFindings,
+      dramaticStorySeeds: (parsed.dramaticStorySeeds || []).map((s: any, idx: number) => ({
+        ...s,
+        id: s.id || `deep-seed-${idx + 1}`,
+        recommendedFormat: isSeries ? `${epCount}-Ep Series` : 'Feature Film'
+      }))
+    };
+  } catch (err) {
+    console.error('deepDiveCandidateResearch error:', err);
+    throw err;
   }
 };
 

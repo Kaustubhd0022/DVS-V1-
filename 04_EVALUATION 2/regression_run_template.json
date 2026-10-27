@@ -1,0 +1,29 @@
+{
+  "run_id": "RUN-YYYYMMDD-NNN",
+  "suite_version": "tattava-regression-candidate-1.0",
+  "status": "NOT_RUN",
+  "timestamp_utc": null,
+  "environment": null,
+  "application_build": null,
+  "model_provider_version": null,
+  "prompt_config_version": null,
+  "retrieval_index_version": null,
+  "tool_adapter_versions": {},
+  "dataset_version": "tattava-golden-candidate-1.0",
+  "evaluator_version": null,
+  "baseline_run_id": null,
+  "case_counts": {
+    "total": 30,
+    "passed": 0,
+    "failed": 0,
+    "blocked": 0,
+    "not_run": 30,
+    "quarantined": 0
+  },
+  "critical_failures": [],
+  "metric_summary": {},
+  "artifacts": [],
+  "release_decision": "NOT_ASSESSED",
+  "approver": null,
+  "limitations": "Template only; populate from actual harness output."
+}

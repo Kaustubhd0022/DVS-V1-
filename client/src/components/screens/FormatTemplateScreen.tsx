@@ -12,10 +12,13 @@ export const FormatTemplateScreen: React.FC = () => {
   const { currentProject, setProjectFormat, setProjectTemplate, nextStep } = useProject();
 
   const isCurrentSeries = /series/i.test(currentProject.format || '');
-  const [customEpisodeCount, setCustomEpisodeCount] = useState<number>(
-    currentProject.dynamicFormat?.episodeCount || 
-    (currentProject.format?.includes('16') ? 16 : isCurrentSeries ? 8 : 16)
-  );
+  const parsedCount = currentProject.format?.match(/(\d+)\s*(?:episod(?:e|ic)?|ep|part)/i)?.[1]
+    || currentProject.title?.match(/(\d+)\s*(?:episod(?:e|ic)?|ep|part)/i)?.[1];
+  const initialCount = currentProject.dynamicFormat?.episodeCount 
+    || (parsedCount ? parseInt(parsedCount, 10) : undefined)
+    || (isCurrentSeries ? 10 : 10);
+
+  const [customEpisodeCount, setCustomEpisodeCount] = useState<number>(initialCount);
 
   const [formats, setFormats] = useState<FormatOption[]>([
     {
@@ -28,12 +31,12 @@ export const FormatTemplateScreen: React.FC = () => {
       imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80'
     },
     {
-      id: 'format-series-16',
-      title: '16-Episode Serialized Epic',
-      duration: '16 Episodes (45 – 60 min)',
-      description: 'Prestige multi-arc historical or geopolitical series architecture. Designed for 16 sequential episodes with deep institutional conflicts, multi-faction allegiances, and complete character transformations.',
-      isRecommended: true,
-      isSelected: currentProject.format === '16-Episode Serialized Epic' || currentProject.format === '16-Episode Series' || (isCurrentSeries && customEpisodeCount === 16),
+      id: 'format-series-custom',
+      title: `${initialCount}-Episode Serialized Epic`,
+      duration: `${initialCount} Episodes (45 – 60 min)`,
+      description: `Prestige multi-arc historical or geopolitical series architecture. Designed for ${initialCount} sequential episodes with deep institutional conflicts, multi-faction allegiances, and complete character transformations.`,
+      isRecommended: isCurrentSeries,
+      isSelected: isCurrentSeries,
       imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80'
     },
     {
@@ -99,7 +102,8 @@ export const FormatTemplateScreen: React.FC = () => {
   );
 
   const handleSelectFormat = (id: string, title: string, epCount?: number) => {
-    const effectiveCount = epCount || (title.includes('16') ? 16 : title.includes('Limited') ? 8 : title.includes('Episodic') ? 12 : undefined);
+    const matchCount = title.match(/(\d+)\s*(?:episod|ep)/i)?.[1];
+    const effectiveCount = epCount || (matchCount ? parseInt(matchCount, 10) : title.includes('Limited') ? 8 : title.includes('Episodic') ? 12 : undefined);
     if (effectiveCount) setCustomEpisodeCount(effectiveCount);
     setFormats(prev => prev.map(f => ({ ...f, isSelected: f.id === id })));
     setProjectFormat(title, effectiveCount);
@@ -352,6 +356,38 @@ export const FormatTemplateScreen: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Live Quadrant Act Distribution Preview */}
+            {(() => {
+              const q1 = Math.max(1, Math.round(customEpisodeCount * 0.25));
+              const q2 = Math.max(q1 + 1, Math.round(customEpisodeCount * 0.5));
+              const q3 = Math.max(q2 + 1, Math.round(customEpisodeCount * 0.75));
+
+              return (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 pt-2">
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">Act I: The Spark</span>
+                    <p className="text-xs font-semibold text-white">Episodes 1 – {q1}</p>
+                    <p className="text-[10px] text-stone-400">Inciting incident & regional world established</p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">Act II-A: Escalation</span>
+                    <p className="text-xs font-semibold text-white">Episodes {q1 + 1} – {q2}</p>
+                    <p className="text-[10px] text-stone-400">Patronage alliances form & conflicts rise</p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">Act II-B: Crisis</span>
+                    <p className="text-xs font-semibold text-white">Episodes {q2 + 1} – {q3}</p>
+                    <p className="text-[10px] text-stone-400">Siege, ideological dispute & breaking point</p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                    <span className="text-[10px] font-mono text-amber-400 font-bold uppercase">Act III: Climax</span>
+                    <p className="text-xs font-semibold text-white">Episodes {q3 + 1} – {customEpisodeCount}</p>
+                    <p className="text-[10px] text-stone-400">Sacred monument consecrated & final resolution</p>
+                  </div>
+                </div>
+              );
+            })()}
           </BentoCard>
         )}
       </div>

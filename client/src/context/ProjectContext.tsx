@@ -36,7 +36,8 @@ import {
   BranchMergeConflict,
   BranchMergeDiff,
   ResearchStorySeed,
-  ResearchFoundryResult
+  ResearchFoundryResult,
+  HistoricalDomainCandidate
 } from '../types/project';
 import { seedProject, secondaryProjects } from '../data/seedProject';
 import { createEmptyProject } from '../data/emptyProject';
@@ -243,7 +244,18 @@ interface ProjectContextType {
   resolveCanonConflict: (conflictId: string, resolution: CanonConflict['status'], notes?: string) => void;
   analyzeIntentAndSetFormat: (input: string, attachment?: { name: string; content: string }) => Promise<void>;
   evaluateGreenlight: () => GreenlightGateState;
-  startProjectFromResearchSeed: (seed: ResearchStorySeed, rawTopic: string, rawResearch: ResearchFoundryResult) => string;
+  switchActiveEpisode: (episodeNumber: number) => void;
+  startProjectFromResearchSeed: (
+    seed: ResearchStorySeed,
+    rawTopic: string,
+    rawResearch: ResearchFoundryResult,
+    options?: { 
+      formatChoice?: 'Series' | 'Feature Film' | 'Documentary'; 
+      customEpisodeCount?: number;
+      candidateSlate?: HistoricalDomainCandidate[];
+      priorityCandidateId?: string;
+    }
+  ) => string;
 
   // UI Helpers
   toggleCopilot: () => void;
@@ -1870,11 +1882,20 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const startProjectFromResearchSeed = (
     seed: ResearchStorySeed,
     rawTopic: string,
-    rawResearch: ResearchFoundryResult
+    rawResearch: ResearchFoundryResult,
+    options?: { 
+      formatChoice?: 'Series' | 'Feature Film' | 'Documentary'; 
+      customEpisodeCount?: number;
+      candidateSlate?: HistoricalDomainCandidate[];
+      priorityCandidateId?: string;
+    }
   ): string => {
     const newProjId = 'proj-' + Date.now();
-    const isSeries = seed.recommendedFormat.toLowerCase().includes('series') || seed.recommendedFormat.toLowerCase().includes('epic');
-    const contentType = isSeries ? 'Series / OTT' : 'Feature Film';
+    const explicitFormat = options?.formatChoice;
+    const isSeries = explicitFormat 
+      ? explicitFormat === 'Series' 
+      : (seed.recommendedFormat.toLowerCase().includes('series') || seed.recommendedFormat.toLowerCase().includes('epic') || rawTopic.toLowerCase().includes('series') || rawTopic.toLowerCase().includes('episode'));
+    const contentType = isSeries ? 'Series / OTT' : (explicitFormat === 'Documentary' ? 'Documentary' : 'Feature Film');
 
     const newProj = createEmptyProject(newProjId, seed.seedTitle, seed.logline, {
       contentType,
@@ -1995,13 +2016,67 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       impactedAreas: ['Story Brain', 'Premise', 'Characters', 'Historical Canon']
     };
 
+    // Detect requested episode count from user input or options if present
+    const extractCount = (str: string): number | null => {
+      const direct = str.match(/(\d+)\s*(?:episod(?:e|ic)|part|chapter|temple|kingdom)/i);
+      if (direct) return parseInt(direct[1], 10);
+      const words: Record<string, number> = { three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twelve: 12, sixteen: 16 };
+      for (const [w, n] of Object.entries(words)) {
+        if (new RegExp(`\\b${w}\\s+(?:episod(?:e|ic)|part|chapter)\\b`, 'i').test(str)) return n;
+      }
+      return null;
+    };
+    const detectedFromTopic = extractCount(rawTopic) || extractCount(seed.recommendedFormat) || extractCount(seed.seedTitle);
+    const candidateSlate = options?.candidateSlate;
+    const targetEpCount = candidateSlate?.length || options?.customEpisodeCount || detectedFromTopic || (isSeries ? 10 : 1);
+    
+    // Determine priority episode index
+    const priorityIndex = (options?.priorityCandidateId && candidateSlate) 
+      ? candidateSlate.findIndex(c => c.id === options.priorityCandidateId)
+      : 0;
+    const activeEpNum = priorityIndex >= 0 ? priorityIndex + 1 : 1;
+
+    // Map candidate slate into full series episodes
+    const mappedEpisodes: SeriesEpisode[] = isSeries && candidateSlate && candidateSlate.length > 0
+      ? candidateSlate.map((c, idx) => ({
+          episodeNumber: idx + 1,
+          title: c.name,
+          historicalFocus: `${c.eraOrCentury} • ${c.locationOrRegion}`,
+          narrativeFunction: c.dramaticCoreConflict,
+          synopsis: c.significance,
+          evidenceIds: [c.primaryProvenance],
+          dependencies: [],
+          unresolvedIssues: [],
+          characterInvolvement: [
+            {
+              name: c.patronOrOrigin || 'Sovereign / Lead Character',
+              role: 'Central Catalyst'
+            }
+          ],
+          status: (idx + 1 === activeEpNum) ? 'DEVELOPING' : 'PLANNED',
+          candidateState: 'CANDIDATE'
+        }))
+      : (isSeries ? Array.from({ length: targetEpCount }, (_, i) => ({
+          episodeNumber: i + 1,
+          title: i === 0 ? seed.seedTitle : `Episode ${i + 1}`,
+          historicalFocus: rawResearch.eraDomain,
+          narrativeFunction: i === 0 ? seed.dramaticCore : 'Arc progression and escalation',
+          synopsis: i === 0 ? seed.logline : 'Continued development of central dramatic tension.',
+          evidenceIds: [],
+          dependencies: [],
+          unresolvedIssues: [],
+          characterInvolvement: [{ name: seed.protagonist.name, role: seed.protagonist.role }],
+          status: i === 0 ? 'DEVELOPING' : 'PLANNED',
+          candidateState: 'CANDIDATE'
+        })) : []);
+
     const finalized: TattavaProject = {
       ...newProj,
       title: seed.seedTitle,
       tagline: seed.logline,
       contentType,
       genre: seed.conflictType,
-      format: seed.recommendedFormat,
+      format: isSeries ? `${targetEpCount}-Episode Series` : (explicitFormat || seed.recommendedFormat),
       intent: {
         ...newProj.intent,
         premise: seed.logline,
@@ -2015,6 +2090,24 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         intakeAnalysisStatus: 'APPROVED',
         storyBrainProposed: true
       },
+      dynamicFormat: {
+        format: isSeries ? 'Series' : 'Feature Film',
+        episodeCount: targetEpCount,
+        episodeDurationMins: isSeries ? 45 : 110,
+        domain: rawResearch.eraDomain,
+        narrativeMode: isSeries ? 'Serialized Episodic' : 'Three-Act Classical',
+        episodeUnit: isSeries ? 'Episode' : 'Feature',
+        arcStructure: isSeries ? `${targetEpCount}-Chapter Arc` : 'Single Arc',
+        isDynamicallyConstructed: true
+      },
+      projectConfig: {
+        ...DEFAULT_PROJECT_CONFIGURATION,
+        formatLabel: isSeries ? `${targetEpCount}-Episode Series` : (explicitFormat || seed.recommendedFormat),
+        episodeCount: targetEpCount,
+        activeEpisodeNumber: activeEpNum,
+        episodeDurationMins: 45
+      },
+      episodes: mappedEpisodes,
       characters: [protagonistChar, antagonistChar],
       selectedCharacterId: protagonistId,
       researchFindings: rawResearch.evidenceFindings || [],
@@ -2024,8 +2117,62 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
           title: seed.unresolvedDebate,
           category: 'Central Dramatic Mystery',
           completed: false
-        }
+        },
+        ...(rawResearch.chronologyTimeline || []).map((c, i) => ({
+          id: `rq-chrono-${i + 1}`,
+          title: `${c.date}: ${c.event} — ${c.significance}`,
+          category: `Chronology (${c.provenanceTier})`,
+          completed: false
+        })),
+        ...(rawResearch.keyPersonae || []).map((p, i) => ({
+          id: `rq-personae-${i + 1}`,
+          title: `${p.name} (${p.role}, ${p.allegiance}): ${p.dramaticPotential}`,
+          category: 'Historical Persona',
+          completed: true
+        }))
       ],
+      projectIntelligence: newProj.projectIntelligence ? {
+        ...newProj.projectIntelligence,
+        researchUniverse: {
+          rootSubject: rawResearch.rootTopic || seed.seedTitle,
+          coveragePercent: 92,
+          dimensions: [
+            {
+              id: 'dim-context',
+              label: 'Historical Landscape & Dynastic Context',
+              description: rawResearch.historicalContext,
+              status: 'COVERED',
+              depth: 0
+            },
+            {
+              id: 'dim-chronology',
+              label: 'Chronology & Archaeological Milestones',
+              description: (rawResearch.chronologyTimeline || []).map(t => `${t.date}: ${t.event}`).join(' • '),
+              status: 'COVERED',
+              depth: 0
+            },
+            {
+              id: 'dim-heritage',
+              label: 'Architectural Tradition & Epigraphic Record',
+              description: `${rawResearch.eraDomain} — Royal charters, structural evolution, and sacred foundations.`,
+              status: 'COVERED',
+              depth: 0
+            },
+            {
+              id: 'dim-personae',
+              label: 'Key Historical Personae & Builders',
+              description: (rawResearch.keyPersonae || []).map(p => `${p.name} (${p.role})`).join(' • '),
+              status: 'COVERED',
+              depth: 0
+            }
+          ],
+          unresolvedQuestions: [
+            seed.unresolvedDebate,
+            'Patronage dynamics across successive dynastic regimes',
+            'Epigraphic dating versus local sthalapurana traditions'
+          ]
+        }
+      } : undefined,
       storyBrain: {
         lastUpdated: 'Just now',
         activeEntitiesCount: 2,
@@ -2039,8 +2186,56 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const canonicalized = applyCanonicalConfiguration(finalized);
     setProjects(prev => [canonicalized, ...prev]);
     setCurrentProjectId(newProjId);
-    setActiveScreen('story-brain');
+    
+    // Navigate directly to Pipeline Step 1 (Discovery) so user progresses sequentially through the pipeline
+    setActiveScreen('discovery');
+
+    setTimeout(() => {
+      const activeEp = mappedEpisodes.find(e => e.episodeNumber === activeEpNum);
+      const activeEpName = activeEp?.title || seed.seedTitle;
+      sendDiscoveryMessage(
+        `I have initialized your ${targetEpCount}-Episode Series slate on "${rawTopic}". We are starting with priority Episode ${activeEpNum}: "${activeEpName}". All ${targetEpCount} episodes are staged in your slate and can be navigated step-by-step in the pipeline. Let's explore the core dramatic conflict: ${seed.dramaticCore}.`
+      );
+    }, 60);
+
     return newProjId;
+  };
+
+  const switchActiveEpisode = (episodeNumber: number) => {
+    updateCurrentProject(prev => {
+      if (!prev.episodes || prev.episodes.length === 0) return prev;
+      const targetEp = prev.episodes.find(e => e.episodeNumber === episodeNumber);
+      if (!targetEp) return prev;
+
+      const updatedEpisodes = prev.episodes.map(e => ({
+        ...e,
+        status: e.episodeNumber === episodeNumber ? ('DEVELOPING' as const) : e.status
+      }));
+
+      const updated: TattavaProject = {
+        ...prev,
+        structure: {
+          ...prev.structure,
+          activeEpisodeNumber: episodeNumber
+        },
+        projectConfig: prev.projectConfig
+          ? {
+              ...prev.projectConfig,
+              activeEpisodeNumber: episodeNumber
+            }
+          : undefined,
+        episodes: updatedEpisodes
+      };
+
+      return applyCanonicalConfiguration(updated);
+    });
+
+    const target = currentProject.episodes?.find(e => e.episodeNumber === episodeNumber);
+    if (target) {
+      sendDiscoveryMessage(
+        `Switched pipeline focus to Episode ${episodeNumber}: "${target.title}". Historical Focus: ${target.historicalFocus}. Dramatic Tension: ${target.narrativeFunction}.`
+      );
+    }
   };
 
   const initializeStoryBrainFromIntake = (breakdown: {
@@ -2799,8 +2994,15 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  const fetchSeriesEpisodes = async (episodeCount: number = 16, narrativeLens?: string) => {
+  const fetchSeriesEpisodes = async (requestedEpisodeCount?: number, narrativeLens?: string) => {
     try {
+      const parsedFromFormat = currentProject.format?.match(/(\d+)\s*(?:episod(?:e|ic)?|ep|part)/i)?.[1];
+      const parsedFromTitle = currentProject.title?.match(/(\d+)\s*(?:episod(?:e|ic)?|ep|part)/i)?.[1];
+      const episodeCount = requestedEpisodeCount 
+        || currentProject.dynamicFormat?.episodeCount 
+        || (parsedFromFormat ? parseInt(parsedFromFormat, 10) : undefined)
+        || (parsedFromTitle ? parseInt(parsedFromTitle, 10) : undefined)
+        || 10;
       const episodes = await generateSeriesEpisodeArchitecture(currentProject, episodeCount, narrativeLens);
       updateCurrentProject(prev => ({
         ...prev,
@@ -3272,6 +3474,7 @@ Format: ${currentProject.format}
         resolveCanonConflict,
         analyzeIntentAndSetFormat,
         evaluateGreenlight,
+        switchActiveEpisode,
         startProjectFromResearchSeed,
         toggleCopilot,
         setCopilotOpen: setIsCopilotOpen,

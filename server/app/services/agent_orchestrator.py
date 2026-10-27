@@ -12,6 +12,7 @@ import json
 
 from app.models import AIRun, ArtifactVersion, ArtifactStatus
 from app.services.context_resolver import ContextResolver
+from app.services import llm
 
 
 class WorkflowType(str, Enum):
@@ -192,13 +193,35 @@ class AgentOrchestrator:
                     limit=5,
                 )
 
-            # Mock output for now - LLM integration to follow
             start_time = datetime.utcnow()
 
-            # Generate mock output based on workflow type
-            output = self._generate_mock_output(contract, user_input)
-
-            latency_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+            # Execute via real LLM if configured, else fall back to default template output
+            if llm.is_configured():
+                system_prompt = (
+                    f"You are the Tattava AI {contract.agent_id} in an AI-native Film & Series development platform.\n"
+                    f"Purpose: {contract.purpose}\n"
+                    f"Workflow: {contract.workflow_type.value}\n"
+                    f"You must strictly return valid JSON conforming to this schema:\n"
+                    f"{json.dumps(contract.output_schema, indent=2)}"
+                )
+                user_prompt = (
+                    f"User Request / Input:\n{user_input}\n\n"
+                    f"Scoped Project Context:\n{json.dumps(context, default=str)}"
+                )
+                response = await llm.chat_completion(
+                    [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.6,
+                    max_tokens=2500,
+                    json_mode=True,
+                )
+                output = self._parse_output(response.get("content", "{}"))
+                latency_ms = response.get("latency_ms", int((datetime.utcnow() - start_time).total_seconds() * 1000))
+            else:
+                output = self._generate_mock_output(contract, user_input)
+                latency_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
 
             # Update run record
             ai_run.status = "completed"
