@@ -10,8 +10,7 @@ import { AuthScreen } from './components/screens/AuthScreen';
 import { SyncBanner } from './components/layout/SyncBanner';
 import { useAuth } from './context/AuthContext';
 
-// Marketing / public product showcase
-import { LandingScreen } from './components/screens/LandingScreen';
+import { LoginScreen } from './components/screens/LoginScreen';
 
 // V1 Pipeline Screens
 import { HomeScreen } from './components/screens/HomeScreen';
@@ -41,8 +40,29 @@ import { ProductionPlanningScreen } from './components/screens/ProductionPlannin
 export const App: React.FC = () => {
   const { activeScreen, setActiveScreen, impactState, isContextResolverOpen, sync, nextStep, prevStep } = useProject();
   const auth = useAuth();
-  // The product opens directly; the marketing page is kept at ?landing=1.
-  const [showProduct, setShowProduct] = useState(() => new URLSearchParams(window.location.search).get('landing') !== '1');
+  // Master user session (Name, Email, Role)
+  const [session, setSession] = useState<any>(() => {
+    try {
+      const raw = localStorage.getItem('tattava_master_session');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Keep session in sync with updates across the app (e.g. Sign Out or Profile Edit)
+  useEffect(() => {
+    const handleSessionUpdate = () => {
+      try {
+        const raw = localStorage.getItem('tattava_master_session');
+        setSession(raw ? JSON.parse(raw) : null);
+      } catch {
+        setSession(null);
+      }
+    };
+    window.addEventListener('tattava_user_session_updated', handleSessionUpdate);
+    return () => window.removeEventListener('tattava_user_session_updated', handleSessionUpdate);
+  }, []);
 
   // Global Keyboard Shortcuts (Cmd/Ctrl + ArrowRight for Next Step, Cmd/Ctrl + ArrowLeft for Prev Step)
   useEffect(() => {
@@ -61,8 +81,9 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextStep, prevStep]);
 
-  if (!showProduct) {
-    return <LandingScreen onEnterProduct={() => setShowProduct(true)} />;
+  // If there is no active session, show the TattvaCo logo splash followed directly by the login screen
+  if (!session) {
+    return <LoginScreen onLogin={(user) => setSession(user)} />;
   }
 
   // Sign-in is required whenever Supabase is configured; otherwise the app runs local-only.

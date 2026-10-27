@@ -372,7 +372,7 @@ export const TopHeader: React.FC = () => {
                       onClick={() => {
                         localStorage.removeItem('tattava_master_session');
                         signOut();
-                        window.location.search = '?landing=1';
+                        window.dispatchEvent(new Event('tattava_user_session_updated'));
                       }}
                       className="w-full text-left px-3 py-2 text-xs text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
