@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useProject } from './context/ProjectContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { TopHeader } from './components/layout/TopHeader';
@@ -40,29 +40,6 @@ import { ProductionPlanningScreen } from './components/screens/ProductionPlannin
 export const App: React.FC = () => {
   const { activeScreen, setActiveScreen, impactState, isContextResolverOpen, sync, nextStep, prevStep } = useProject();
   const auth = useAuth();
-  // Master user session (Name, Email, Role)
-  const [session, setSession] = useState<any>(() => {
-    try {
-      const raw = localStorage.getItem('tattava_master_session');
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  // Keep session in sync with updates across the app (e.g. Sign Out or Profile Edit)
-  useEffect(() => {
-    const handleSessionUpdate = () => {
-      try {
-        const raw = localStorage.getItem('tattava_master_session');
-        setSession(raw ? JSON.parse(raw) : null);
-      } catch {
-        setSession(null);
-      }
-    };
-    window.addEventListener('tattava_user_session_updated', handleSessionUpdate);
-    return () => window.removeEventListener('tattava_user_session_updated', handleSessionUpdate);
-  }, []);
 
   // Global Keyboard Shortcuts (Cmd/Ctrl + ArrowRight for Next Step, Cmd/Ctrl + ArrowLeft for Prev Step)
   useEffect(() => {
@@ -81,13 +58,12 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nextStep, prevStep]);
 
-  // If there is no active session, show the TattvaCo logo splash followed directly by the login screen
-  if (!session) {
-    return <LoginScreen onLogin={(user) => setSession(user)} />;
+  // The product opens only for a real Supabase identity. Without Supabase configured the
+  // login screen explains that and nothing gets in.
+  if (auth.status === 'disabled' || auth.status === 'signed-out') {
+    return <LoginScreen />;
   }
-
-  // Sign-in is required whenever Supabase is configured; otherwise the app runs local-only.
-  if (auth.status !== 'disabled' && auth.status !== 'ready') {
+  if (auth.status !== 'ready') {
     return <AuthScreen />;
   }
   if (auth.status === 'ready' && sync.status === 'loading') {
