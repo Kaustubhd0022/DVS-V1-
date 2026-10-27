@@ -113,6 +113,22 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
   const [demoStep, setDemoStep] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [userName, setUserName] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tattava_master_session');
+      return saved ? JSON.parse(saved).name || '' : '';
+    } catch {
+      return '';
+    }
+  });
+  const [userEmail, setUserEmail] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tattava_master_session');
+      return saved ? JSON.parse(saved).email || '' : '';
+    } catch {
+      return '';
+    }
+  });
 
   useEffect(() => {
     const timer = window.setTimeout(() => setShowIntro(false), 2400);
@@ -728,28 +744,48 @@ export const LandingScreen: React.FC<{ onEnterProduct: () => void }> = ({ onEnte
                 <div className="mt-6">
                   <div className="rounded-2xl border border-[#33cc7a]/30 bg-[#33cc7a]/10 p-4 mb-5">
                     <div className="text-[10px] uppercase font-bold text-[#33cc7a]">Pilot Access Provisioned</div>
-                    <p className="mt-1 text-xs text-[#faf5f0]/80">Frictionless access enabled. No password entry required.</p>
+                    <p className="mt-1 text-xs text-[#faf5f0]/80">Frictionless access enabled. Personalize your creator identity below.</p>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[10px] uppercase font-bold text-[#b8aba3] block mb-1">User</label>
-                      <input value="TATTVACO" readOnly className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-[#faf5f0] outline-none" />
+                      <label className="text-[10px] uppercase font-bold text-[#b8aba3] block mb-1">Your Name</label>
+                      <input 
+                        type="text"
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Enter your name (e.g. Maya Sharma)"
+                        className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-[#faf5f0] outline-none focus:border-[#33cc7a] transition-colors" 
+                      />
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-bold text-[#b8aba3] block mb-1">Email</label>
-                      <input value="KAUSTUBH.D@TATTVACO.COM" readOnly className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-[#faf5f0] outline-none" />
+                      <label className="text-[10px] uppercase font-bold text-[#b8aba3] block mb-1">Your Email</label>
+                      <input 
+                        type="email"
+                        value={userEmail}
+                        onChange={(e) => setUserEmail(e.target.value)}
+                        placeholder="Enter your email (e.g. creator@studio.com)"
+                        className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-[#faf5f0] outline-none focus:border-[#33cc7a] transition-colors" 
+                      />
                     </div>
                   </div>
                   <button
                     onClick={() => {
+                      const finalName = userName.trim() || 'Tattva Creator';
+                      const finalEmail = userEmail.trim() || 'creator@tattvaco.film';
                       track('master_signin_success');
-                      localStorage.setItem('tattava_master_session', JSON.stringify({ name: 'TATTVACO', email: 'KAUSTUBH.D@TATTVACO.COM', role: 'master', signedInAt: new Date().toISOString() }));
+                      localStorage.setItem('tattava_master_session', JSON.stringify({ 
+                        name: finalName, 
+                        email: finalEmail, 
+                        role: 'master', 
+                        signedInAt: new Date().toISOString() 
+                      }));
+                      window.dispatchEvent(new Event('tattava_user_session_updated'));
                       setModal(null);
                       enterProduct();
                     }}
-                    className="mt-6 w-full rounded-full bg-[#33cc7a] px-5 py-3 text-xs font-bold text-[#1b1411] hover:bg-[#2eb76e] transition shadow-lg shadow-[#33cc7a]/30 flex items-center justify-center gap-2"
+                    className="mt-6 w-full rounded-full bg-[#33cc7a] px-5 py-3 text-xs font-bold text-[#1b1411] hover:bg-[#2eb76e] transition shadow-lg shadow-[#33cc7a]/30 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Enter Studio</span>
+                    <span>Enter Studio {userName.trim() ? `as ${userName.trim()}` : ''}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>

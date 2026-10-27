@@ -119,7 +119,7 @@ export const seedProject: TattvaCoProject = {
         id: 'cd-1',
         title: 'Aanya Age Raised from 24 to 34 (Final Attempt Pressure)',
         rationale: 'Elevates stakes from wide-eyed student ambition to existential final attempt deadline, 10 years of family guilt, and irreversible adult urgency.',
-        author: 'Kaustubh Deshmukh',
+        author: 'Lead Story Architect',
         role: 'AI Product Manager',
         date: '26 Sep 2026',
         status: 'Approved',
@@ -311,7 +311,7 @@ export const seedProject: TattvaCoProject = {
   // TEAM & CREATIVE COLLABORATORS
   // -------------------------------------------------------------
   teamMembers: [
-    { id: 'u1', name: 'Kaustubh Deshmukh', role: 'AI Product Manager', initials: 'KD', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' },
+    { id: 'u1', name: 'Lead Story Architect', role: 'AI Product Manager', initials: 'SA', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop' },
     { id: 'u2', name: 'Aarav Mehta', role: 'Director', initials: 'AM', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop' },
     { id: 'u3', name: 'Rhea Kapoor', role: 'Producer', initials: 'RK', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop' },
     { id: 'u4', name: 'Vikram Rao', role: 'DOP', initials: 'VR', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' },
@@ -1261,7 +1261,7 @@ export const seedProject: TattvaCoProject = {
       { id: 'del-5', title: 'Feature Screenplay Scene Sequence Draft', type: 'PDF', version: 'v1.2', size: '1.2 MB', color: '#ef4444' }
     ],
     stakeholders: [
-      { id: 'sh1', name: 'Kaustubh Deshmukh', role: 'AI Product Manager', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop', status: 'Approved', date: '28 Sep 2026' },
+      { id: 'sh1', name: 'Lead Story Architect', role: 'AI Product Manager', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop', status: 'Approved', date: '28 Sep 2026' },
       { id: 'sh2', name: 'Aarav Mehta', role: 'Director', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop', status: 'Approved', date: '28 Sep 2026' },
       { id: 'sh3', name: 'Rhea Kapoor', role: 'Producer', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop', status: 'Approved', date: '28 Sep 2026' },
       { id: 'sh4', name: 'Priya Sen', role: 'Lead Writer', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&auto=format&fit=crop', status: 'Approved', date: '28 Sep 2026' }
