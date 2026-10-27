@@ -27,11 +27,25 @@
     background: #f59e0b;
   }
 
-  /* Accessible high-contrast focus rings */
-  :focus-visible {
+  /* Accessible high-contrast focus rings for buttons and links */
+  button:focus-visible,
+  a:focus-visible {
     outline: 2px solid #f59e0b !important;
     outline-offset: 2px !important;
   }
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none !important;
+  }
+}
+
+.font-playfair {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
 }
 
 /* ==========================================================================
