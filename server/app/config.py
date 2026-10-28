@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     # Max AI requests per user per minute (in-memory limiter)
     AI_REQUESTS_PER_MINUTE: int = 30
 
+    # Email (SMTP) - used to send each signed Terms & Conditions form to the compliance mailbox
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""  # defaults to SMTP_USERNAME
+    SMTP_SECURITY: str = "starttls"  # starttls (port 587) | ssl (port 465) | none (local testing only)
+    SMTP_TIMEOUT_SECONDS: int = 20
+    TERMS_RECIPIENT_EMAIL: str = "renee@manuvanzara.com"
+
     # Embeddings - Huggingface
     EMBEDDINGS_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
 

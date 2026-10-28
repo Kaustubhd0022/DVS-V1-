@@ -470,3 +470,30 @@ class ProjectSnapshot(Base):
     data = Column(JSON, nullable=False)
     updated_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class TermsAcceptance(Base):
+    """A user's signed acceptance of a version of the Terms & Conditions.
+
+    One row per (user, terms version). `email_status` tracks the signed copy sent to the
+    compliance mailbox: pending -> sent | failed (failed rows can be re-sent).
+    """
+    __tablename__ = 'terms_acceptance'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    terms_version = Column(String(50), nullable=False)
+    terms_sha256 = Column(String(64), nullable=False)  # hash of the exact text that was shown
+    signed_name = Column(String(255), nullable=False)  # name the user typed as their signature
+    accepted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    ip_address = Column(String(64))
+    user_agent = Column(String(500))
+    email_status = Column(String(20), nullable=False, default='pending')
+    email_attempts = Column(Integer, nullable=False, default=0)
+    email_sent_at = Column(DateTime)
+    email_error = Column(String(500))
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'terms_version', name='uq_terms_acceptance_user_version'),
+        Index('idx_terms_acceptance_user', 'user_id'),
+    )
