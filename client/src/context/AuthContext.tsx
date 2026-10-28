@@ -7,27 +7,41 @@ import { authEnabled, supabase } from '../services/supabaseClient';
  * disabled     - Supabase is not configured; nobody can sign in
  * loading      - restoring the session
  * signed-out   - show the sign-in screen
+ * needs-account - signed in through Google for the first time; the account must be created
+ *                 (name confirmed) before the backend user is provisioned
  * provisioning - signed in, creating/loading the backend user
  * ready        - signed in and the backend user exists
  * error        - signed in but the backend could not be reached
  */
-export type AuthStatus = 'disabled' | 'loading' | 'signed-out' | 'provisioning' | 'ready' | 'error';
+export type AuthStatus =
+  | 'disabled'
+  | 'loading'
+  | 'signed-out'
+  | 'needs-account'
+  | 'provisioning'
+  | 'ready'
+  | 'error';
 
 interface AuthContextType {
   status: AuthStatus;
   user: BackendUser | null;
   email: string | null;
+  /** Name suggested by the identity provider, used to prefill account creation. */
+  suggestedName: string | null;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ needsConfirmation: boolean }>;
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  completeAccount: (fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   retry: () => void;
 }
 
 const MASTER_SESSION_KEY = 'tattava_master_session';
 const SESSION_UPDATED_EVENT = 'tattava_user_session_updated';
+// Set in Supabase user_metadata once the person has created their account in the app.
+const ACCOUNT_COMPLETED_FLAG = 'account_completed';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -37,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<BackendUser | null>(null);
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // True while completeAccount waits for a token that carries the new account metadata.
+  const [completingAccount, setCompletingAccount] = useState(false);
 
   useEffect(() => {
     const client = supabase;
@@ -53,11 +69,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const accessToken = session?.access_token;
   const subject = session?.user.id;
+  // Email sign-ups create the account on the form; OAuth identities (Google) arrive without one.
+  const needsAccount =
+    completingAccount ||
+    Boolean(
+      session?.user &&
+        session.user.app_metadata?.provider !== 'email' &&
+        !session.user.user_metadata?.[ACCOUNT_COMPLETED_FLAG]
+    );
 
   // Create (or fetch) the backend user whenever a different identity signs in.
   useEffect(() => {
     if (!authEnabled) return;
-    if (!subject) {
+    if (!subject || needsAccount) {
       setUser(null);
       setProvisionError(null);
       return;
@@ -87,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     // accessToken is intentionally not a dependency: token refreshes must not re-provision.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subject, attempt]);
+  }, [subject, attempt, needsAccount]);
 
   // The local profile session mirrors the Supabase identity. Writing it here (rather than in
   // signIn/signUp) also covers the OAuth redirect return. A profile name edited in the app is
@@ -149,12 +173,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
       options: {
         data: {
-          full_name: name
+          full_name: name,
+          [ACCOUNT_COMPLETED_FLAG]: true
         }
       }
     });
     if (error) throw new Error(error.message);
     return { needsConfirmation: !data.session };
+  }, []);
+
+  const completeAccount = useCallback(async (fullName: string) => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const name = fullName.trim();
+    if (!name) throw new Error('Please enter your name.');
+    setCompletingAccount(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: name, [ACCOUNT_COMPLETED_FLAG]: true }
+      });
+      if (error) throw new Error(error.message);
+      // Reissue the access token so the backend sees the new metadata when it provisions the user.
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw new Error(refreshError.message);
+    } finally {
+      setCompletingAccount(false);
+    }
+    try {
+      const existing = JSON.parse(localStorage.getItem(MASTER_SESSION_KEY) || '{}');
+      localStorage.setItem(MASTER_SESSION_KEY, JSON.stringify({ ...existing, name }));
+    } catch {
+      // The profile mirror is best-effort; the Supabase metadata is the source of truth.
+    }
+    window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
   }, []);
 
   const signOut = useCallback(async () => {
@@ -171,26 +221,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ? 'loading'
       : !accessToken
         ? 'signed-out'
-        : user
-          ? 'ready'
-          : provisionError
-            ? 'error'
-            : 'provisioning';
+        : needsAccount
+          ? 'needs-account'
+          : user
+            ? 'ready'
+            : provisionError
+              ? 'error'
+              : 'provisioning';
 
   const value = useMemo<AuthContextType>(
     () => ({
       status,
       user,
       email: session?.user.email ?? null,
+      suggestedName: session?.user.user_metadata?.full_name || session?.user.user_metadata?.name || null,
       error: provisionError,
       signIn,
       signUp,
       signInWithGoogle,
       resetPassword,
+      completeAccount,
       signOut,
       retry,
     }),
-    [status, user, session, provisionError, signIn, signUp, signInWithGoogle, resetPassword, signOut, retry]
+    [status, user, session, provisionError, signIn, signUp, signInWithGoogle, resetPassword, completeAccount, signOut, retry]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
