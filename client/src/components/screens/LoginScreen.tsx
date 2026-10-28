@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mail, 
@@ -26,10 +26,16 @@ const AUTH_NOT_CONFIGURED =
 export const LoginScreen: React.FC = () => {
   const auth = useAuth();
   const [mode, setMode] = useState<AuthMode>('sign-in');
+  // A new Google identity must create its account here before the product opens.
+  const creatingAccount = auth.status === 'needs-account';
   const [showPassword, setShowPassword] = useState(false);
 
   // Form State
-  const [name, setName] = useState('');
+  const [name, setName] = useState(() => auth.suggestedName || '');
+  // The Google name can arrive after mount; prefill it unless the person has typed already.
+  useEffect(() => {
+    if (auth.suggestedName) setName(current => current || auth.suggestedName || '');
+  }, [auth.suggestedName]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -112,6 +118,26 @@ export const LoginScreen: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Handle Create Account for a first-time Google identity
+  const handleCompleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearFeedback();
+    setIsSubmitting(true);
+    try {
+      // On success the account flag is set and App moves on to provisioning the workspace.
+      await auth.completeAccount(name);
+    } catch (err: any) {
+      console.warn('Account creation error:', err);
+      setErrorMsg(err?.message || 'Could not create your account. Please try again.');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUseDifferentAccount = async () => {
+    clearFeedback();
+    await auth.signOut();
   };
 
   // Handle Sign In with Google (redirects to Google, then back to the app)
@@ -234,7 +260,7 @@ export const LoginScreen: React.FC = () => {
               </svg>
 
               {/* Top Navigation Row: Toggle between Sign in & Create account */}
-              {mode !== 'forgot-password' ? (
+              {creatingAccount ? null : mode !== 'forgot-password' ? (
                 <div className="flex items-center justify-end gap-2 text-xs mb-4">
                   <span className="text-stone-400 font-sans">
                     {mode === 'sign-up' ? 'Already have an account?' : 'New to Vyom AI?'}
@@ -263,14 +289,16 @@ export const LoginScreen: React.FC = () => {
               {/* Headings */}
               <div className="space-y-1.5 mb-6">
                 <h2 className="font-playfair text-2xl sm:text-[30px] font-normal text-[#faf5f0] tracking-tight">
-                  {mode === 'sign-up' && 'Create your account'}
-                  {mode === 'sign-in' && 'Welcome to Vyom AI'}
-                  {mode === 'forgot-password' && 'Reset your password'}
+                  {creatingAccount && 'Create your account'}
+                  {!creatingAccount && mode === 'sign-up' && 'Create your account'}
+                  {!creatingAccount && mode === 'sign-in' && 'Welcome to Vyom AI'}
+                  {!creatingAccount && mode === 'forgot-password' && 'Reset your password'}
                 </h2>
                 <p className="text-xs sm:text-sm text-stone-400 font-sans leading-relaxed">
-                  {mode === 'sign-up' && 'Begin crafting culturally deep, authentic stories with TattvaCo.'}
-                  {mode === 'sign-in' && 'Sign in to continue your journey with TattvaCo.'}
-                  {mode === 'forgot-password' && 'Enter your registered email and we will send you a password reset link.'}
+                  {creatingAccount && 'No Vyom AI account exists for this Google account yet. Confirm your details to create one.'}
+                  {!creatingAccount && mode === 'sign-up' && 'Begin crafting culturally deep, authentic stories with TattvaCo.'}
+                  {!creatingAccount && mode === 'sign-in' && 'Sign in to continue your journey with TattvaCo.'}
+                  {!creatingAccount && mode === 'forgot-password' && 'Enter your registered email and we will send you a password reset link.'}
                 </p>
               </div>
 
@@ -301,8 +329,64 @@ export const LoginScreen: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              {/* 1. Sign In & Sign Up Form */}
-              {mode !== 'forgot-password' ? (
+              {/* 0. Create Account for a first-time Google identity */}
+              {creatingAccount ? (
+                <form onSubmit={handleCompleteAccount} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-stone-300 block mb-1.5 font-sans">
+                      Full Name
+                    </label>
+                    <div className="flex items-center gap-2.5 rounded-xl border border-stone-800 bg-[#0c0908] px-3.5 py-2.5 focus-within:border-[#b05232] transition-colors">
+                      <User className="w-4 h-4 text-stone-500 shrink-0" />
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Maya Sharma"
+                        className="w-full bg-transparent text-sm text-[#faf5f0] placeholder:text-stone-600 outline-none"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-stone-300 block mb-1.5 font-sans">
+                      Google account
+                    </label>
+                    <div className="flex items-center gap-2.5 rounded-xl border border-stone-800 bg-[#0c0908] px-3.5 py-3 text-sm text-stone-400">
+                      <Mail className="w-4 h-4 text-stone-500 shrink-0" />
+                      <span className="truncate">{auth.email}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full mt-5 rounded-xl bg-[#b05232] hover:bg-[#c05d3b] active:bg-[#9a4528] text-white py-3.5 px-6 font-medium text-sm shadow-lg shadow-[#b05232]/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <>
+                        <span>Create account</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={handleUseDifferentAccount}
+                      disabled={isSubmitting}
+                      className="text-xs text-stone-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Use a different account
+                    </button>
+                  </div>
+                </form>
+              ) : mode !== 'forgot-password' ? (
                 <form onSubmit={mode === 'sign-up' ? handleSignUp : handleSignIn} className="space-y-4">
                   {mode === 'sign-up' && (
                     <div>
@@ -442,7 +526,7 @@ export const LoginScreen: React.FC = () => {
               )}
 
               {/* Divider & Google OAuth (available in sign-in & sign-up) */}
-              {mode !== 'forgot-password' && (
+              {!creatingAccount && mode !== 'forgot-password' && (
                 <>
                   <div className="flex items-center my-5">
                     <div className="flex-1 h-[1px] bg-stone-800" />
@@ -488,7 +572,7 @@ export const LoginScreen: React.FC = () => {
 
               {/* Legal Terms Footer */}
               <p className="text-[11px] text-stone-500 text-center leading-relaxed mt-6">
-                By signing in, you agree to our{' '}
+                By {creatingAccount ? 'creating an account' : 'signing in'}, you agree to our{' '}
                 <a href="#" className="underline text-stone-400 hover:text-stone-300">Terms of Service</a>
                 {' '}and{' '}
                 <a href="#" className="underline text-stone-400 hover:text-stone-300">Privacy Policy</a>.

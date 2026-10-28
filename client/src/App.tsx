@@ -60,7 +60,8 @@ export const App: React.FC = () => {
 
   // The product opens only for a real Supabase identity. Without Supabase configured the
   // login screen explains that and nothing gets in.
-  if (auth.status === 'disabled' || auth.status === 'signed-out') {
+  // A first-time Google identity stays on the login screen until the account is created.
+  if (auth.status === 'disabled' || auth.status === 'signed-out' || auth.status === 'needs-account') {
     return <LoginScreen />;
   }
   if (auth.status !== 'ready') {
