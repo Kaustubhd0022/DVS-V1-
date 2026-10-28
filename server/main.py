@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from app.config import settings
 from app.database import init_db
-from app.api import ai, health, me, projects, workflows, approvals, artifacts, characters, stories, research, organizations, analytics
+from app.api import ai, health, me, terms, projects, workflows, approvals, artifacts, characters, stories, research, organizations, analytics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,6 +54,7 @@ app.add_middleware(
 # API routes
 app.include_router(health.router, prefix="/api/health", tags=["health"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(terms.router, prefix="/api/terms", tags=["terms"])
 app.include_router(me.router, prefix="/api/me", tags=["me"])
 app.include_router(organizations.router, prefix="/api/organizations", tags=["organizations"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
