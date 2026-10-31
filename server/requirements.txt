@@ -19,6 +19,15 @@ PyJWT[crypto]>=2.8
 # Model provider calls (app/services/llm.py)
 httpx==0.25.2
 
+# Email (signed Terms & Conditions PDF)
+reportlab>=4.0
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+aiosmtpd>=1.4  # local SMTP server used by the email tests
+
 # Validating model output against JSON Schemas (app/services/structured.py)
 jsonschema>=4.20,<5
 

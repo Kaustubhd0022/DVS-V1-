@@ -184,6 +184,26 @@ export interface BackendSnapshot {
   updated_at: string | null;
 }
 
+export interface TermsDocument {
+  version: string;
+  title: string;
+  text: string;
+  sha256: string;
+}
+
+export interface TermsAcceptance {
+  terms_version: string;
+  signed_name: string;
+  accepted_at: string;
+  email_status: 'pending' | 'sent' | 'failed';
+}
+
+export interface TermsStatus {
+  accepted: boolean;
+  current_version: string;
+  acceptance: TermsAcceptance | null;
+}
+
 type AccessTokenProvider = () => string | null | Promise<string | null>;
 
 let accessTokenProvider: AccessTokenProvider = () => null;
@@ -255,6 +275,26 @@ class ApiClient {
 
   private json(method: string, body: unknown): RequestInit {
     return { method, body: JSON.stringify(body) };
+  }
+
+  // Terms & Conditions
+  async getTerms(): Promise<TermsDocument> {
+    return this.request('/terms');
+  }
+
+  async getTermsStatus(): Promise<TermsStatus> {
+    return this.request('/terms/status');
+  }
+
+  async acceptTerms(termsVersion: string, signedName: string): Promise<TermsAcceptance> {
+    return this.request(
+      '/terms/accept',
+      this.json('POST', { terms_version: termsVersion, signed_name: signedName, agree: true })
+    );
+  }
+
+  async resendTermsEmail(): Promise<TermsAcceptance> {
+    return this.request('/terms/resend', { method: 'POST' });
   }
 
   // AI (server-side model access; the provider token never reaches the browser)
