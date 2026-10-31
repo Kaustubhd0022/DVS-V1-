@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Analytics endpoints - Continuity checking, dependency analysis, and vector search
 """
@@ -5,7 +7,7 @@ Analytics endpoints - Continuity checking, dependency analysis, and vector searc
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 
 from app.auth import require_project_access
@@ -29,7 +31,7 @@ class DependencyAnalysisRequest(BaseModel):
 
 class VectorSearchRequest(BaseModel):
     query: str
-    artifact_type: str | None = None
+    artifact_type: Optional[str] = None
     limit: int = 5
 
 

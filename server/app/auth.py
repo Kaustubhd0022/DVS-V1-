@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 import jwt
@@ -85,7 +85,7 @@ def verify_token(token: str) -> Dict[str, Any]:
 
 
 def get_token_claims(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
 ) -> Dict[str, Any]:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise _UNAUTHORIZED

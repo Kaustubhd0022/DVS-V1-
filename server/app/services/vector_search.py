@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 """
 Vector search service - Semantic search using pgvector
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 
@@ -29,7 +31,7 @@ class VectorSearchService:
         self,
         project_id: UUID,
         query: str,
-        artifact_type: str | None = None,
+        artifact_type: Optional[str] = None,
         limit: int = 5,
     ) -> List[Dict[str, Any]]:
         """Search artifacts by semantic similarity"""

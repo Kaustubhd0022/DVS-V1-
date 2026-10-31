@@ -25,7 +25,7 @@ services:
 
       # Auth: tokens are checked against the project's JWKS (ES256/RS256) or the JWT secret (HS256).
       - key: SUPABASE_URL
-        value: https://mygvgcnyxiwevktcprza.supabase.co
+        value: https://khhnrwqzxltskergijid.supabase.co
       - key: SUPABASE_JWT_SECRET
         sync: false
 

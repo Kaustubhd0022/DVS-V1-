@@ -16,7 +16,10 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_project_access
 from app.database import get_db
-from app.models import Intent, Project, ProjectSnapshot, ProjectStatus, User, project_members
+from app.models import (
+    ArtifactVersion, CanonFact, Character, CreativeDecision, Evidence,
+    Intent, Project, ProjectSnapshot, ProjectStatus, Story, User, project_members,
+)
 from app.schemas import (
     IntentCreate, IntentRead, ProjectCreate, ProjectImport, ProjectImportResult,
     ProjectIntelligenceRead, ProjectRead, ProjectUpdate, SnapshotRead, SnapshotWrite,
@@ -74,17 +77,28 @@ async def get_project(project: Project = Depends(require_project_access)):
 
 
 @router.get("/{project_id}/intelligence", response_model=ProjectIntelligenceRead)
-async def get_project_intelligence(project: Project = Depends(require_project_access)):
+async def get_project_intelligence(
+    project: Project = Depends(require_project_access),
+    db: Session = Depends(get_db),
+):
     """Get complete Project Intelligence / Story Brain"""
+    intent = db.query(Intent).filter_by(project_id=project.id).first()
+    characters = db.query(Character).filter_by(project_id=project.id).all()
+    stories = db.query(Story).filter_by(project_id=project.id).all()
+    research = db.query(Evidence).filter_by(project_id=project.id).all()
+    decisions = db.query(CreativeDecision).filter_by(project_id=project.id).all()
+    canon = db.query(CanonFact).filter_by(project_id=project.id).all()
+    versions = db.query(ArtifactVersion).filter_by(project_id=project.id).all()
+
     return {
         "project": ProjectRead.model_validate(project),
-        "intent": None,  # Would load from DB
-        "research": [],
-        "characters": [],
-        "stories": [],
-        "decisions": [],
-        "canon": [],
-        "versions": [],
+        "intent": IntentRead.model_validate(intent) if intent else None,
+        "research": research,
+        "characters": characters,
+        "stories": stories,
+        "decisions": decisions,
+        "canon": canon,
+        "versions": versions,
     }
 
 

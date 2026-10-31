@@ -12,30 +12,38 @@ import { useAuth } from './context/AuthContext';
 
 import { LoginScreen } from './components/screens/LoginScreen';
 
-// V1 Pipeline Screens
 import { HomeScreen } from './components/screens/HomeScreen';
-import { DiscoveryStudioScreen } from './components/screens/DiscoveryStudioScreen';
-import { CreateProjectScreen } from './components/screens/CreateProjectScreen';
-import { IntakeScreen } from './components/screens/IntakeScreen';
-import { StoryBrainScreen } from './components/screens/StoryBrainScreen';
-import { ResearchScreen } from './components/screens/ResearchScreen';
-import { StoryExplorationScreen } from './components/screens/StoryExplorationScreen';
-import { FormatTemplateScreen } from './components/screens/FormatTemplateScreen';
-import { CharacterScreen } from './components/screens/CharacterScreen';
-import { WorldScreen } from './components/screens/WorldScreen';
-import { StructureScreen } from './components/screens/StructureScreen';
-import { TreatmentScreen } from './components/screens/TreatmentScreen';
-import { SceneOutlineScreen } from './components/screens/SceneOutlineScreen';
-import { ScreenplayScreen } from './components/screens/ScreenplayScreen';
-import { DialogueScreen } from './components/screens/DialogueScreen';
-import { ContinuityQAScreen } from './components/screens/ContinuityQAScreen';
-import { EvaluationScreen } from './components/screens/EvaluationScreen';
-import { PackageDeliveryScreen } from './components/screens/PackageDeliveryScreen';
 import { ErrorBoundary } from './components/layout/ErrorBoundary';
 
-// Deferred / roadmap-compatible screens retained for product preview
-import { VisualDevScreen } from './components/screens/VisualDevScreen';
-import { ProductionPlanningScreen } from './components/screens/ProductionPlanningScreen';
+// Lazy-loaded pipeline screens for optimal bundle splitting and performance
+const DiscoveryStudioScreen = React.lazy(() => import('./components/screens/DiscoveryStudioScreen').then(m => ({ default: m.DiscoveryStudioScreen })));
+const CreateProjectScreen = React.lazy(() => import('./components/screens/CreateProjectScreen').then(m => ({ default: m.CreateProjectScreen })));
+const IntakeScreen = React.lazy(() => import('./components/screens/IntakeScreen').then(m => ({ default: m.IntakeScreen })));
+const StoryBrainScreen = React.lazy(() => import('./components/screens/StoryBrainScreen').then(m => ({ default: m.StoryBrainScreen })));
+const ResearchScreen = React.lazy(() => import('./components/screens/ResearchScreen').then(m => ({ default: m.ResearchScreen })));
+const StoryExplorationScreen = React.lazy(() => import('./components/screens/StoryExplorationScreen').then(m => ({ default: m.StoryExplorationScreen })));
+const FormatTemplateScreen = React.lazy(() => import('./components/screens/FormatTemplateScreen').then(m => ({ default: m.FormatTemplateScreen })));
+const CharacterScreen = React.lazy(() => import('./components/screens/CharacterScreen').then(m => ({ default: m.CharacterScreen })));
+const WorldScreen = React.lazy(() => import('./components/screens/WorldScreen').then(m => ({ default: m.WorldScreen })));
+const StructureScreen = React.lazy(() => import('./components/screens/StructureScreen').then(m => ({ default: m.StructureScreen })));
+const TreatmentScreen = React.lazy(() => import('./components/screens/TreatmentScreen').then(m => ({ default: m.TreatmentScreen })));
+const SceneOutlineScreen = React.lazy(() => import('./components/screens/SceneOutlineScreen').then(m => ({ default: m.SceneOutlineScreen })));
+const ScreenplayScreen = React.lazy(() => import('./components/screens/ScreenplayScreen').then(m => ({ default: m.ScreenplayScreen })));
+const DialogueScreen = React.lazy(() => import('./components/screens/DialogueScreen').then(m => ({ default: m.DialogueScreen })));
+const ContinuityQAScreen = React.lazy(() => import('./components/screens/ContinuityQAScreen').then(m => ({ default: m.ContinuityQAScreen })));
+const EvaluationScreen = React.lazy(() => import('./components/screens/EvaluationScreen').then(m => ({ default: m.EvaluationScreen })));
+const PackageDeliveryScreen = React.lazy(() => import('./components/screens/PackageDeliveryScreen').then(m => ({ default: m.PackageDeliveryScreen })));
+const VisualDevScreen = React.lazy(() => import('./components/screens/VisualDevScreen').then(m => ({ default: m.VisualDevScreen })));
+const ProductionPlanningScreen = React.lazy(() => import('./components/screens/ProductionPlanningScreen').then(m => ({ default: m.ProductionPlanningScreen })));
+
+const ScreenLoadingSkeleton: React.FC = () => (
+  <div className="flex-1 min-h-[60vh] flex flex-col items-center justify-center space-y-4" role="status">
+    <div className="w-12 h-12 rounded-xl bg-[#201815] border border-[#ff5533]/30 flex items-center justify-center shadow-lg shadow-[#ff5533]/5">
+      <div className="w-5 h-5 rounded-full border-2 border-[#ff5533] border-t-transparent animate-spin" />
+    </div>
+    <div className="text-xs uppercase tracking-widest text-[#a89687] font-mono animate-pulse">Loading Studio Module…</div>
+  </div>
+);
 
 export const App: React.FC = () => {
   const { activeScreen, setActiveScreen, impactState, isContextResolverOpen, sync, nextStep, prevStep } = useProject();
@@ -137,7 +145,9 @@ export const App: React.FC = () => {
             key={activeScreen}
             fallbackScreen={() => setActiveScreen('discovery')}
           >
-            {renderActiveScreen()}
+            <React.Suspense fallback={<ScreenLoadingSkeleton />}>
+              {renderActiveScreen()}
+            </React.Suspense>
           </ErrorBoundary>
         </main>
       </div>

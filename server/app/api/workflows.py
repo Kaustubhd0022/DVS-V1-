@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Workflow execution endpoints - Agent orchestration and task execution
 """
@@ -5,7 +7,7 @@ Workflow execution endpoints - Agent orchestration and task execution
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
 from app.auth import get_accessible_project, get_current_user
@@ -24,15 +26,15 @@ class WorkflowInput(BaseModel):
     project_id: UUID
     workflow_type: WorkflowType
     user_input: str
-    context: Dict[str, Any] | None = None
+    context: Optional[Dict[str, Any]] = None
 
 
 class WorkflowResponse(BaseModel):
     run_id: str
     status: str
-    output: Dict[str, Any] | None = None
-    error: str | None = None
-    latency_ms: int | None = None
+    output: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    latency_ms: Optional[int] = None
     approval_required: bool = False
 
 
