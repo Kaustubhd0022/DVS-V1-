@@ -181,7 +181,7 @@ export const CharacterScreen: React.FC = () => {
       const reply = await askCopilot(prompt, `Character: ${selectedChar.name}, Role: ${selectedChar.role}, Premise: ${currentProject.intent?.premise || currentProject.tagline}`);
       setAiResult({ tool: toolName, text: reply });
     } catch (e: any) {
-      setAiResult({ tool: toolName, text: `[AI Alert]: ${e?.message || 'Inference error. Please check your API key in Settings.'}` });
+      setAiResult({ tool: toolName, text: `[AI Alert]: ${e?.message || 'The AI service could not be reached. Try again in a moment.'}` });
     } finally {
       setAiGenerating(null);
     }

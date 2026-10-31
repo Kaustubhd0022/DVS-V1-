@@ -128,6 +128,17 @@ export interface ResearchFinding {
   date: string;
   confidence: number;
   status: 'Verified' | 'Needs Review' | 'Conflicting' | 'Insufficient Evidence';
+  /** Who confirmed the source supports the claim (email), and when (ISO time). */
+  verifiedBy?: string;
+  verifiedAt?: string;
+  /** primary: government / UNESCO; secondary: open reference (server source registry);
+   *  field: interviews and field visits. */
+  sourceTier?: 'primary' | 'secondary' | 'field';
+  /** quote_checked: the quote was found in a stored source; attested: offline source vouched for by a person. */
+  verificationMethod?: 'quote_checked' | 'attested';
+  /** Server records behind a verified finding: the stored source and the quote-checked evidence. */
+  sourceDocumentId?: string;
+  evidenceId?: string;
   epistemicType?: EpistemicType;
   provenance?: string;
   usedIn: Array<{ type: 'episode' | 'character' | 'story_decision' | 'canon'; id: string; label: string } | string>;
@@ -1106,6 +1117,8 @@ export interface TattvaCoProject {
   intent: ProjectIntent;
   researchQuestions: ResearchQuestion[];
   researchFindings: ResearchFinding[];
+  /** The latest server research plan (generated from the project brief) for this project. */
+  researchPlanId?: string;
   storyDirections: StoryDirection[];
   selectedDirectionId: string;
   formats: FormatOption[];

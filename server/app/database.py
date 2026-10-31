@@ -7,13 +7,15 @@ from sqlalchemy import create_engine, event, Engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import NullPool
 import os
+import urllib.parse
 from app.config import settings
 from app.models import Base
 
 # Supabase connection string
+_encoded_password = urllib.parse.quote_plus(settings.DB_PASSWORD) if settings.DB_PASSWORD else ""
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+    f"postgresql://{settings.DB_USER}:{_encoded_password}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
 
 # Create engine with pgvector support

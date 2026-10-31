@@ -95,7 +95,11 @@ async def vector_search(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    searcher = VectorSearchService(db)
+    try:
+        searcher = VectorSearchService(db)
+    except ImportError:
+        # sentence-transformers is optional (requirements-ml.txt) and not installed on the server.
+        raise HTTPException(status_code=503, detail="Semantic search is not enabled on this server")
     results = searcher.search_artifacts(
         project_id=project_id,
         query=request.query,

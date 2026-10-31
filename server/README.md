@@ -37,6 +37,21 @@ Server runs at `http://localhost:8000`
 
 API docs at `http://localhost:8000/docs`
 
+## Deploying (Render)
+
+`render.yaml` at the repository root is a Render Blueprint for this server.
+
+1. In Render: **New → Blueprint**, pick this repository. Render reads `render.yaml`.
+2. Fill in the secrets it asks for:
+   - `DATABASE_URL`: Supabase → Connect → Session pooler connection string.
+   - `SUPABASE_JWT_SECRET`: Supabase → Project Settings → JWT keys (legacy secret).
+   - `GROQ_API_KEY`: a Groq key created for the server.
+3. After the first deploy, open `https://<service>.onrender.com/api/health/`; it should say healthy.
+4. In Vercel, set `VITE_BACKEND_URL=https://<service>.onrender.com/api` and redeploy the client.
+
+The deployed server installs `requirements.txt` only. Tests and linters are in
+`requirements-dev.txt`; local embeddings for semantic search are in `requirements-ml.txt`.
+
 ## Project Structure
 
 ```

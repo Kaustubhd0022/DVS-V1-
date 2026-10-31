@@ -30,6 +30,18 @@ class Settings(BaseSettings):
     SUPABASE_JWT_SECRET: str = ""
     SUPABASE_JWT_AUDIENCE: str = "authenticated"
 
+    # LLM provider for /api/ai: "groq" or "huggingface"
+    LLM_PROVIDER: str = "groq"
+
+    # LLM - Groq (OpenAI-compatible chat completions)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
+    GROQ_FALLBACK_MODEL: str = "openai/gpt-oss-20b"
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+
+    # Web search restricted to approved source sites (Tavily free plan: 1,000 searches/month)
+    TAVILY_API_KEY: str = ""
+
     # LLM - Huggingface
     HUGGINGFACE_API_TOKEN: str = ""
     HUGGINGFACE_MODEL: str = "meta-llama/Llama-3.1-8B-Instruct"

@@ -42,13 +42,6 @@ import { resolveProjectContext } from './contextResolver';
 import { getCanonicalConfiguration } from './projectConfiguration';
 import { ApiError, apiClient } from './apiClient';
 
-const DEFAULT_GROQ_KEY = '';
-const ENV_KEY = (import.meta as any).env?.VITE_GROQ_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
-
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-const PRIMARY_MODEL = 'openai/gpt-oss-120b';
-const FALLBACK_MODEL = 'openai/gpt-oss-20b';
-
 // Global debug telemetry for Section 25 Developer Inspector
 export interface AiDebugTrace {
   timestamp: string;
@@ -65,173 +58,6 @@ export interface AiDebugTrace {
 export let lastAiDebugTrace: AiDebugTrace | null = null;
 
 export const getLastAiDebugTrace = () => lastAiDebugTrace;
-
-export const getGroqApiKey = (): string => {
-  if (typeof localStorage !== 'undefined') {
-    const custom = localStorage.getItem('tattvaco_groq_api_key') || localStorage.getItem('tattvaco_gemini_api_key');
-    if (custom) return custom;
-  }
-  return (
-    ENV_KEY ||
-    DEFAULT_GROQ_KEY ||
-    (typeof process !== 'undefined' ? process.env?.VITE_GROQ_API_KEY : '') ||
-    ''
-  );
-};
-
-export const setGroqApiKey = (key: string): void => {
-  const trimmed = key.trim();
-  localStorage.setItem('tattvaco_groq_api_key', trimmed);
-  localStorage.setItem('tattvaco_gemini_api_key', trimmed);
-};
-
-export const getGeminiApiKey = getGroqApiKey;
-export const setGeminiApiKey = setGroqApiKey;
-
-async function callGroq(
-  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-  options: {
-    temperature?: number;
-    max_tokens?: number;
-    jsonMode?: boolean;
-    taskName?: string;
-    contextSnapshot?: string;
-  } = {}
-): Promise<string> {
-  const apiKey = getGroqApiKey();
-  if (!apiKey) {
-    const err = new Error('AI_CONFIGURATION_REQUIRED: No Groq or Gemini API key found. Please configure your API key in Settings.');
-    (err as any).code = 'AI_CONFIGURATION_REQUIRED';
-    throw err;
-  }
-
-  const { temperature = 0.7, max_tokens = 2000, jsonMode = false, taskName = 'General Inference', contextSnapshot = '' } = options;
-  const startTime = performance.now();
-
-  const modelsToTry = [PRIMARY_MODEL, FALLBACK_MODEL, 'qwen/qwen3.8-27b'];
-  let lastError: any = null;
-
-  for (const model of modelsToTry) {
-    try {
-      const payload: any = {
-        model,
-        messages,
-        temperature,
-        max_tokens
-      };
-
-      if (jsonMode) {
-        payload.response_format = { type: 'json_object' };
-      }
-
-      const res = await fetch(GROQ_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const elapsed = Math.round(performance.now() - startTime);
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const errMsg = errJson.error?.message || `HTTP ${res.status}`;
-        console.warn(`Groq model ${model} failed: ${errMsg}`);
-        lastError = new Error(`AI_SERVICE_ERROR: ${errMsg}`);
-        continue;
-      }
-
-      const data = await res.json();
-      const choice = data.choices?.[0];
-      if (!choice) continue;
-
-      let content = choice.message?.content?.trim() || '';
-      if (!content && choice.message?.reasoning) {
-        content = choice.message.reasoning.trim();
-      }
-
-      if (content) {
-        lastAiDebugTrace = {
-          timestamp: new Date().toLocaleTimeString(),
-          task: taskName,
-          model,
-          contextSent: contextSnapshot || messages[0]?.content || '',
-          prompt: messages[messages.length - 1]?.content || '',
-          rawResponse: content,
-          latencyMs: elapsed,
-          status: 'SUCCESS'
-        };
-        return content;
-      }
-    } catch (err: any) {
-      console.warn(`Error invoking ${model}:`, err);
-      lastError = err;
-    }
-  }
-
-  const finalElapsed = Math.round(performance.now() - startTime);
-  lastAiDebugTrace = {
-    timestamp: new Date().toLocaleTimeString(),
-    task: taskName,
-    model: PRIMARY_MODEL,
-    contextSent: contextSnapshot || '',
-    prompt: messages[messages.length - 1]?.content || '',
-    rawResponse: '',
-    latencyMs: finalElapsed,
-    status: 'ERROR',
-    errorMessage: lastError?.message || 'Groq connection failed'
-  };
-
-  throw lastError || new Error('AI_UNAVAILABLE: All attempts to connect to Groq inference failed.');
-}
-
-export const testGroqConnection = async (): Promise<{ success: boolean; message: string; latencyMs?: number }> => {
-  const apiKey = getGroqApiKey();
-  if (!apiKey) {
-    return { success: false, message: 'No API Key configured. Please enter your Groq API key.' };
-  }
-
-  const startTime = performance.now();
-
-  try {
-    const res = await fetch(GROQ_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: PRIMARY_MODEL,
-        messages: [{ role: 'user', content: 'Say "tattvaCo Online" and nothing else.' }],
-        max_tokens: 300
-      })
-    });
-
-    const elapsed = Math.round(performance.now() - startTime);
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { 
-        success: false, 
-        message: err.error?.message || `HTTP ${res.status}: Connection failed` 
-      };
-    }
-
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content?.trim() || data.choices?.[0]?.message?.reasoning?.trim() || 'Online';
-    return {
-      success: true,
-      message: `Connected: Groq LPU (${PRIMARY_MODEL}) • ${elapsed}ms latency • "${reply.slice(0, 30)}"`,
-      latencyMs: elapsed
-    };
-  } catch (e: any) {
-    return { success: false, message: e.message || 'Network error connecting to Groq' };
-  }
-};
-
-export const testGeminiConnection = testGroqConnection;
 
 /**
  * TattvaCo Project V1 configuration inference.
@@ -424,11 +250,24 @@ export function buildProjectContext(
   }
 
   // Research Findings if requested
+  // Only findings a person or a source check has verified may be presented as evidence.
   if (options.includeResearch && project.researchFindings && project.researchFindings.length > 0) {
-    parts.push(`\n=== VERIFIED RESEARCH EVIDENCE ===`);
-    project.researchFindings.slice(0, 6).forEach((r, idx) => {
-      parts.push(`[EVIDENCE #${idx + 1}] ${r.topic}: "${r.claim}" (Source: ${r.source})`);
-    });
+    const verified = project.researchFindings.filter(r => r.status === 'Verified');
+    const unverified = project.researchFindings.filter(r => r.status !== 'Verified');
+    if (verified.length > 0) {
+      parts.push(`\n=== VERIFIED RESEARCH EVIDENCE ===`);
+      verified.slice(0, 6).forEach((r, idx) => {
+        const attested = r.verificationMethod === 'attested' ? '; attested offline source, not machine-checked' : '';
+        parts.push(`[EVIDENCE #${idx + 1}] ${r.topic}: "${r.claim}" (Source: ${r.source}${attested})`);
+      });
+    }
+    if (unverified.length > 0) {
+      parts.push(`\n=== UNVERIFIED RESEARCH LEADS (NOT EVIDENCE) ===`);
+      parts.push('These have not been checked against a source. Never state them as fact.');
+      unverified.slice(0, 6).forEach((r, idx) => {
+        parts.push(`[LEAD #${idx + 1}] ${r.topic}: "${r.claim}" (status: ${r.status})`);
+      });
+    }
   }
 
   // Creative Decisions Log
@@ -596,30 +435,34 @@ const toAiError = (err: unknown): Error => {
   return error;
 };
 
+type AiMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+
+interface AiCallOptions {
+  temperature?: number;
+  max_tokens?: number;
+  jsonMode?: boolean;
+  taskName?: string;
+  contextSnapshot?: string;
+}
+
 /**
- * Calls the backend AI proxy (POST /api/ai/generate). The model provider token (HuggingFace)
- * lives on the server; the browser never sees it. Model selection and fallback happen server-side.
+ * Calls the backend AI proxy (POST /api/ai/generate). The model provider key lives on the server;
+ * the browser never sees it. Model selection and fallback happen server-side.
  */
-export async function callAI(
-  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-  options: {
-    temperature?: number;
-    max_tokens?: number;
-    jsonMode?: boolean;
-    taskName?: string;
-    contextSnapshot?: string;
-  } = {}
-): Promise<string> {
-  const { temperature = 0.7, max_tokens = 2000, jsonMode = false, taskName = 'General Inference', contextSnapshot = '' } = options;
+async function requestAI(
+  messages: AiMessage[],
+  options: AiCallOptions & { outputSchema?: object } = {}
+): Promise<{ content: string; data?: unknown }> {
+  const { temperature = 0.7, max_tokens = 2000, jsonMode = false, taskName = 'General Inference', contextSnapshot = '', outputSchema } = options;
   const startTime = performance.now();
 
-  // Try server endpoint first
   try {
     const result = await apiClient.generate({
       messages,
       temperature,
       maxTokens: max_tokens,
       jsonMode,
+      outputSchema,
       task: taskName,
     });
 
@@ -634,30 +477,41 @@ export async function callAI(
       latencyMs: result.latency_ms,
       status: 'SUCCESS'
     };
-    return result.content;
+    return result;
   } catch (serverErr) {
-    console.info(`[tattvaCo AI] Server endpoint unavailable (${(serverErr as any)?.message || 'offline'}). Attempting direct Groq provider fallback...`);
-    
-    // Direct browser-to-provider fallback using configured Groq key
-    try {
-      const directResult = await callGroq(messages, options);
-      return directResult;
-    } catch (directErr) {
-      const error = toAiError(directErr || serverErr);
-      lastAiDebugTrace = {
-        timestamp: new Date().toLocaleTimeString(),
-        task: taskName,
-        model: 'server-fallback',
-        contextSent: contextSnapshot || '',
-        prompt: messages[messages.length - 1]?.content || '',
-        rawResponse: '',
-        latencyMs: Math.round(performance.now() - startTime),
-        status: 'ERROR',
-        errorMessage: error.message
-      };
-      throw error;
-    }
+    // Model calls only go through the server, which holds the provider key. No browser fallback.
+    const error = toAiError(serverErr);
+    lastAiDebugTrace = {
+      timestamp: new Date().toLocaleTimeString(),
+      task: taskName,
+      model: 'server',
+      contextSent: contextSnapshot || '',
+      prompt: messages[messages.length - 1]?.content || '',
+      rawResponse: '',
+      latencyMs: Math.round(performance.now() - startTime),
+      status: 'ERROR',
+      errorMessage: error.message
+    };
+    throw error;
   }
+}
+
+/** Plain model call; returns the reply text. */
+export async function callAI(messages: AiMessage[], options: AiCallOptions = {}): Promise<string> {
+  return (await requestAI(messages, options)).content;
+}
+
+/**
+ * JSON model call. The server parses the reply, checks it against `outputSchema`, retries once
+ * with the problems explained, and fails with a clear error if the reply is still invalid.
+ */
+export async function callAIJson<T>(
+  messages: AiMessage[],
+  outputSchema: object,
+  options: Omit<AiCallOptions, 'jsonMode'> = {}
+): Promise<T> {
+  const result = await requestAI(messages, { ...options, jsonMode: true, outputSchema });
+  return (result.data ?? extractJsonFromResponse(result.content)) as T;
 }
 
 /**
@@ -668,8 +522,7 @@ export const testAiConnection = async (): Promise<{ success: boolean; message: s
     const result = await apiClient.testAi();
     return { success: result.success, message: result.message, latencyMs: result.latency_ms ?? undefined };
   } catch (err) {
-    // If backend is not available, test Groq directly
-    return testGroqConnection();
+    return { success: false, message: toAiError(err).message };
   }
 };
 
@@ -1080,6 +933,33 @@ Return ONLY valid JSON matching:
 /**
  * SECTION 17: DYNAMIC RESEARCH & EVIDENCE SYNTHESIS
  */
+/** What the server checks generateResearchTopics replies against. */
+export const RESEARCH_TOPICS_SCHEMA = {
+  type: 'object',
+  required: ['topics'],
+  properties: {
+    topics: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'object',
+        required: ['topic', 'claim', 'source', 'epistemicType', 'implicationForPlot'],
+        properties: {
+          topic: { type: 'string', minLength: 1 },
+          claim: { type: 'string', minLength: 1 },
+          evidence: { type: 'string' },
+          source: { type: 'string' },
+          sourceType: { type: 'string' },
+          exactCitation: { type: 'string' },
+          evidenceQuote: { type: 'string' },
+          epistemicType: { enum: ['DOCUMENTED_FACT', 'SCHOLARLY_DISPUTED', 'MYTHOLOGY_FOLKLORE', 'CREATIVE_LICENCE'] },
+          implicationForPlot: { type: 'string' },
+        },
+      },
+    },
+  },
+} as const;
+
 export interface ResearchSynthesisResult {
   topics: Array<{
     topic: string;
@@ -1091,9 +971,19 @@ export interface ResearchSynthesisResult {
     evidenceQuote?: string;
     epistemicType: 'DOCUMENTED_FACT' | 'SCHOLARLY_DISPUTED' | 'MYTHOLOGY_FOLKLORE' | 'CREATIVE_LICENCE';
     implicationForPlot: string;
-    confidence: number;
   }>;
 }
+
+/**
+ * Appended to every prompt that asks for historical or factual material. These tasks run with no
+ * search or document access, so any citation the model writes would be invented.
+ */
+export const SOURCE_HONESTY_RULES = `SOURCE RULES (mandatory):
+- You have no access to search, documents or archives in this task. Everything you write is a lead for a researcher to check, not verified evidence.
+- Never invent citations, inscription or catalogue numbers, page numbers, quotations, URLs or publication details.
+- In any source or provenance field, name the kind of source or body of scholarship a researcher should check, starting with "Check:" (for example "Check: epigraphic records of Rashtrakuta land grants").
+- Leave quotation and exact-citation fields as empty strings.
+- If a claim is contested or traditional rather than documented, say so and classify it as SCHOLARLY_DISPUTED or MYTHOLOGY_FOLKLORE.`;
 
 export const generateResearchTopics = async (
   project: TattavaProject,
@@ -1104,7 +994,7 @@ export const generateResearchTopics = async (
   const prompt = `${context}
 
 TASK:
-Synthesize ${count} authentic, real-world investigative, historical, or technical research findings to ground this project in reality.
+Propose ${count} research leads (investigative, historical, or technical) that could ground this project in reality once a researcher checks them against real sources.
 You must categorize each finding into the 4-Tier Epistemic Taxonomy:
 1. "DOCUMENTED_FACT": Physical archaeological discoveries, epigraphical inscriptions, numismatic evidence, or primary archival chronicles.
 2. "SCHOLARLY_DISPUTED": Divergent academic chronologies, contested translations, or conflicting historical viewpoints.
@@ -1112,12 +1002,12 @@ You must categorize each finding into the 4-Tier Epistemic Taxonomy:
 4. "CREATIVE_LICENCE": Plausible dramatic invention or composite scenarios crafted specifically for narrative leverage.
 
 For each finding, provide:
-- Specific topic & factual claim
-- Verifiable source title or archive
-- Exact citation (book, volume, inscription ID, or chapter)
-- Authentic evidence quote / excerpt
+- Specific topic & claim to check
+- Where a researcher should look (see SOURCE RULES)
 - Epistemic classification
 - Direct dramatic implication for the narrative
+
+${SOURCE_HONESTY_RULES}
 
 Return ONLY valid JSON matching:
 {
@@ -1126,29 +1016,25 @@ Return ONLY valid JSON matching:
       "topic": "Specific scientific, legal, or historical domain",
       "claim": "Specific factual mechanism or empirical finding",
       "evidence": "Summary of documented occurrences or technical realities",
-      "source": "Realistic institutional body, academic journal, or public archive",
+      "source": "Check: the kind of archive, institution or scholarship to consult",
       "sourceType": "Academic",
-      "exactCitation": "Specific book, inscription, archive reference",
-      "evidenceQuote": "Direct quote or historical excerpt",
+      "exactCitation": "",
+      "evidenceQuote": "",
       "epistemicType": "DOCUMENTED_FACT",
-      "implicationForPlot": "How this factual reality forces dramatic action or creates an obstacle in the story",
-      "confidence": 92
+      "implicationForPlot": "How this factual reality forces dramatic action or creates an obstacle in the story"
     }
   ]
 }`;
 
-  const raw = await callAI([
+  return callAIJson<ResearchSynthesisResult>([
     { role: 'system', content: 'You are an elite research historian, investigative journalist, and film dramaturge. Return JSON only.' },
     { role: 'user', content: prompt }
-  ], {
+  ], RESEARCH_TOPICS_SCHEMA, {
     temperature: 0.6,
     max_tokens: 3000,
-    jsonMode: true,
     taskName: 'Research Evidence Generation',
     contextSnapshot: context
   });
-
-  return extractJsonFromResponse(raw);
 };
 
 /**
@@ -1798,7 +1684,7 @@ INSTRUCTIONS:
    - Provide 2 to 3 distinct evidence-backed candidateOptions.
    - For each candidate, provide:
      * id, title
-     * source (verifiable historical texts, archaeological excavations, or archives)
+     * source (where a researcher should check this, starting with "Check:"; never a specific citation)
      * sourceType ('Primary Source' | 'Academic' | 'Archaeological' | 'Historical Archive')
      * evidence (factual findings)
      * finding (core historical reality)
@@ -1810,6 +1696,7 @@ INSTRUCTIONS:
    - Fill appliedDecision with summary, rationale, and a precise canonFactCreated statement.
 5. NEXT CREATIVE QUESTION: Determine the single most crucial unresolved creative question to explore next.
 6. QUICK REPLIES: Provide 3-4 natural suggestions for quick selection.
+${SOURCE_HONESTY_RULES}
 7. USER-ENTERED QUESTIONS & ALTERNATIVE DIRECTIONS: If the creator asks their own creative question or provides an alternative direction/concept/kingdom (e.g., "Alternative direction: ...", "Creative question: ...", or any custom creator input):
    - You MUST treat user-entered questions and directions as authoritative, primary inputs. Do NOT treat them as secondary feedback.
    - Ground your conversationalReply and internal reasoning directly in their specified question/direction.
@@ -2415,7 +2302,7 @@ Output strictly valid JSON with this exact schema:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are an elite Hollywood & OTT Development Executive and AI Systems Architect. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -2522,7 +2409,8 @@ Candidate types to generate:
 - turning_point (decisive moment that alters the fate of the realm)
 - narrative_lens (the specific psychological or thematic angle through which to view the series)
 
-Generate 6-8 distinct candidates. Every candidate MUST be backed by genuine historical or textual evidence.
+Generate 6-8 distinct candidates. Prefer subjects with established scholarship, and say where accounts are uncertain.
+${SOURCE_HONESTY_RULES}
 Output JSON only with this schema:
 {
   "candidates": [
@@ -2530,7 +2418,7 @@ Output JSON only with this schema:
       "candidateType": "historical_event" | "person" | "conflict" | "political_transition" | "location" | "cultural_development" | "turning_point" | "narrative_lens",
       "title": "Clear concise name",
       "whatItIs": "1-2 sentence description",
-      "evidence": "Historical citation, epigraphic record, or primary chronicle reference",
+      "evidence": "Check: the kind of record or scholarship that would confirm this",
       "historicalSignificance": "Why this mattered in real history",
       "narrativeRelevance": "How this fuels dramatic conflict in the series",
       "dependencies": ["Prerequisite historical element or ally"],
@@ -2543,7 +2431,7 @@ Output JSON only with this schema:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are a master historical dramaturge and research specialist. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -2627,7 +2515,7 @@ Output strictly valid JSON with this schema:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are an award-winning showrunner and serialized series architect. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -2728,7 +2616,7 @@ Output JSON only with this schema:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are a narrative dependency reasoning engine. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -2809,7 +2697,7 @@ Output strictly JSON:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are a professional Hollywood script doctor. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -2862,7 +2750,7 @@ Output JSON:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are a script continuity supervisor. Return valid JSON only.' },
       { role: 'user', content: prompt }
     ], {
@@ -3180,7 +3068,8 @@ ${detectedCount
   : `If the user is exploring options across a domain, generate 8 to 12 AUTHENTIC HISTORICAL CANDIDATE SUBJECTS ("candidates") across this domain so the creator can browse, prioritize, and select which one to develop!`}
 3. Map the chronological milestones, personae, and verified evidence findings.
 4. Synthesize 3 distinct DRAMATIC CONFLICT SEEDS demonstrating powerful cinematic angles.
-5. Adhere strictly to evidence integrity: Tier 1 (Inscriptions, Primary Chronicles, Treaties), Tier 2 (Peer-reviewed Historiography, Archaeological consensus), Tier 3 (Folk traditions, oral lore). Zero invented dates or facts.
+5. Adhere strictly to evidence integrity: Tier 1 (Inscriptions, Primary Chronicles, Treaties), Tier 2 (Peer-reviewed Historiography, Archaeological consensus), Tier 3 (Folk traditions, oral lore). The tier describes the kind of source a researcher should look for. Zero invented dates or facts.
+${SOURCE_HONESTY_RULES}
 
 OUTPUT JSON FORMAT ONLY:
 {
@@ -3198,7 +3087,7 @@ OUTPUT JSON FORMAT ONLY:
       "patronOrOrigin": "Patron ruler, dynasty, or historical founder",
       "significance": "1-2 sentences on why this candidate is extraordinary and worthy of screen development",
       "dramaticCoreConflict": "The fundamental human dilemma, hubris, or conflict inherent to this candidate",
-      "primaryProvenance": "Specific primary inscription, epigraph, or archival chronicle citation",
+      "primaryProvenance": "Check: the kind of primary record that would document this",
       "provenanceTier": "Tier 1" | "Tier 2" | "Tier 3",
       "keyThemes": ["Sovereignty", "Sacred Dedication", "Dynastic Rivalry"]
     }
@@ -3255,7 +3144,7 @@ OUTPUT JSON FORMAT ONLY:
         {
           "statement": "Irrevocable factual truth that grounds this story",
           "category": "Historical Fact",
-          "sourceEvidence": "Archival document or inscription citation",
+          "sourceEvidence": "Check: the kind of record that would confirm this",
           "provenanceTier": "Tier 1 (Primary Archive)"
         }
       ],
@@ -3265,7 +3154,7 @@ OUTPUT JSON FORMAT ONLY:
 }`;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are an elite historical dramaturg and cinematic research engine. Return strictly valid JSON.' },
       { role: 'user', content: prompt }
     ], {
@@ -3283,10 +3172,12 @@ OUTPUT JSON FORMAT ONLY:
         topic: f.topic || cleanTopic,
         claim: f.claim || '',
         evidence: f.evidence || '',
-        source: f.source || 'Historical Archive',
+        source: f.source || 'Not yet sourced',
         sourceType: f.sourceType || 'Primary Source',
-        confidence: f.confidence || 90,
-        status: f.status || 'Verified',
+        // Model-generated: unverified until a person checks a real source.
+        confidence: 0,
+        status: 'Needs Review',
+        provenance: 'AI-generated research lead; not checked against a source.',
         date: new Date().toLocaleDateString(),
         usedIn: ['Story Brain Canon', 'Incubation Research']
       }));
@@ -3301,7 +3192,7 @@ OUTPUT JSON FORMAT ONLY:
         patronOrOrigin: c.patronOrOrigin || 'Patron Dynasty',
         significance: c.significance || 'Historically significant monument or cultural foundation.',
         dramaticCoreConflict: c.dramaticCoreConflict || 'Dramatic tension between personal conscience and imperial power.',
-        primaryProvenance: c.primaryProvenance || 'Epigraphic and Archival Inscription',
+        primaryProvenance: c.primaryProvenance || 'Not yet sourced',
         provenanceTier: (c.provenanceTier as any) || 'Tier 1',
         keyThemes: Array.isArray(c.keyThemes) && c.keyThemes.length ? c.keyThemes : ['Cultural Heritage', 'Sovereignty']
       }));
@@ -3371,11 +3262,13 @@ Perform an exhaustive, deep-dive historical research synthesis and generate 3 pr
 1. Comprehensive Historical Context (3-4 sentences establishing the stakes, architectural/cultural tension, and world politics of this specific site/figure).
 2. Sequential Chronological Milestones (4-6 key moments from foundation, construction, crises, to modern significance with Tier 1/2/3 provenance).
 3. Key Historical Personae involved (patron king, master architect/builder, opposing rival, scholar/chronicler).
-4. Sourced Evidence Findings (4-6 genuine primary/archaeological citations with exact epigraphy or chronicle names).
+4. Research Leads (4-6 claims a researcher should check, each naming the kind of primary or archaeological source to consult).
 5. 3 Distinct Dramatic Conflict Seeds tailored SPECIFICALLY to "${candidate.name}":
    - Seed 1: Human ambition vs impossibility (Architect/Craftsman dilemma)
    - Seed 2: Political/Imperial sovereignty (Dynastic patron defending or funding against enemies)
    - Seed 3: Spiritual/Philosophical crisis or defense against destruction
+
+${SOURCE_HONESTY_RULES}
 
 Output strictly valid JSON with this schema:
 {
@@ -3392,9 +3285,7 @@ Output strictly valid JSON with this schema:
       "claim": "...",
       "evidence": "...",
       "source": "...",
-      "sourceType": "Primary Source" | "Epigraphical" | "Archaeological" | "Academic",
-      "confidence": 95,
-      "status": "Verified"
+      "sourceType": "Primary Source" | "Epigraphical" | "Archaeological" | "Academic"
     }
   ],
   "dramaticStorySeeds": [
@@ -3421,7 +3312,7 @@ Output strictly valid JSON with this schema:
 `;
 
   try {
-    const raw = await callGroq([
+    const raw = await callAI([
       { role: 'system', content: 'You are an award-winning historical dramaturg and research archivist. Return strictly valid JSON.' },
       { role: 'user', content: prompt }
     ], {
@@ -3439,8 +3330,10 @@ Output strictly valid JSON with this schema:
       evidence: f.evidence || '',
       source: f.source || candidate.primaryProvenance,
       sourceType: f.sourceType || 'Primary Source',
-      confidence: f.confidence || 95,
-      status: f.status || 'Verified',
+      // Model-generated: unverified until a person checks a real source.
+      confidence: 0,
+      status: 'Needs Review',
+      provenance: 'AI-generated research lead; not checked against a source.',
       date: new Date().toLocaleDateString(),
       usedIn: ['Story Brain Canon', 'Deep Research']
     }));

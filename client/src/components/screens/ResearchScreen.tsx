@@ -16,12 +16,17 @@ import {
   Cpu 
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
+import { useAuth } from '../../context/AuthContext';
 import { ResearchFinding } from '../../types/project';
+import { sourceTierLabel } from '../../services/researchVerification';
+import { SourceVerifyPanel } from '../research/SourceVerifyPanel';
+import { ResearchPlanPanel } from '../research/ResearchPlanPanel';
 import { generateResearchTopics } from '../../services/aiService';
 import { LineaButton, BentoCard, LineaCaption, LineaEqualizerWave } from '../common/LineaUI';
 
 export const ResearchScreen: React.FC = () => {
   const { currentProject, addCanonFact, nextStep, openContextResolver, updateCurrentProject, buildResearchUniverse } = useProject();
+  const auth = useAuth();
 
   const [activeTab, setActiveTab] = useState<'Findings' | 'Questions' | 'Sources'>('Findings');
   const [filterType, setFilterType] = useState<'All' | 'Verified' | 'Conflicting' | 'Insufficient Evidence'>('All');
@@ -32,7 +37,8 @@ export const ResearchScreen: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [isMappingUniverse, setIsMappingUniverse] = useState(false);
-  const [verificationUrl, setVerificationUrl] = useState<Record<string, string>>({});
+  const [verifyingFinding, setVerifyingFinding] = useState<ResearchFinding | null>(null);
+  const [planOpen, setPlanOpen] = useState(false);
 
   const questions = currentProject.researchQuestions || [];
   const findings = currentProject.researchFindings || [];
@@ -89,13 +95,15 @@ export const ResearchScreen: React.FC = () => {
           topic: t.topic || 'Domain Research',
           claim: t.claim || '',
           evidence: t.evidence || '',
-          source: t.source || 'Domain Literature',
+          source: t.source || 'Not yet sourced',
           sourceType: (t.sourceType as any) || 'Academic',
-          exactCitation: t.exactCitation || '',
-          evidenceQuote: t.evidenceQuote || t.evidence || '',
-          epistemicType: t.epistemicType || 'DOCUMENTED_FACT',
+          // The model has no source access here, so any citation or quote it returns is invented.
+          exactCitation: '',
+          evidenceQuote: '',
+          epistemicType: t.epistemicType,
           status: 'Needs Review',
-          confidence: t.confidence || 90,
+          confidence: 0,
+          provenance: 'AI-generated research lead; not checked against a source.',
           tags: ['Extracted Finding', t.topic || 'General'],
           date: new Date().toLocaleDateString(),
           implicationForPlot: t.implicationForPlot || '',
@@ -118,23 +126,22 @@ export const ResearchScreen: React.FC = () => {
     }
   };
 
-  const handleVerifyFinding = (finding: ResearchFinding) => {
-    const url = verificationUrl[finding.id]?.trim();
-    if (!url) return;
-    updateCurrentProject(prev => ({
-      ...prev,
-      researchFindings: (prev.researchFindings || []).map(item =>
-        item.id === finding.id
-          ? { ...item, sourceUrl: url, status: 'Verified', date: new Date().toLocaleDateString() }
-          : item
-      ),
-      pilotMetrics: {
-        ...prev.pilotMetrics,
-        verificationRate: prev.researchFindings?.length
-          ? Math.round((((prev.researchFindings || []).filter(f => f.status === 'Verified').length + 1) / prev.researchFindings.length) * 100)
-          : 100
-      }
-    }));
+  const handleFindingVerified = (verified: ResearchFinding) => {
+    setVerifyingFinding(null);
+    updateCurrentProject(prev => {
+      const researchFindings = (prev.researchFindings || []).map(item =>
+        item.id === verified.id ? verified : item
+      );
+      const verifiedCount = researchFindings.filter(f => f.status === 'Verified').length;
+      return {
+        ...prev,
+        researchFindings,
+        pilotMetrics: {
+          ...prev.pilotMetrics,
+          verificationRate: Math.round((verifiedCount / researchFindings.length) * 100)
+        }
+      };
+    });
   };
 
   const handlePromoteToCanon = (finding: ResearchFinding) => {
@@ -190,6 +197,14 @@ export const ResearchScreen: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setPlanOpen(true)}
+              className="px-4 py-2.5 rounded-full bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <FileCheck className="w-4 h-4" />
+              {currentProject.researchPlanId ? 'Research plan' : 'Plan research from this project'}
+            </button>
+
             <LineaButton
               variant="primary"
               size="md"
@@ -552,11 +567,35 @@ export const ResearchScreen: React.FC = () => {
                         }`}>
                           {finding.status}
                         </span>
+
+                        {finding.sourceTier && (
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                            finding.sourceTier === 'primary'
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                              : finding.sourceTier === 'field'
+                              ? 'bg-purple-500/15 text-purple-300 border-purple-500/40'
+                              : 'bg-sky-500/15 text-sky-300 border-sky-500/40'
+                          }`}>
+                            {sourceTierLabel(finding.sourceTier)}
+                          </span>
+                        )}
+
+                        {finding.verificationMethod === 'attested' && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold border bg-white/[0.04] text-stone-300 border-white/[0.15]">
+                            Attested · not machine-checked
+                          </span>
+                        )}
                       </div>
 
-                      <span className="text-xs font-mono font-bold text-stone-400">
-                        {finding.confidence}% Confidence
-                      </span>
+                      {finding.status === 'Verified' && finding.verifiedBy ? (
+                        <span className="text-[11px] text-stone-400">
+                          Verified by {finding.verifiedBy}
+                        </span>
+                      ) : finding.confidence > 0 ? (
+                        <span className="text-xs font-mono font-bold text-stone-400">
+                          {finding.confidence}% Confidence
+                        </span>
+                      ) : null}
                     </div>
 
                     <div>
@@ -605,42 +644,13 @@ export const ResearchScreen: React.FC = () => {
                       </div>
 
                       {finding.status === 'Needs Review' && (
-                        <div className="flex flex-col gap-2 items-start sm:items-end">
-                          <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-                            <input
-                              value={verificationUrl[finding.id] || ''}
-                              onChange={(e) => setVerificationUrl(prev => ({ ...prev, [finding.id]: e.target.value }))}
-                              placeholder="Paste source URL or pick verified archive"
-                              className="w-64 max-w-full bg-[#0a0c12] border border-amber-500/20 rounded-full px-3 py-1.5 text-xs text-[#fbf8f3] placeholder:text-stone-600 focus:outline-none focus:border-amber-500/50"
-                            />
-                            <button
-                              onClick={() => handleVerifyFinding(finding)}
-                              disabled={!verificationUrl[finding.id]?.trim()}
-                              className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-stone-950 disabled:opacity-40 cursor-pointer shadow-sm"
-                            >
-                              Verify Source
-                            </button>
-                          </div>
-                          {/* Quick Scholarly Source Chips */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                            <span className="text-[10px] text-stone-500 uppercase font-mono">Quick Archives:</span>
-                            {[
-                              { label: 'Epigraphia Indica', url: 'https://archive.org/search?query=epigraphia+indica' },
-                              { label: 'ASI Archives', url: 'https://asi.nic.in/archaeological-surveys/' },
-                              { label: 'Digital South Asia', url: 'https://dsal.uchicago.edu/' },
-                              { label: 'Inscriptions Record', url: 'https://ignca.gov.in/inscriptions/' }
-                            ].map(source => (
-                              <button
-                                key={source.label}
-                                type="button"
-                                onClick={() => setVerificationUrl(prev => ({ ...prev, [finding.id]: source.url }))}
-                                className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] hover:bg-amber-500/20 text-stone-400 hover:text-amber-300 border border-white/[0.08] hover:border-amber-500/30 transition-all font-mono"
-                              >
-                                + {source.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <button
+                          onClick={() => setVerifyingFinding(finding)}
+                          className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-stone-950 cursor-pointer shadow-sm inline-flex items-center gap-1.5"
+                        >
+                          <FileCheck className="w-3.5 h-3.5" />
+                          Find a source
+                        </button>
                       )}
 
                       {finding.status === 'Verified' && (
@@ -664,6 +674,25 @@ export const ResearchScreen: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {planOpen && (
+        <ResearchPlanPanel
+          project={currentProject}
+          planId={currentProject.researchPlanId}
+          onPlanSaved={planId => updateCurrentProject(prev => ({ ...prev, researchPlanId: planId }))}
+          onClose={() => setPlanOpen(false)}
+        />
+      )}
+
+      {verifyingFinding && (
+        <SourceVerifyPanel
+          finding={verifyingFinding}
+          projectId={currentProject.id}
+          verifier={auth.email || ''}
+          onVerified={handleFindingVerified}
+          onClose={() => setVerifyingFinding(null)}
+        />
       )}
     </div>
   );

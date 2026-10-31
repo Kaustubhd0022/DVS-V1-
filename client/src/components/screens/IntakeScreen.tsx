@@ -213,7 +213,7 @@ Unknown Information: ${understanding.unknownInformation.join('; ')}
         ...prev,
         { 
           sender: 'tattvaCo', 
-          text: `[AI Alert]: ${err?.message || 'Inference error. Please check your API key in Settings.'}`,
+          text: `[AI Alert]: ${err?.message || 'The AI service could not be reached. Try again in a moment.'}`,
           time: 'Just now'
         }
       ]);

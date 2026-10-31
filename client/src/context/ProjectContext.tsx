@@ -45,7 +45,6 @@ import { askCopilot } from '../services/geminiService';
 import { 
   evaluateProjectNarrative, 
   generateEvaluationRepairPlan,
-  getGroqApiKey, 
   processDiscoveryTurn, 
   DiscoveryTurnResult,
   extractIntentAndConstructFormat,
@@ -1715,7 +1714,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       statement: canonFactText,
       category: 'World Rule',
       entityIds: [],
-      source: chosenOption.source || 'USER_DECISION (Research-backed)',
+      source: chosenOption.source || 'USER_DECISION (AI discovery option; sources not checked)',
       dateEstablished: new Date().toLocaleDateString(),
       isLocked: true,
       version: 'v1.0',
@@ -1734,16 +1733,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       impactedAreas: ['World', 'Story Brain', 'Setting']
     };
 
+    // The option's finding, evidence and source were written by the model during discovery, so
+    // the finding starts unverified until it is checked against a real source.
     const newResearchFinding: ResearchFinding = {
       id: 'rf-' + Date.now(),
       topic: chosenOption.title,
       claim: chosenOption.finding || chosenOption.title,
-      evidence: chosenOption.evidence || 'Historical and archaeological record',
-      source: chosenOption.source || 'Historical Epigraphy',
-      sourceType: (chosenOption.sourceType as any) || 'Archaeological',
+      evidence: chosenOption.evidence || 'Not yet sourced',
+      source: chosenOption.source || 'Not yet sourced',
+      sourceType: (chosenOption.sourceType as any) || 'Academic',
       date: new Date().toLocaleDateString(),
-      confidence: 95,
-      status: 'Verified',
+      confidence: 0,
+      status: 'Needs Review',
+      provenance: 'AI-suggested during discovery; not checked against a source.',
       usedIn: ['Story Setting', 'World Canon']
     };
 
@@ -1829,8 +1831,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       source: 'Creator Canonical Specification',
       sourceType: 'Primary Source',
       date: new Date().toLocaleDateString(),
-      confidence: 100,
-      status: 'Verified',
+      confidence: 0,
+      // A creator's direction is canon for the story (see newCanonFact), not checked historical fact.
+      status: 'Needs Review',
+      epistemicType: 'CREATIVE_LICENCE',
+      provenance: 'Creator-specified direction; not checked against a source.',
       usedIn: ['Story Setting', 'World Canon']
     };
 

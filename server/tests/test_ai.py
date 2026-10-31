@@ -1,4 +1,4 @@
-"""AI proxy tests. The HuggingFace network call is replaced; no real request is made."""
+"""AI proxy tests. The provider network call is replaced; no real request is made."""
 
 import pytest
 
@@ -12,6 +12,7 @@ OK_BODY = {"choices": [{"message": {"content": "  Hello from the model  "}}]}
 
 @pytest.fixture(autouse=True)
 def configured(monkeypatch):
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "huggingface")
     monkeypatch.setattr(settings, "HUGGINGFACE_API_TOKEN", "hf_test_token")
     monkeypatch.setattr(settings, "HUGGINGFACE_MODEL", "primary/model")
     monkeypatch.setattr(settings, "HUGGINGFACE_FALLBACK_MODEL", "fallback/model")
@@ -164,3 +165,318 @@ def test_test_endpoint_reports_failure_in_the_body(client, user_a, monkeypatch):
     fake_post(monkeypatch, {"primary/model": (200, OK_BODY)})
     response = client.post("/api/ai/test", headers=headers)
     assert response.json()["success"] is True
+
+
+# --- Groq provider -------------------------------------------------------------------------
+
+
+@pytest.fixture
+def groq(monkeypatch):
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "groq")
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "gsk_test_key")
+    monkeypatch.setattr(settings, "GROQ_MODEL", "groq/primary")
+    monkeypatch.setattr(settings, "GROQ_FALLBACK_MODEL", "groq/fallback")
+
+
+def test_groq_calls_groq_with_the_server_key(client, user_a, monkeypatch, groq):
+    headers, _ = user_a
+    calls = fake_post(monkeypatch, {"groq/primary": (200, OK_BODY)})
+
+    response = client.post("/api/ai/generate", headers=headers, json=BODY)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["model"] == "groq/primary"
+    assert calls[0]["url"] == "https://api.groq.com/openai/v1/chat/completions"
+    assert calls[0]["headers"]["Authorization"] == "Bearer gsk_test_key"
+    assert "gsk_test_key" not in response.text
+
+
+def test_groq_json_mode_requests_a_json_object(client, user_a, monkeypatch, groq):
+    headers, _ = user_a
+    calls = fake_post(monkeypatch, {"groq/primary": (200, OK_BODY)})
+
+    client.post("/api/ai/generate", headers=headers, json={**BODY, "json_mode": True})
+
+    assert calls[0]["payload"]["response_format"] == {"type": "json_object"}
+
+
+def test_groq_falls_back_to_its_second_model(client, user_a, monkeypatch, groq):
+    headers, _ = user_a
+    calls = fake_post(
+        monkeypatch,
+        {"groq/primary": (404, {"error": {"message": "model not found"}}), "groq/fallback": (200, OK_BODY)},
+    )
+
+    response = client.post("/api/ai/generate", headers=headers, json=BODY)
+
+    assert response.json()["model"] == "groq/fallback"
+    assert [c["payload"]["model"] for c in calls] == ["groq/primary", "groq/fallback"]
+
+
+def test_groq_rejected_key_names_the_right_setting(client, user_a, monkeypatch, groq):
+    headers, _ = user_a
+    fake_post(monkeypatch, {"groq/primary": (401, {"error": {"message": "Invalid API Key"}})})
+
+    response = client.post("/api/ai/generate", headers=headers, json=BODY)
+
+    assert response.status_code == 502
+    assert "GROQ_API_KEY" in response.json()["detail"]
+
+
+def test_groq_not_configured_returns_503(client, user_a, monkeypatch, groq):
+    headers, _ = user_a
+    monkeypatch.setattr(settings, "GROQ_API_KEY", "")
+
+    status = client.get("/api/ai/status", headers=headers).json()
+    assert status["configured"] is False
+    assert status["provider"] == "groq"
+    response = client.post("/api/ai/generate", headers=headers, json=BODY)
+    assert response.status_code == 503
+    assert "GROQ_API_KEY" in response.json()["detail"]
+
+
+def test_unknown_provider_is_a_configuration_error(client, user_a, monkeypatch):
+    headers, _ = user_a
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "nope")
+    response = client.post("/api/ai/generate", headers=headers, json=BODY)
+    assert response.status_code == 503
+    assert "LLM_PROVIDER" in response.json()["detail"]
+
+
+# --- Run logging (AIRun) -------------------------------------------------------------------
+
+from app.models import AIRun  # noqa: E402
+from tests.test_api import create_project  # noqa: E402
+
+USAGE_BODY = {
+    "choices": [{"message": {"content": "ok"}}],
+    "usage": {"prompt_tokens": 1000, "completion_tokens": 2000, "total_tokens": 3000},
+}
+
+
+def runs(test_db):
+    return test_db.query(AIRun).order_by(AIRun.created_at).all()
+
+
+def test_generate_records_a_run_with_tokens(client, test_db, user_a, monkeypatch):
+    headers, user = user_a
+    fake_post(monkeypatch, {"primary/model": (200, USAGE_BODY)})
+
+    response = client.post("/api/ai/generate", headers=headers, json={**BODY, "task": "Research Leads"})
+
+    assert response.status_code == 200, response.text
+    [run] = runs(test_db)
+    assert response.json()["run_id"] == str(run.id)
+    assert str(run.user_id) == user["id"]
+    assert str(run.organization_id) == user["organization_id"]
+    assert run.project_id is None
+    assert run.workflow_id == "generate"
+    assert run.agent_id == "Research Leads"
+    assert run.model_provider == "huggingface"
+    assert run.model_id == "primary/model"
+    assert (run.input_tokens, run.output_tokens, run.token_usage) == (1000, 2000, 3000)
+    assert run.estimated_cost is None  # no published price for this model
+    assert run.status == "completed"
+    assert run.latency_ms is not None and run.completed_at is not None
+
+
+def test_cost_is_estimated_for_priced_models(client, test_db, user_a, monkeypatch, groq):
+    headers, _ = user_a
+    monkeypatch.setattr(settings, "GROQ_MODEL", "openai/gpt-oss-120b")
+    fake_post(monkeypatch, {"openai/gpt-oss-120b": (200, USAGE_BODY)})
+
+    client.post("/api/ai/generate", headers=headers, json=BODY)
+
+    [run] = runs(test_db)
+    # 1,000 input tokens at $0.15/M + 2,000 output tokens at $0.60/M
+    assert run.estimated_cost == pytest.approx(0.00135)
+
+
+def test_missing_usage_leaves_token_fields_empty(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    fake_post(monkeypatch, {"primary/model": (200, OK_BODY)})
+
+    client.post("/api/ai/generate", headers=headers, json=BODY)
+
+    [run] = runs(test_db)
+    assert (run.input_tokens, run.output_tokens, run.token_usage, run.estimated_cost) == (None, None, None, None)
+    assert run.agent_id == "unspecified"
+
+
+def test_failed_generation_is_recorded(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    fake_post(monkeypatch, {"primary/model": (402, {"error": "no credits"})})
+
+    response = client.post("/api/ai/generate", headers=headers, json=BODY)
+
+    assert response.status_code == 402
+    [run] = runs(test_db)
+    assert run.status == "failed"
+    assert run.error_code == "AI_CREDITS_REQUIRED"
+    assert run.model_provider == "huggingface"
+
+
+def test_run_can_be_linked_to_an_accessible_project(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    project = create_project(client, headers)
+    fake_post(monkeypatch, {"primary/model": (200, OK_BODY)})
+
+    response = client.post("/api/ai/generate", headers=headers, json={**BODY, "project_id": project["id"]})
+
+    assert response.status_code == 200, response.text
+    [run] = runs(test_db)
+    assert str(run.project_id) == project["id"]
+
+
+def test_cannot_log_runs_against_another_users_project(client, test_db, user_a, user_b, monkeypatch):
+    headers_a, _ = user_a
+    headers_b, _ = user_b
+    project = create_project(client, headers_a)
+    calls = fake_post(monkeypatch, {"primary/model": (200, OK_BODY)})
+
+    response = client.post("/api/ai/generate", headers=headers_b, json={**BODY, "project_id": project["id"]})
+
+    assert response.status_code == 404
+    assert calls == []
+    assert runs(test_db) == []
+
+
+# --- Structured output (JSON mode and output_schema) --------------------------------------
+
+import json  # noqa: E402
+
+FINDINGS_SCHEMA = {
+    "type": "object",
+    "required": ["topics"],
+    "properties": {
+        "topics": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["topic", "claim"],
+                "properties": {"topic": {"type": "string"}, "claim": {"type": "string"}},
+            },
+        }
+    },
+}
+
+
+def body_with(content, prompt_tokens=10, completion_tokens=20):
+    return {
+        "choices": [{"message": {"content": content}}],
+        "usage": {"prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens},
+    }
+
+
+def sequenced_post(monkeypatch, replies):
+    """Replace the network call with replies returned in order, whatever the model."""
+    calls = []
+    queue = list(replies)
+
+    async def _post(url, headers, payload):
+        calls.append(payload)
+        return queue.pop(0)
+
+    monkeypatch.setattr(llm, "_post", _post)
+    return calls
+
+
+def test_json_mode_returns_parsed_data(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    sequenced_post(monkeypatch, [(200, body_with('```json\n{"a": 1}\n```'))])
+
+    response = client.post("/api/ai/generate", headers=headers, json={**BODY, "json_mode": True})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {"a": 1}
+    [run] = runs(test_db)
+    assert run.validation_status == "valid"
+
+
+def test_json_inside_prose_and_a_code_fence_is_found(client, user_a, monkeypatch):
+    headers, _ = user_a
+    reply = 'Here you go:\n```json\n{"a": [1, 2]}\n```\nLet me know if you need more.'
+    sequenced_post(monkeypatch, [(200, body_with(reply))])
+
+    response = client.post("/api/ai/generate", headers=headers, json={**BODY, "json_mode": True})
+
+    assert response.json()["data"] == {"a": [1, 2]}
+
+
+def test_plain_text_mode_is_not_validated(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    sequenced_post(monkeypatch, [(200, body_with("just prose"))])
+
+    response = client.post("/api/ai/generate", headers=headers, json=BODY)
+
+    assert response.json()["data"] is None
+    [run] = runs(test_db)
+    assert run.validation_status is None
+
+
+def test_invalid_json_is_retried_once_with_the_problem_explained(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    calls = sequenced_post(
+        monkeypatch,
+        [(200, body_with("Sure! {not json", 10, 20)), (200, body_with('{"a": 2}', 30, 40))],
+    )
+
+    response = client.post("/api/ai/generate", headers=headers, json={**BODY, "json_mode": True})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == {"a": 2}
+    assert len(calls) == 2
+    retry_messages = calls[1]["messages"]
+    assert retry_messages[-2] == {"role": "assistant", "content": "Sure! {not json"}
+    assert "not valid JSON" in retry_messages[-1]["content"]
+    [run] = runs(test_db)
+    assert (run.input_tokens, run.output_tokens) == (40, 60)  # both attempts
+    assert run.validation_status == "valid_after_retry"
+
+
+def test_schema_violations_are_named_in_the_retry(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    good = {"topics": [{"topic": "Forts", "claim": "Built in 1670"}]}
+    calls = sequenced_post(
+        monkeypatch,
+        [(200, body_with(json.dumps({"topics": [{"topic": "Forts"}]}))), (200, body_with(json.dumps(good)))],
+    )
+
+    response = client.post(
+        "/api/ai/generate", headers=headers, json={**BODY, "output_schema": FINDINGS_SCHEMA}
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["data"] == good
+    assert "'claim' is a required property" in calls[1]["messages"][-1]["content"]
+    assert "topics/0" in calls[1]["messages"][-1]["content"]
+    # A schema implies JSON mode: the system instruction and the schema are sent.
+    assert "valid JSON" in calls[0]["messages"][0]["content"]
+    assert '"required"' in calls[0]["messages"][0]["content"]
+
+
+def test_output_that_stays_invalid_fails_clearly(client, test_db, user_a, monkeypatch):
+    headers, _ = user_a
+    sequenced_post(monkeypatch, [(200, body_with("nope")), (200, body_with("still nope"))])
+
+    response = client.post("/api/ai/generate", headers=headers, json={**BODY, "json_mode": True})
+
+    assert response.status_code == 502
+    assert "did not return valid JSON" in response.json()["detail"]
+    [run] = runs(test_db)
+    assert run.status == "failed"
+    assert run.error_code == "AI_VALIDATION_FAILED"
+    assert run.validation_status == "invalid"
+    assert (run.input_tokens, run.output_tokens) == (20, 40)
+
+
+def test_an_invalid_schema_is_rejected_before_calling_the_model(client, user_a, monkeypatch):
+    headers, _ = user_a
+    calls = sequenced_post(monkeypatch, [])
+
+    response = client.post(
+        "/api/ai/generate", headers=headers, json={**BODY, "output_schema": {"type": "not-a-type"}}
+    )
+
+    assert response.status_code == 422
+    assert calls == []

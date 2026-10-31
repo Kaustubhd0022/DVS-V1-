@@ -16,10 +16,12 @@ print("=" * 60)
 # Test 1: Database Connection
 print("\n[1] Testing PostgreSQL/Supabase Connection...")
 try:
+    import urllib.parse
     from sqlalchemy import create_engine, text
     from app.config import settings
 
-    db_url = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+    _encoded_pw = urllib.parse.quote_plus(settings.DB_PASSWORD) if settings.DB_PASSWORD else ""
+    db_url = f"postgresql://{settings.DB_USER}:{_encoded_pw}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 
     print(f"  Database Host: {settings.DB_HOST}")
     print(f"  Database Port: {settings.DB_PORT}")

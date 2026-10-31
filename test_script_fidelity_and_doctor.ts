@@ -15,7 +15,6 @@ if (fs.existsSync(envPath)) {
 
 import { parseUploadedScript, buildCharactersFromScript } from './client/src/services/scriptParser.js';
 import { executeSurgicalScriptEdit, classifyDoctorScope } from './client/src/services/scriptDoctorService.js';
-import { getGroqApiKey } from './client/src/services/aiService.js';
 import { createEmptyProject } from './client/src/data/emptyProject.js';
 
 async function runFidelityAndDoctorTests() {
@@ -23,8 +22,7 @@ async function runFidelityAndDoctorTests() {
   console.log('TATTAVA COPILOT — UPLOADED SCRIPT FIDELITY & SCRIPT DOCTOR TEST SUITE');
   console.log('========================================================================\n');
 
-  const apiKey = getGroqApiKey();
-  console.log(`[Config] Groq API Key: ${apiKey ? apiKey.substring(0, 10) + '...' : 'NOT FOUND'}\n`);
+  // AI calls go through the backend (POST /api/ai/generate), which holds the provider key.
 
   // ----------------------------------------------------------------------
   // STAGE 1: SOURCE SCRIPT EXTRACTION & PARSING (11-PAGE EPISODE SCRIPT)

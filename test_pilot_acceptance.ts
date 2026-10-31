@@ -23,7 +23,6 @@ import {
   checkProjectContinuity, 
   evaluateProjectNarrative,
   generateMultilingualDialogueVariations,
-  getGroqApiKey,
   getLastAiDebugTrace
 } from './client/src/services/aiService.js';
 import { CanonFact, CreativeDecision, Character } from './client/src/types/project.js';
@@ -33,12 +32,7 @@ async function runAcceptanceTests() {
   console.log('TATTAVA COPILOT — V1 PILOT COMPREHENSIVE ACCEPTANCE SUITE');
   console.log('============================================================\n');
 
-  const apiKey = getGroqApiKey();
-  console.log(`[Config] Groq LPU API Key present: ${!!apiKey} (${apiKey ? apiKey.substring(0, 10) + '...' : 'NONE'})\n`);
-
-  if (!apiKey) {
-    throw new Error('FATAL: VITE_GROQ_API_KEY is not configured in .env.local.');
-  }
+  // AI calls go through the backend (POST /api/ai/generate), which holds the provider key.
 
   // -------------------------------------------------------------
   // TEST 1: CREATE NEW PROJECT (Marine Biologist)

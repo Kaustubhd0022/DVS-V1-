@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Local sentence embeddings for POST /api/analytics/{project_id}/vector-search.
+# Pulls in torch (several GB), so it is not part of the deployed server.
+sentence-transformers>=2.2.2

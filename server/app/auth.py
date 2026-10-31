@@ -12,6 +12,8 @@ Verification:
 If neither is configured, every protected request is rejected (fail closed).
 """
 
+from __future__ import annotations
+
 import logging
 from functools import lru_cache
 from typing import Any, Dict

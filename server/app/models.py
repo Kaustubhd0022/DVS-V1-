@@ -169,11 +169,44 @@ class ResearchPlan(Base):
     project_id = Column(UUID(as_uuid=True), ForeignKey('project.id'), nullable=False)
     questions = Column(JSON)  # list of research questions
     scope = Column(Text)
+    # active (legacy) | proposed (generated, being reviewed) | approved (locked; ready to run)
     status = Column(String(50), default='active')
+    brief = Column(JSON)  # the project parameters the plan was generated from
+    policy = Column(JSON)  # evidence rule, search order and languages derived from the brief
     created_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
     created_at = Column(DateTime, default=datetime.utcnow)
+    approved_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
+    approved_at = Column(DateTime)
 
     project = relationship('Project', back_populates='research_plans')
+
+
+class ResearchTask(Base):
+    """One proposed piece of research in a plan, with why it was proposed and how to search for it."""
+    __tablename__ = 'research_task'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id = Column(UUID(as_uuid=True), ForeignKey('research_plan.id', ondelete='CASCADE'), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey('project.id', ondelete='CASCADE'), nullable=False)
+    position = Column(Integer, nullable=False, default=0)
+    area = Column(String(40), nullable=False)  # app/services/research_planner.py AREAS, or user/open question
+    question = Column(Text, nullable=False)
+    rationale = Column(Text)
+    triggered_by = Column(JSON)  # brief parameters that led to the task
+    people = Column(JSON)
+    places = Column(JSON)
+    period = Column(String(200))
+    queries = Column(JSON)  # [{"text", "language"}]
+    priority = Column(String(10), default='medium')  # high | medium | low
+    status = Column(String(20), default='proposed')  # proposed | removed | approved | running | done
+    created_by = Column(String(10), default='ai')  # ai | user
+    result = Column(JSON)  # run summary: searches, sources, findings kept/dropped, cost, notes
+    run_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index('idx_research_task_plan', 'plan_id'),
+    )
 
 
 class Evidence(Base):
@@ -191,15 +224,61 @@ class Evidence(Base):
     retrieved_at = Column(DateTime, default=datetime.utcnow)
     claim = Column(Text)  # what the source claims
     supporting_excerpt = Column(Text)  # quote from source
+    # The stored source the excerpt was checked against, and where in its text it was found
+    document_id = Column(UUID(as_uuid=True), ForeignKey('source_document.id', ondelete='SET NULL'))
+    excerpt_start = Column(Integer)
+    excerpt_end = Column(Integer)
     relevance = Column(Text)  # why relevant to project
     confidence = Column(String(50))  # high, medium, low
-    validation_status = Column(String(50), default='unverified')  # verified, unverified, disputed
+    # unverified | quote_found (the excerpt is in the stored source text) |
+    # attested (offline source vouched for by a named researcher; not machine-checked) | verified | disputed
+    validation_status = Column(String(50), default='unverified')
+    # Offline sources: book | interview | field_visit | archive_visit, with their citation details
+    source_kind = Column(String(30))
+    source_tier = Column(String(20))  # primary | secondary | field
+    citation = Column(JSON)
+    attested_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
+    attested_at = Column(DateTime)
+    # Automated research runs: the task that found it, the kind of claim, and whether it can count
+    # as a documented fact under the plan's evidence level
+    research_task_id = Column(UUID(as_uuid=True), ForeignKey('research_task.id', ondelete='SET NULL'))
+    epistemic_type = Column(String(30))  # DOCUMENTED_FACT | SCHOLARLY_DISPUTED | MYTHOLOGY_FOLKLORE | CREATIVE_LICENCE
+    eligibility = Column(String(40))  # eligible | needs_government_source | needs_second_source
     created_at = Column(DateTime, default=datetime.utcnow)
 
     project = relationship('Project', back_populates='evidence_records')
 
     __table_args__ = (
         Index('idx_evidence_project_id', 'project_id'),
+    )
+
+
+class SourceDocument(Base):
+    """A source stored as read (a Wikipedia revision, an approved web page or PDF, or an uploaded
+    document), so quotes taken from it can be checked against exactly this text later."""
+    __tablename__ = 'source_document'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey('project.id', ondelete='CASCADE'), nullable=False)
+    provider = Column(String(50), nullable=False)  # wikipedia | web | upload
+    # primary | secondary: from source_registry for fetched sources, declared by the uploader for uploads
+    source_tier = Column(String(20), nullable=False)
+    url = Column(String(1000))  # null for uploads
+    title = Column(String(500), nullable=False)
+    language = Column(String(20))
+    publisher = Column(String(255))
+    revision_id = Column(String(100))
+    revised_at = Column(DateTime)  # when the source last changed, per the provider
+    content_hash = Column(String(64), nullable=False)  # sha256 of text
+    text = Column(Text, nullable=False)
+    extraction_method = Column(String(30))  # wikipedia | html | pdf_text | ocr | docx | plain_text
+    file_name = Column(String(255))  # uploads only
+    retrieved_by = Column(UUID(as_uuid=True), ForeignKey('user.id'))
+    retrieved_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('project_id', 'url', 'content_hash', name='uq_source_document_content'),
+        Index('idx_source_document_project', 'project_id'),
     )
 
 
@@ -391,7 +470,10 @@ class AIRun(Base):
     __tablename__ = 'ai_run'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey('project.id'), nullable=False)
+    # Null for calls not tied to a project (e.g. a bare POST /api/ai/generate)
+    project_id = Column(UUID(as_uuid=True), ForeignKey('project.id'), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'))
+    organization_id = Column(UUID(as_uuid=True), ForeignKey('organization.id'))
     workflow_id = Column(String(100), nullable=False)  # intent, research, story, etc
     agent_id = Column(String(100), nullable=False)
     agent_version = Column(String(50))
@@ -406,8 +488,10 @@ class AIRun(Base):
     validation_status = Column(String(50))
     status = Column(String(50), default='completed')  # queued, running, completed, failed
     latency_ms = Column(Integer)
-    token_usage = Column(Integer)
-    estimated_cost = Column(Float)
+    token_usage = Column(Integer)  # input + output
+    input_tokens = Column(Integer)
+    output_tokens = Column(Integer)
+    estimated_cost = Column(Float)  # USD; null when the model has no known price
     error_code = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime)
@@ -416,6 +500,7 @@ class AIRun(Base):
 
     __table_args__ = (
         Index('idx_airun_project', 'project_id'),
+        Index('idx_airun_org_created', 'organization_id', 'created_at'),
     )
 
 

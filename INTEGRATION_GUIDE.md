@@ -281,9 +281,12 @@ VECTOR_DIMENSIONS=384
 ### Frontend (.env.local in client/)
 ```
 VITE_BACKEND_URL=http://localhost:8000/api
-VITE_GROQ_API_KEY=your_key_here
-VITE_GEMINI_API_KEY=your_key_here
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
+
+Never put model provider keys (Groq, HuggingFace) in a `VITE_*` variable: Vite compiles them
+into the JavaScript every visitor downloads. They belong in `server/.env` (see `server/.env.example`).
 
 ## Development Workflow
 
