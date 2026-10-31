@@ -150,7 +150,7 @@ describe('TermsScreen', () => {
   });
 
   it('shows a loading state and an error state with retry', () => {
-    const base = { terms: null, error: null, notice: null, submitting: false, accept: vi.fn(), retry: vi.fn() };
+    const base = { terms: null, error: null, notice: null, submitting: false, accept: vi.fn(), acceptLocally: vi.fn(), retry: vi.fn() };
 
     const loading = render(<TermsScreen gate={{ ...base, status: 'loading' }} />);
     expect(screen.getByRole('status').textContent).toMatch(/loading/i);

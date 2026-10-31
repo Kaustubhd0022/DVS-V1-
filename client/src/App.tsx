@@ -9,8 +9,6 @@ import { ContextResolverModal } from './components/modals/ContextResolverModal';
 import { AuthScreen } from './components/screens/AuthScreen';
 import { SyncBanner } from './components/layout/SyncBanner';
 import { useAuth } from './context/AuthContext';
-import { useTermsGate } from './context/useTermsGate';
-import { TermsScreen } from './components/screens/TermsScreen';
 
 import { LoginScreen } from './components/screens/LoginScreen';
 
@@ -42,8 +40,6 @@ import { ProductionPlanningScreen } from './components/screens/ProductionPlannin
 export const App: React.FC = () => {
   const { activeScreen, setActiveScreen, impactState, isContextResolverOpen, sync, nextStep, prevStep } = useProject();
   const auth = useAuth();
-  // After sign-up / sign-in the product stays closed until the current Terms & Conditions are accepted.
-  const terms = useTermsGate(auth.status === 'ready' ? auth.user?.id ?? null : null);
 
   // Global Keyboard Shortcuts (Cmd/Ctrl + ArrowRight for Next Step, Cmd/Ctrl + ArrowLeft for Prev Step)
   useEffect(() => {
@@ -70,9 +66,6 @@ export const App: React.FC = () => {
   }
   if (auth.status !== 'ready') {
     return <AuthScreen />;
-  }
-  if (terms.status !== 'accepted') {
-    return <TermsScreen gate={terms} />;
   }
   if (auth.status === 'ready' && sync.status === 'loading') {
     return (
