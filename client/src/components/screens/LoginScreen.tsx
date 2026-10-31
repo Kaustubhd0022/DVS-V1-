@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-type AuthMode = 'sign-in' | 'sign-up' | 'forgot-password' | 'verify-otp';
+type AuthMode = 'sign-in' | 'sign-up' | 'forgot-password';
 
 const AUTH_NOT_CONFIGURED =
   'Sign-in is not configured for this deployment (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are missing).';
@@ -61,11 +61,6 @@ export const LoginScreen: React.FC = () => {
   const [ndaAgreed, setNdaAgreed] = useState(false);
   const [isNdaExpanded, setIsNdaExpanded] = useState(false);
 
-  // OTP State
-  const [otpCode, setOtpCode] = useState('');
-  const [otpContext, setOtpContext] = useState<'sign-in' | 'sign-up'>('sign-in');
-  const [resendCooldown, setResendCooldown] = useState(0);
-
   // Status & Feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(
@@ -78,15 +73,6 @@ export const LoginScreen: React.FC = () => {
     if (auth.suggestedName) setName(current => current || auth.suggestedName || '');
   }, [auth.suggestedName]);
 
-  // Resend OTP countdown timer
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown(c => Math.max(0, c - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
-
   const clearFeedback = () => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -95,7 +81,6 @@ export const LoginScreen: React.FC = () => {
   const switchMode = (newMode: AuthMode) => {
     clearFeedback();
     setMode(newMode);
-    setOtpCode('');
   };
 
   // Handle Standard Password Sign In
@@ -113,30 +98,7 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  // Handle Send OTP for Sign In
-  const handleRequestSignInOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!email.trim()) {
-      setErrorMsg('Please enter your email address to receive an OTP code.');
-      return;
-    }
-    clearFeedback();
-    setIsSubmitting(true);
-    try {
-      await auth.sendOtp(email.trim(), false);
-      setOtpContext('sign-in');
-      setMode('verify-otp');
-      setResendCooldown(60);
-      setSuccessMsg(`A 6-digit verification code has been sent to ${email.trim()}.`);
-    } catch (err: any) {
-      console.warn('Sign-in OTP request error:', err);
-      setErrorMsg(err?.message || 'Could not send verification code. Please check your email.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle Send OTP & Registration for Sign Up
+  // Handle Direct Sign Up (No OTP Required)
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     clearFeedback();
@@ -149,6 +111,18 @@ export const LoginScreen: React.FC = () => {
       setErrorMsg('Please select your creative role.');
       return;
     }
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+    if (!password) {
+      setErrorMsg('Please enter a password.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
     if (!ndaAgreed) {
       setErrorMsg('You must agree to the Confidentiality & Non-Disclosure terms to create an account.');
       return;
@@ -156,81 +130,14 @@ export const LoginScreen: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Send OTP with user registration metadata
-      await auth.sendOtp(email.trim(), true, {
-        full_name: name.trim(),
-        role: role.trim(),
-        nda_accepted: true,
-        nda_accepted_at: new Date().toISOString(),
-        account_completed: true
-      });
-      setOtpContext('sign-up');
-      setMode('verify-otp');
-      setResendCooldown(60);
-      setSuccessMsg(`We sent a 6-digit verification code to ${email.trim()}. Enter it below to complete registration.`);
-    } catch (err: any) {
-      console.warn('Sign-up OTP error:', err);
-      // Fallback: If OTP provider asks for standard sign-up
-      try {
-        const { needsConfirmation } = await auth.signUp(email.trim(), password || 'TempPass@2026', name.trim(), role.trim());
-        if (needsConfirmation) {
-          setOtpContext('sign-up');
-          setMode('verify-otp');
-          setResendCooldown(60);
-          setSuccessMsg(`Verification code sent to ${email.trim()}.`);
-        }
-      } catch (fallbackErr: any) {
-        setErrorMsg(fallbackErr?.message || err?.message || 'Could not send verification code. Please try again.');
+      const { needsConfirmation } = await auth.signUp(email.trim(), password, name.trim(), role.trim());
+      if (needsConfirmation) {
+        setSuccessMsg('Account created successfully! You can now sign in with your email and password.');
+        switchMode('sign-in');
       }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle Verify OTP (for both Sign In and Sign Up)
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearFeedback();
-
-    const cleanToken = otpCode.trim();
-    if (!cleanToken || cleanToken.length < 6) {
-      setErrorMsg('Please enter the complete 6-digit verification code.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const type = otpContext === 'sign-up' ? 'signup' : 'email';
-      await auth.verifyOtp(email.trim(), cleanToken, type);
-      // On success, the Supabase session is established and App leaves the login screen.
     } catch (err: any) {
-      console.warn('OTP verification error:', err);
-      setErrorMsg(err?.message || 'Invalid or expired code. Please check your email or request a new code.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Resend OTP
-  const handleResendOtp = async () => {
-    if (resendCooldown > 0 || isSubmitting) return;
-    clearFeedback();
-    setIsSubmitting(true);
-    try {
-      const isSignUp = otpContext === 'sign-up';
-      const metadata = isSignUp ? {
-        full_name: name.trim(),
-        role: role.trim(),
-        nda_accepted: true,
-        nda_accepted_at: new Date().toISOString(),
-        account_completed: true
-      } : undefined;
-
-      await auth.sendOtp(email.trim(), isSignUp, metadata);
-      setResendCooldown(60);
-      setSuccessMsg(`A new 6-digit code has been sent to ${email.trim()}.`);
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Unable to resend verification code right now.');
+      console.warn('Sign-up error:', err);
+      setErrorMsg(err?.message || 'Could not create account. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -427,7 +334,7 @@ export const LoginScreen: React.FC = () => {
               className="rounded-3xl border border-stone-800/80 bg-[#161210]/95 backdrop-blur-2xl p-6 sm:p-8 shadow-2xl shadow-black/80"
             >
               {/* Card Mode Toggle */}
-              {!creatingAccount && mode !== 'forgot-password' && mode !== 'verify-otp' ? (
+              {!creatingAccount && mode !== 'forgot-password' ? (
                 <div className="flex items-center justify-between mb-5 pb-3 border-b border-stone-800/60">
                   <span className="text-xs font-mono uppercase tracking-widest text-stone-400">
                     {mode === 'sign-in' ? 'Welcome Back' : 'Get Started'}
@@ -459,14 +366,12 @@ export const LoginScreen: React.FC = () => {
                   {creatingAccount && 'Complete your account'}
                   {!creatingAccount && mode === 'sign-up' && 'Create your account'}
                   {!creatingAccount && mode === 'sign-in' && 'Welcome to Vyom AI'}
-                  {!creatingAccount && mode === 'verify-otp' && 'Verify your email'}
                   {!creatingAccount && mode === 'forgot-password' && 'Reset your password'}
                 </h2>
                 <p className="text-xs sm:text-[13px] text-stone-400 font-sans leading-relaxed">
                   {creatingAccount && 'Select your role and accept confidentiality terms to enter the studio.'}
                   {!creatingAccount && mode === 'sign-up' && 'Join the next generation of cinema story intelligence.'}
                   {!creatingAccount && mode === 'sign-in' && 'Sign in to access your projects and story universe.'}
-                  {!creatingAccount && mode === 'verify-otp' && `Enter the 6-digit verification code sent to ${email}.`}
                   {!creatingAccount && mode === 'forgot-password' && 'Enter your registered email to reset your password.'}
                 </p>
               </div>
@@ -575,61 +480,6 @@ export const LoginScreen: React.FC = () => {
                       className="text-xs text-stone-400 hover:text-white transition-colors cursor-pointer"
                     >
                       Use a different account
-                    </button>
-                  </div>
-                </form>
-              ) : mode === 'verify-otp' ? (
-                /* 1. OTP Verification Form */
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div>
-                    <label className="text-xs font-medium text-stone-300 block mb-1.5 font-sans">
-                      6-Digit Verification Code
-                    </label>
-                    <div className="flex items-center gap-2.5 rounded-xl border border-stone-800 bg-[#0c0908] px-3.5 py-3 focus-within:border-[#b05232] transition-colors">
-                      <KeyRound className="w-5 h-5 text-stone-500 shrink-0" />
-                      <input
-                        type="text"
-                        required
-                        maxLength={6}
-                        autoFocus
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                        placeholder="123456"
-                        className="w-full bg-transparent text-center font-mono text-xl tracking-[0.4em] text-[#faf5f0] placeholder:text-stone-700 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || otpCode.length < 6}
-                    className="w-full mt-3 rounded-xl bg-[#b05232] hover:bg-[#c05d3b] active:bg-[#9a4528] text-white py-3.5 px-6 font-medium text-sm shadow-lg shadow-[#b05232]/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    ) : (
-                      <>
-                        <span>Verify & Enter Studio</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-
-                  <div className="flex items-center justify-between text-xs pt-2 text-stone-400">
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      disabled={resendCooldown > 0 || isSubmitting}
-                      className="hover:text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => switchMode(otpContext === 'sign-up' ? 'sign-up' : 'sign-in')}
-                      className="text-stone-400 hover:text-white underline cursor-pointer"
-                    >
-                      Change email
                     </button>
                   </div>
                 </form>
@@ -743,26 +593,11 @@ export const LoginScreen: React.FC = () => {
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
                     ) : (
                       <>
-                        <span>{mode === 'sign-up' ? 'Send Verification Code (OTP)' : 'Sign in'}</span>
+                        <span>{mode === 'sign-up' ? 'Create Account' : 'Sign in'}</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
-
-                  {/* Passwordless Email OTP Option for Sign In */}
-                  {mode === 'sign-in' && (
-                    <div className="text-center pt-1">
-                      <button
-                        type="button"
-                        onClick={handleRequestSignInOtp}
-                        disabled={isSubmitting}
-                        className="text-xs text-stone-400 hover:text-[#c86c47] transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
-                      >
-                        <KeyRound className="w-3.5 h-3.5 text-[#c86c47]" />
-                        <span>Sign in with Email OTP code instead</span>
-                      </button>
-                    </div>
-                  )}
                 </form>
               ) : (
                 /* 3. Forgot Password Form */
@@ -813,7 +648,7 @@ export const LoginScreen: React.FC = () => {
               )}
 
               {/* Divider & Google OAuth (available in sign-in & sign-up) */}
-              {!creatingAccount && mode !== 'forgot-password' && mode !== 'verify-otp' && (
+              {!creatingAccount && mode !== 'forgot-password' && (
                 <>
                   <div className="flex items-center my-4">
                     <div className="flex-1 h-[1px] bg-stone-800" />
