@@ -30,10 +30,12 @@ interface AuthContextType {
   suggestedName: string | null;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ needsConfirmation: boolean }>;
+  signUp: (email: string, password: string, fullName?: string, role?: string) => Promise<{ needsConfirmation: boolean }>;
+  sendOtp: (email: string, isSignUp?: boolean, metadata?: Record<string, any>) => Promise<void>;
+  verifyOtp: (email: string, token: string, type?: 'email' | 'signup') => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  completeAccount: (fullName: string) => Promise<void>;
+  completeAccount: (fullName: string, role?: string) => Promise<void>;
   signOut: () => Promise<void>;
   retry: () => void;
 }
@@ -165,15 +167,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw new Error(error.message);
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
+  const sendOtp = useCallback(async (email: string, isSignUp?: boolean, metadata?: Record<string, any>) => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: isSignUp ?? false,
+        data: metadata || {}
+      }
+    });
+    if (error) throw new Error(error.message);
+  }, []);
+
+  const verifyOtp = useCallback(async (email: string, token: string, type?: 'email' | 'signup') => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const targetType = type || 'email';
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: targetType
+    });
+    if (error) {
+      const fallbackType = targetType === 'email' ? 'signup' : 'email';
+      const retry = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type: fallbackType
+      });
+      if (retry.error) throw new Error(error.message);
+      if (retry.data.session) setSession(retry.data.session);
+      return;
+    }
+    if (data.session) setSession(data.session);
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string, fullName?: string, role?: string) => {
     if (!supabase) throw new Error('Supabase is not configured.');
     const name = fullName?.trim() || email.split('@')[0] || 'Creator';
+    const userRole = role?.trim() || 'Writer / Showrunner';
     const { data, error } = await supabase.auth.signUp({ 
       email, 
       password,
       options: {
         data: {
           full_name: name,
+          role: userRole,
           [ACCOUNT_COMPLETED_FLAG]: true
         }
       }
@@ -182,14 +220,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { needsConfirmation: !data.session };
   }, []);
 
-  const completeAccount = useCallback(async (fullName: string) => {
+  const completeAccount = useCallback(async (fullName: string, role?: string) => {
     if (!supabase) throw new Error('Supabase is not configured.');
     const name = fullName.trim();
     if (!name) throw new Error('Please enter your name.');
+    const userRole = role?.trim() || 'Writer / Showrunner';
     setCompletingAccount(true);
     try {
       const { error } = await supabase.auth.updateUser({
-        data: { full_name: name, [ACCOUNT_COMPLETED_FLAG]: true }
+        data: { full_name: name, role: userRole, [ACCOUNT_COMPLETED_FLAG]: true }
       });
       if (error) throw new Error(error.message);
       // Reissue the access token so the backend sees the new metadata when it provisions the user.
@@ -200,7 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     try {
       const existing = JSON.parse(localStorage.getItem(MASTER_SESSION_KEY) || '{}');
-      localStorage.setItem(MASTER_SESSION_KEY, JSON.stringify({ ...existing, name }));
+      localStorage.setItem(MASTER_SESSION_KEY, JSON.stringify({ ...existing, name, role: userRole }));
     } catch {
       // The profile mirror is best-effort; the Supabase metadata is the source of truth.
     }
@@ -238,13 +277,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       error: provisionError,
       signIn,
       signUp,
+      sendOtp,
+      verifyOtp,
       signInWithGoogle,
       resetPassword,
       completeAccount,
       signOut,
       retry,
     }),
-    [status, user, session, provisionError, signIn, signUp, signInWithGoogle, resetPassword, completeAccount, signOut, retry]
+    [status, user, session, provisionError, signIn, signUp, sendOtp, verifyOtp, signInWithGoogle, resetPassword, completeAccount, signOut, retry]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
