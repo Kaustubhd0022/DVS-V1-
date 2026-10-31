@@ -62,6 +62,7 @@ export const LoginScreen: React.FC = () => {
   const [isNdaExpanded, setIsNdaExpanded] = useState(false);
 
   // OTP State
+  const [signInMethod, setSignInMethod] = useState<'otp' | 'password'>('otp');
   const [otpCode, setOtpCode] = useState('');
   const [otpContext, setOtpContext] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -99,16 +100,21 @@ export const LoginScreen: React.FC = () => {
   };
 
   const formatAuthError = (err: any) => {
-    const raw = err?.message || '';
+    const raw = err?.message || err?.msg || '';
+    const rawLower = String(raw).toLowerCase();
     if (
-      raw.toLowerCase().includes('error sending') ||
-      raw.toLowerCase().includes('magic link') ||
-      raw.toLowerCase().includes('confirmation email')
+      rawLower.includes('error sending') ||
+      rawLower.includes('magic link') ||
+      rawLower.includes('confirmation email') ||
+      rawLower.includes('unexpected_failure')
     ) {
-      return 'Supabase could not dispatch the verification email. Please verify Custom SMTP is configured in your Supabase Project Settings > Authentication > SMTP Settings.';
+      return 'Supabase email service encountered an issue. To enable automatic OTP email delivery, configure Custom SMTP in Supabase Dashboard (Settings > Authentication > SMTP Settings). You can also sign in with Google or Password.';
     }
-    if (raw.toLowerCase().includes('rate limit')) {
-      return 'Email rate limit reached on Supabase. Please wait a few minutes or configure custom SMTP.';
+    if (rawLower.includes('signups not allowed for otp') || rawLower.includes('otp_disabled')) {
+      return 'OTP signups are currently restricted by Supabase. Please enable "Allow signups" under Supabase Dashboard > Authentication > Providers > Email.';
+    }
+    if (rawLower.includes('rate limit')) {
+      return 'Email rate limit reached on Supabase. Please wait a few minutes or configure Custom SMTP in Supabase Settings.';
     }
     return raw || 'An unexpected error occurred. Please try again.';
   };
@@ -654,7 +660,44 @@ export const LoginScreen: React.FC = () => {
                 </form>
               ) : mode !== 'forgot-password' ? (
                 /* 2. Sign In / Sign Up Form */
-                <form onSubmit={mode === 'sign-up' ? handleSignUp : handlePasswordSignIn} className="space-y-3.5">
+                <form 
+                  onSubmit={(e) => {
+                    if (mode === 'sign-up') return handleSignUp(e);
+                    if (signInMethod === 'otp') return handleRequestSignInOtp(e);
+                    return handlePasswordSignIn(e);
+                  }} 
+                  className="space-y-3.5"
+                >
+                  {/* Sign-In Method Selector (OTP Code vs Password) */}
+                  {mode === 'sign-in' && (
+                    <div className="grid grid-cols-2 p-1 rounded-xl bg-[#0c0908] border border-stone-800 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => { clearFeedback(); setSignInMethod('otp'); }}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                          signInMethod === 'otp'
+                            ? 'bg-[#b05232] text-white shadow-md'
+                            : 'text-stone-400 hover:text-stone-200'
+                        }`}
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>Email OTP (Code)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { clearFeedback(); setSignInMethod('password'); }}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                          signInMethod === 'password'
+                            ? 'bg-[#b05232] text-white shadow-md'
+                            : 'text-stone-400 hover:text-stone-200'
+                        }`}
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Password</span>
+                      </button>
+                    </div>
+                  )}
+
                   {mode === 'sign-up' && (
                     <>
                       <div>
@@ -715,7 +758,7 @@ export const LoginScreen: React.FC = () => {
                     </div>
                   </div>
 
-                  {mode === 'sign-in' && (
+                  {mode === 'sign-in' && signInMethod === 'password' && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-xs font-medium text-stone-300 block font-sans">
@@ -762,26 +805,17 @@ export const LoginScreen: React.FC = () => {
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
                     ) : (
                       <>
-                        <span>{mode === 'sign-up' ? 'Send Verification Code (OTP)' : 'Sign in'}</span>
+                        <span>
+                          {mode === 'sign-up'
+                            ? 'Send Verification Code (OTP)'
+                            : signInMethod === 'otp'
+                            ? 'Send Verification Code (OTP)'
+                            : 'Sign In with Password'}
+                        </span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
-
-                  {/* Passwordless Email OTP Option for Sign In */}
-                  {mode === 'sign-in' && (
-                    <div className="text-center pt-1">
-                      <button
-                        type="button"
-                        onClick={handleRequestSignInOtp}
-                        disabled={isSubmitting}
-                        className="text-xs text-stone-400 hover:text-[#c86c47] transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
-                      >
-                        <KeyRound className="w-3.5 h-3.5 text-[#c86c47]" />
-                        <span>Sign in with Email OTP code instead</span>
-                      </button>
-                    </div>
-                  )}
                 </form>
               ) : (
                 /* 3. Forgot Password Form */

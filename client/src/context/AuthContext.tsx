@@ -181,24 +181,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyOtp = useCallback(async (email: string, token: string, type?: 'email' | 'signup') => {
     if (!supabase) throw new Error('Supabase is not configured.');
-    const targetType = type || 'email';
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: token.trim(),
-      type: targetType
-    });
-    if (error) {
-      const fallbackType = targetType === 'email' ? 'signup' : 'email';
-      const retry = await supabase.auth.verifyOtp({
+    const candidateTypes: ('email' | 'signup' | 'magiclink')[] = type === 'signup'
+      ? ['signup', 'email', 'magiclink']
+      : ['email', 'magiclink', 'signup'];
+
+    let lastError: any = null;
+    for (const t of candidateTypes) {
+      const { data, error } = await supabase.auth.verifyOtp({
         email: email.trim(),
         token: token.trim(),
-        type: fallbackType
+        type: t as any
       });
-      if (retry.error) throw new Error(error.message);
-      if (retry.data.session) setSession(retry.data.session);
-      return;
+      if (!error && data.session) {
+        setSession(data.session);
+        return;
+      }
+      lastError = error;
     }
-    if (data.session) setSession(data.session);
+    if (lastError) throw new Error(lastError.message || 'Invalid or expired verification code.');
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, fullName?: string, role?: string) => {
